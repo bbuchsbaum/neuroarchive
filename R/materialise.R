@@ -74,17 +74,28 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 
   # Write payload datasets
   if (nrow(plan$datasets) > 0) {
-    for (i in seq_len(nrow(plan$datasets))) {
-      row <- plan$datasets[i, ]
-      key <- row$payload_key
-      if (!nzchar(key)) next
-      payload <- plan$payloads[[key]]
-      if (is.null(payload)) next
-
-      write_payload(row$path, payload, row$step_index)
-
-      plan$datasets$write_mode_effective[i] <- "eager"
-      plan$mark_payload_written(key)
+    idx <- seq_len(nrow(plan$datasets))
+    has_payload <- plan$datasets$payload_key != "" & !is.na(plan$datasets$payload_key)
+    steps <- sum(has_payload)
+    progress_enabled <- steps > 1 && !progressr::handlers_is_empty()
+    loop <- function() {
+      p <- if (progress_enabled) progressr::progressor(steps = steps) else NULL
+      for (i in idx) {
+        row <- plan$datasets[i, ]
+        key <- row$payload_key
+        if (!nzchar(key)) next
+        payload <- plan$payloads[[key]]
+        if (is.null(payload)) next
+        if (!is.null(p)) p(message = row$path)
+        write_payload(row$path, payload, row$step_index)
+        plan$datasets$write_mode_effective[i] <- "eager"
+        plan$mark_payload_written(key)
+      }
+    }
+    if (progress_enabled) {
+      progressr::with_progress(loop())
+    } else {
+      loop()
     }
   }
 

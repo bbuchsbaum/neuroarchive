@@ -95,3 +95,13 @@ test_that("mask voxel mismatch triggers error", {
     class = "lna_error_validation"
   )
 })
+
+test_that("core_write works with progress handlers", {
+  progressr::handlers(progressr::handler_void)
+  expect_silent(
+    progressr::with_progress(
+      core_write(x = 1, transforms = c("tA"))
+    )
+  )
+  progressr::handlers(NULL)
+})
