@@ -104,6 +104,11 @@ test_that("read_lna lazy=TRUE keeps file open", {
   neuroarchive:::close_h5_safely(handle$h5)
 })
 
+test_that("read_lna validates file argument", {
+  expect_error(read_lna(1), class = "lna_error_validation")
+  expect_error(read_lna(c("a", "b")), class = "lna_error_validation")
+})
+
 test_that("write_lna writes block_table dataset", {
   tmp <- local_tempfile(fileext = ".h5")
   arr <- array(1, dim = c(1, 1, 1))
