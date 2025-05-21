@@ -1,0 +1,25 @@
+Package: neuroarchive
+Type: Package
+Title: Latent NeuroArchive Data Format Tools
+Version: 0.1.0
+Author: Who wrote it
+Maintainer: The package maintainer <yourself@somewhere.net>
+Description: Tools for reading and writing Latent NeuroArchive (LNA) files.
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    hdf5r,
+    jsonlite,
+    Matrix,
+    rlang,
+    R6,
+    tibble,
+    progressr,
+    digest,
+    jsonvalidate,
+    withr
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
