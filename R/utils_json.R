@@ -103,3 +103,22 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
 
   invisible(NULL)
 } 
+#' Schema Cache Environment
+#'
+#' Creates an internal environment to store compiled JSON schemas.
+#' Only a clearing function is provided.
+#' @keywords internal
+.schema_cache <- new.env(parent = emptyenv())
+
+#' Clear the schema cache
+#'
+#' Removes all entries from the internal schema cache.
+#' Intended primarily for unit tests or to avoid stale compiled objects.
+#'
+#' @return invisible(NULL)
+#' @keywords internal
+schema_cache_clear <- function() {
+  rm(list = ls(envir = .schema_cache, all.names = TRUE), envir = .schema_cache)
+  invisible(NULL)
+}
+
