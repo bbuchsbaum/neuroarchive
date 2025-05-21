@@ -24,7 +24,7 @@ discover_transforms <- function(h5_group) {
   stopifnot(inherits(h5_group, "H5Group"))
 
   obj_names <- tryCatch({
-    h5_group$names()
+    names(h5_group)
   }, error = function(e) {
     print("Error occurred during h5_group$names():")
     print(conditionMessage(e))
@@ -47,8 +47,11 @@ discover_transforms <- function(h5_group) {
       # Consider warning or error? Spec says ensure NN_ is contiguous,
       # implies non-matching names might be an error or ignored.
       # Let's error for now if non-matching names are found.
-       stop(paste("Invalid object name found in /transforms: ", obj_names[i],
-                 ". Expected format NN_type.json."), call. = FALSE)
+      stop(paste0(
+        "Invalid object name found in /transforms: ",
+        obj_names[i],
+        ". Expected format NN_type.json."
+      ), call. = FALSE)
       # return(NULL) # Alternative: ignore non-matching files
     }
     full_name <- obj_names[i]
@@ -58,7 +61,10 @@ discover_transforms <- function(h5_group) {
     # Convert index, handle potential non-integer strings caught by regex (though unlikely)
     index_int <- suppressWarnings(as.integer(index_str))
     if (is.na(index_int)) {
-       stop(paste("Invalid numeric index found in transform name: ", full_name), call. = FALSE)
+      stop(paste0(
+        "Invalid numeric index found in transform name: ",
+        full_name
+      ), call. = FALSE)
     }
 
     list(name = full_name, type = type_str, index = index_int)
@@ -88,8 +94,10 @@ discover_transforms <- function(h5_group) {
   expected_indices <- seq(0, nrow(sorted_df) - 1)
   if (!identical(sorted_df$index, expected_indices)) {
     # TODO: Replace with lna:::abort_lna("lna_error_sequence", ...)
-    stop(paste("Transform descriptor indices are not contiguous starting from 0. Found indices:",
-               paste(sorted_df$index, collapse=", ")), call. = FALSE)
+    stop(paste0(
+      "Transform descriptor indices are not contiguous starting from 0. Found indices: ",
+      paste(sorted_df$index, collapse = ", ")
+    ), call. = FALSE)
   }
 
   # Convert to final tibble
