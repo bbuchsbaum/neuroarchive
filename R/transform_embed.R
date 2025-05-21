@@ -35,16 +35,19 @@ forward_step.embed <- function(type, desc, handle) {
   }
 
   run_id <- handle$current_run_id %||% "run-01"
+
   plan <- handle$plan
   step_index <- plan$next_index
   fname <- plan$get_next_filename(type)
   base_name <- tools::file_path_sans_ext(fname)
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
+
   params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
   desc$outputs <- c("coefficients")
+
   desc$datasets <- list(list(path = coef_path, role = "coefficients"))
 
   plan$add_descriptor(fname, desc)
@@ -53,10 +56,21 @@ forward_step.embed <- function(type, desc, handle) {
                        plan$origin_label, as.integer(step_index),
                        params_json, coef_path, "eager")
 
+  desc$params <- p
+  desc$datasets <- list(list(path = coeff_path, role = "coefficients"))
+
+  plan$add_descriptor(fname, desc)
+  plan$add_payload(coeff_path, coeff)
+  plan$add_dataset_def(coeff_path, "coefficients", type,
+                       run_id, as.integer(step_index),
+                       params_json, coeff_path, "eager")
+
+
   handle$plan <- plan
   handle$update_stash(keys = input_key,
                       new_values = list(coefficients = coeff))
 }
+
 
 #' Embed Transform - Inverse Step
 #'
@@ -103,3 +117,4 @@ invert_step.embed <- function(type, desc, handle) {
   handle$update_stash(keys = coeff_key,
                       new_values = setNames(list(dense), input_key))
 }
+
