@@ -26,3 +26,18 @@ test_that("quant transform forward and inverse roundtrip", {
   expect_equal(dim(out), dim(arr))
   expect_lt(mean(abs(out - arr)), 1)
 })
+
+test_that("quant transform supports sd method and voxel scope", {
+  arr <- array(runif(40), dim = c(2,2,2,5))
+  tmp <- local_tempfile(fileext = ".h5")
+
+  res <- write_lna(arr, file = tmp, transforms = "quant",
+                   transform_params = list(quant = list(method = "sd",
+                                                         scale_scope = "voxel")))
+  expect_equal(nrow(res$plan$datasets), 3)
+
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(dim(out), dim(arr))
+  expect_lt(mean(abs(out - arr)), 1)
+})
