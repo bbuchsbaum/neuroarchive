@@ -58,8 +58,11 @@ lna_reader <- R6::R6Class("lna_reader",
         subset_params$time_idx <- as.integer(core_read_args$time_idx)
       }
       self$subset_params <- subset_params
-      self$h5 <- open_h5(file, mode = "r")
-      runs_avail <- discover_run_ids(self$h5)
+
+      h5 <- open_h5(file, mode = "r")
+      on.exit(close_h5_safely(h5))
+
+      runs_avail <- discover_run_ids(h5)
       runs <- resolve_run_ids(core_read_args$run_id, runs_avail)
       if (length(runs) == 0) {
         abort_lna("run_id did not match any runs", .subclass = "lna_error_run_id")
@@ -68,8 +71,11 @@ lna_reader <- R6::R6Class("lna_reader",
         warning("Multiple runs matched; using first match for lazy reader")
         runs <- runs[1]
       }
+
       self$run_ids <- runs
       self$current_run_id <- runs[1]
+      self$h5 <- h5
+      on.exit(NULL, add = FALSE)
     },
 
     #' @description

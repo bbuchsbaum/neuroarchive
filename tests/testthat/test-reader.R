@@ -27,6 +27,25 @@ test_that("read_lna(lazy=TRUE) returns lna_reader", {
   reader$close()
 })
 
+test_that("lna_reader initialize closes file on failure", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  orig_open_h5 <- getFromNamespace("open_h5", "neuroarchive")
+  captured_h5 <- NULL
+  expect_error(
+    with_mocked_bindings(
+      open_h5 = function(file, mode = "r") {
+        captured_h5 <<- orig_open_h5(file, mode)
+        captured_h5
+      },
+      read_lna(tmp, run_id = "run-01", lazy = TRUE)
+    ),
+    class = "lna_error_run_id"
+  )
+  expect_true(inherits(captured_h5, "H5File"))
+  expect_false(captured_h5$is_valid())
+})
+
 
 test_that("lna_reader close is idempotent", {
   tmp <- local_tempfile(fileext = ".h5")
