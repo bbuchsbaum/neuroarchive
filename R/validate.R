@@ -34,7 +34,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
         location = sprintf("validate_lna:%s", file)
       )
     } else {
-      warning(msg)
+      warning(msg, call. = FALSE)
       issues <<- c(issues, msg)
       invisible(NULL)
     }
