@@ -57,6 +57,7 @@ forward_step.embed <- function(type, desc, handle) {
   }
 
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   fname <- plan$get_next_filename(type)
   base_name <- tools::file_path_sans_ext(fname)
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")

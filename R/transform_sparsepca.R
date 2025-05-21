@@ -41,8 +41,9 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   fname <- plan$get_next_filename(type)
   base <- tools::file_path_sans_ext(fname)
   basis_path <- paste0("/basis/", base, "/basis")
-  embed_path <- paste0("/scans/", handle$current_run_id %||% "run-01",
-                        "/", base, "/embedding")
+  run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
+  embed_path <- paste0("/scans/", run_id, "/", base, "/embedding")
   params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
 
   desc$version <- "1.0"
