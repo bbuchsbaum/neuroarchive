@@ -476,4 +476,107 @@ agg_dat <- read_lna("sub-01_task-all_agg_spca.lna.h5")
 
 ---
 
-This combined recipe illustrates how the modular transform system allows complex workflows, like cross-run aggregation followed by encoding, to be built by composing independent, well-defined transform steps. The key is careful definition of the `inputs` and `outputs` contract for each step.
+This combined recipe illustrates how the modular transform system allows complex workflows, like cross-run aggregation followed by encoding, to be built by composing independent, well-defined transform steps. The key is careful definition of the `inputs` and `outputs` contract for each step
+
+Addendum: Okay, here's an addendum to the recipe card, incorporating the detailed considerations and clarifications based on the LNA v1.4 specification.
+
+---
+
+## Addendum: Implementation Refinements & v1.4 Alignment
+
+This addendum provides further details and clarifications for implementing the `myorg.aggregate_runs` and `myorg.sparsepca` transforms, ensuring closer alignment with the LNA v1.4 specification and promoting robust inter-transform communication via the `DataHandle` stash.
+
+**1. Input Source for `myorg.aggregate_runs` (First Transform Convention):**
+
+*   **LNA v1.4 Implication:** The `myorg.aggregate_runs` transform, if used, *must* be the first transform in the `transforms` sequence specified in `write_lna`.
+*   **`core_write` Responsibility:**
+    *   When `write_lna` is called with a list of run objects (`x`), `core_write` should detect if the first transform is an aggregator (e.g., by a convention or a declared property of the transform).
+    *   If `transforms[1]` is `myorg.aggregate_runs`, `core_write` will place the entire input list `x` into `handle$stash` under a well-defined key (e.g., `initial_input_list`). The `forward_step.myorg.aggregate_runs` will then consume this key.
+    *   If `transforms[1]` is a standard per-run transform (like `myorg.sparsepca` used directly), `core_write` will iterate over each run in `x`, populating `handle$stash` with the *current run's data* (e.g., under `dense_mat`) before calling its `forward_step`.
+
+**2. Output Key for `invert_step.myorg.aggregate_runs`:**
+
+*   **LNA v1.4 Implication:** The `invert_step` for any transform `T` should aim to reproduce the data that was the *input* to `forward_step(T)`.
+*   When `myorg.aggregate_runs` is the first forward step, its inverse is the last inverse step.
+*   The data it outputs from its `invert_step` will be the final, reconstructed (aggregated) data that the user expects from `read_lna`. It should not introduce a new, arbitrary key name at this final stage unless it's explicitly part of its documented behavior (e.g., adding metadata alongside the data).
+
+**3. Dynamic HDF5 Path Naming for `myorg.sparsepca` Embeddings (`e_path`):**
+
+*   **LNA v1.4 Implication:** For flexibility and clarity, especially when `myorg.sparsepca` might operate on individual runs (without prior aggregation):
+    *   If `myorg.sparsepca` processes individual runs, `core_write` should make the current `run_id` (e.g., `run-01`, `run-02` as determined from `names(x)` or `run-XX` convention) available to `forward_step` (e.g., via `handle$current_run_id` or as an argument).
+    *   `forward_step.myorg.sparsepca` would then use this `run_id` to construct unique HDF5 paths, e.g., `/scans/${run_id}/embedding`.
+    *   When `myorg.aggregate_runs` *is* used, it effectively consumes all run-specific identities for subsequent steps. `myorg.sparsepca` then operates on this single aggregated entity. In this scenario, a non-run-specific path like `/scans/aggregated/embedding` or `/scans/derived/embedding` is appropriate, as used in the recipe. The `Plan`'s `origin_label` can also help contextualize these datasets.
+
+**4. Transform Parameter Defaulting Strategy:**
+
+*   **LNA v1.4 Mechanism:** The primary mechanism for defaults is `lna:::default_params(type)`, which reads `default` fields from the transform's JSON schema.
+*   **Custom Transform Packages:**
+    *   A transform package can provide `lna_default.MY_TYPE <- function() { lna:::default_params("MY_TYPE") }` to use schema defaults directly.
+    *   Alternatively, as shown in the recipe (`lna_default.myorg.sparsepca <- function() { list(...) }`), a transform can provide a function that returns a manually specified list of defaults. This is useful if defaults are more complex than what JSON schema `default` fields can express or if no schema is used for a very simple internal transform.
+    *   The merge order specified in `write_lna` (`transform_params` argument) remains: Schema defaults -> Package-level defaults (`lna_options()`) -> User-supplied list.
+
+**5. Refined Stash Management and Key Naming Conventions:**
+
+*   **Principle:** The `desc$outputs` from `forward_step(T_i)` should explicitly name the stash keys that `forward_step(T_{i+1})` will consume via its `desc$inputs`. The data associated with these keys in the stash should be the actual data payload or a direct representation needed by the next step.
+*   **Example Flow (`agg -> spca -> quant`):**
+
+    1.  **`core_write` Preparation:**
+        *   `handle$stash` contains `initial_input_list = list_of_run_arrays`.
+
+    2.  **`forward_step.myorg.aggregate_runs` (`desc_agg`, `handle`):**
+        *   **Consumes:** `X_list <- handle$get_inputs("initial_input_list")[["initial_input_list"]]`
+        *   **Computes:** `aggregated_data <- do_aggregation(X_list)`
+        *   **Descriptor:**
+            *   `desc_agg$inputs <- c("initial_input_list")`
+            *   `desc_agg$outputs <- c("aggregated_matrix_for_spca")` (This key is for the *next* step)
+        *   **Updates Stash:**
+            `handle <- handle$update_stash(outputs_to_add = list(aggregated_matrix_for_spca = aggregated_data), inputs_to_remove = c("initial_input_list"))`
+        *   Records `desc_agg` (with its params like `method`, `runs_included`) in `handle$plan`.
+
+    3.  **`forward_step.myorg.sparsepca` (`desc_spca`, `handle`):**
+        *   **Consumes:** `current_data <- handle$get_inputs("aggregated_matrix_for_spca")[["aggregated_matrix_for_spca"]]`
+        *   **Computes:** `fit <- spca(current_data)` leading to `basis_mat` and `embed_mat`.
+        *   **Writes to HDF5:** `basis_mat` (e.g., to `/basis/global_spca`), `embed_mat` (e.g., to `/scans/aggregated/spca_embedding`).
+        *   **Descriptor:**
+            *   `desc_spca$inputs <- c("aggregated_matrix_for_spca")`
+            *   `desc_spca$outputs <- c("embedding_for_quant")` (The `embed_mat` is what `quant` will act upon)
+        *   **Updates Stash:**
+            `handle <- handle$update_stash(outputs_to_add = list(embedding_for_quant = embed_mat), inputs_to_remove = c("aggregated_matrix_for_spca"))`
+        *   Records `desc_spca` in `handle$plan`.
+
+    4.  **`forward_step.quant` (`desc_quant`, `handle`):**
+        *   **Consumes:** `coeffs_to_quantize <- handle$get_inputs("embedding_for_quant")[["embedding_for_quant"]]`
+        *   **Computes:** `quantized_coeffs <- quantize(coeffs_to_quantize)`
+        *   **Writes to HDF5:** `quantized_coeffs` (and scale/offset if applicable).
+        *   **Descriptor:**
+            *   `desc_quant$inputs <- c("embedding_for_quant")`
+            *   `desc_quant$outputs <- c()` (If it's the last data-mutating step, it might not add new data to the stash for subsequent *forward* steps).
+        *   **Updates Stash:**
+            `handle <- handle$update_stash(inputs_to_remove = c("embedding_for_quant"))`
+        *   Records `desc_quant` in `handle$plan`.
+
+**6. Symmetric Stash Keys for Inverse Steps:**
+
+*   **Principle:** `invert_step(T_i)` should produce data in the stash under the key(s) that `forward_step(T_i)` *consumed* (i.e., `T_i$desc$inputs`). This ensures that `invert_step(T_{i-1})` can find its expected reconstructed input.
+*   **Example `invert_step.myorg.sparsepca`:**
+    *   Its forward step (`forward_step.myorg.sparsepca`) consumed `aggregated_matrix_for_spca`.
+    *   Its forward step produced `embedding_for_quant` (which `invert_step.quant` will have reconstructed and placed back into the stash as `embedding_for_quant`).
+    *   `invert_step.myorg.sparsepca` will:
+        1.  Load its basis from HDF5.
+        2.  Get `reconstructed_embedding <- handle$get_inputs("embedding_for_quant")[["embedding_for_quant"]]`.
+        3.  Compute `X_hat <- tcrossprod(reconstructed_embedding, basis)`.
+        4.  **Descriptor:** `desc$inputs` (from forward pass) was `c("aggregated_matrix_for_spca")`. `desc$outputs` (from forward pass) was `c("embedding_for_quant")`.
+        5.  **Updates Stash:**
+            `output_key_name <- desc$inputs[[1]] # "aggregated_matrix_for_spca"`
+            `outlist <- list(X_hat); names(outlist) <- output_key_name`
+            `handle <- handle$update_stash(outputs_to_add = outlist, inputs_to_remove = desc$outputs)` (remove `embedding_for_quant`)
+*   This `X_hat` (now under `aggregated_matrix_for_spca` in stash) is then available for `invert_step.myorg.aggregate_runs`.
+
+**7. `myorg.aggregate_runs` Forward Step - No Numeric Payloads to HDF5:**
+
+*   The recipe correctly states: `Typically does not add numeric payloads itself, as it just prepares data for the next step.`
+*   `myorg.aggregate_runs` primarily manipulates data within the `DataHandle` stash. Its primary record in the HDF5 file via the `Plan` is its descriptor JSON (containing parameters like `method` and `runs_included`), not HDF5 datasets of numerical data.
+
+By adhering to these refined conventions, especially regarding stash key management and the roles of `core_write` versus individual transforms, the LNA ecosystem can maintain clarity and robustness as more complex transform sequences are developed.
+
+.
