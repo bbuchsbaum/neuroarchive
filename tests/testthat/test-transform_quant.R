@@ -5,8 +5,7 @@ library(withr)
 
 
 test_that("default_params for quant loads schema", {
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   p <- neuroarchive:::default_params("quant")
   expect_equal(p$bits, 8)
   expect_equal(p$method, "range")
