@@ -19,7 +19,8 @@ Imports:
     progressr,
     digest,
     jsonvalidate,
-    withr
-Suggests: 
+    withr,
+    wavelets
+Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
