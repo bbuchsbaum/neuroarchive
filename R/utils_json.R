@@ -112,14 +112,16 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
 } 
 #' Schema Cache Environment
 #'
-#' Creates an internal environment to store compiled JSON schemas.
-#' Only a clearing function is provided.
+#' Internal environment used to store compiled JSON schema objects for
+#' transform validation.  It is not intended for direct use but can be
+#' emptied via [schema_cache_clear()] when needed (e.g. during unit
+#' testing).
 #' @keywords internal
 .schema_cache <- new.env(parent = emptyenv())
 
 #' Clear the schema cache
 #'
-#' Removes all entries from the internal schema cache.
+#' Removes all entries from the internal \code{.schema_cache} environment.
 #' Intended primarily for unit tests or to avoid stale compiled objects.
 #'
 #' @return invisible(NULL)
