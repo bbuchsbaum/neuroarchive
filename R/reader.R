@@ -143,11 +143,14 @@ lna_reader <- R6::R6Class("lna_reader",
             logical(1)
           )
         ]
-        handle_missing_methods(
+        skip_types <- handle_missing_methods(
           missing_methods,
           allow_plugins,
           location = sprintf("lna_reader:data:%s", self$file)
         )
+        if (length(skip_types) > 0) {
+          transforms <- transforms[!transforms$type %in% skip_types, , drop = FALSE]
+        }
       }
       if (nrow(transforms) > 0) {
         for (i in rev(seq_len(nrow(transforms)))) {

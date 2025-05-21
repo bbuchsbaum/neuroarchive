@@ -14,7 +14,9 @@ read_lna(file, run_id = NULL,
   \item{run_id}{Character vector of run identifiers or glob patterns.}
   \item{allow_plugins}{How to handle optional-package transforms.
   One of \code{"installed"} (default), \code{"none"}, or \code{"prompt"}.
-  Non-interactive sessions treat \code{"prompt"} as \code{"installed"}.}
+  Non-interactive sessions treat \code{"prompt"} as \code{"installed"}.
+  Missing implementations are skipped with a warning unless
+  \code{allow_plugins = "none"}.}
   \item{validate}{Logical flag for validation.}
   \item{output_dtype}{Desired output data type.}
   \item{roi_mask}{Optional ROI mask for subsetting.}
