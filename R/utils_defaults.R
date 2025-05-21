@@ -152,3 +152,11 @@ lna_default.quant <- function() {
 lna_default.basis <- function() {
   default_params("basis")
 }
+
+#' Default parameters for the 'embed' transform
+#'
+#' Convenience wrapper around `default_params("embed")`.
+#' @export
+lna_default.embed <- function() {
+  default_params("embed")
+}

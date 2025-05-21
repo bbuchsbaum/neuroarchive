@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for 'embed' transform",
+  "type": "object",
+  "properties": {
+    "basis_path": {"type": "string", "default": ""},
+    "center_data_with": {"type": ["string", "null"], "default": null},
+    "scale_data_with": {"type": ["string", "null"], "default": null}
+  },
+  "additionalProperties": false
+}
