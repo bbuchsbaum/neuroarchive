@@ -58,7 +58,25 @@ read_lna <- function(file, allow_plugins = c("warn", "off", "on"),
                      validate = FALSE,
                      output_dtype = c("float32", "float64", "float16"),
                      lazy = FALSE) {
-  core_read(file = file, allow_plugins = allow_plugins,
-            validate = validate, output_dtype = output_dtype,
-            lazy = lazy)
+  output_dtype <- match.arg(output_dtype)
+  allow_plugins <- match.arg(allow_plugins)
+
+  if (lazy) {
+    lna_reader$new(
+      file = file,
+      core_read_args = list(
+        allow_plugins = allow_plugins,
+        validate = validate,
+        output_dtype = output_dtype
+      )
+    )
+  } else {
+    core_read(
+      file = file,
+      allow_plugins = allow_plugins,
+      validate = validate,
+      output_dtype = output_dtype,
+      lazy = FALSE
+    )
+  }
 }
