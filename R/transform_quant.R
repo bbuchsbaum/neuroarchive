@@ -40,11 +40,6 @@ forward_step.quant <- function(type, desc, handle) {
       .subclass = "lna_error_validation",
       location = "forward_step.quant:scale_scope"
     )
-
-  if (!scope %in% c("global", "voxel")) {
-    warning(sprintf("unknown scale_scope '%s'; falling back to 'global'", scope))
-    scope <- "global"
-
   }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
