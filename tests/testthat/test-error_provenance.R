@@ -9,7 +9,7 @@ assign("forward_step.fail", forward_step.fail, envir = .GlobalEnv)
 withr::defer(rm("forward_step.fail", envir = .GlobalEnv))
 
 test_that("core_write reports step provenance", {
-  err <- expect_error(core_write(x = 1, transforms = "fail"))
+  err <- expect_error(core_write(x = array(1, dim = c(1, 1, 1)), transforms = "fail"))
   expect_true(grepl("forward_step.fail\[0\]", err$location))
 })
 

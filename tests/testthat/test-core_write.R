@@ -22,7 +22,7 @@ withr::defer({
 # Core test
 
 test_that("core_write executes forward loop and merges params", {
-  result <- core_write(x = 1, transforms = c("tA", "tB"), transform_params = list(tB = list(foo = "bar")))
+  result <- core_write(x = array(1, dim = c(1, 1, 1)), transforms = c("tA", "tB"), transform_params = list(tB = list(foo = "bar")))
   plan <- result$plan
   expect_equal(plan$next_index, 2L)
   expect_equal(length(plan$descriptors), 2)
@@ -40,7 +40,7 @@ test_that("transform_params merging honors precedence and deep merge", {
       list(a = 1, b = 2, nested = list(x = 0, y = 0))
     }, {
       res <- core_write(
-        x = 1,
+        x = array(1, dim = c(1, 1, 1)),
         transforms = c("tB"),
         transform_params = list(tB = list(b = 20, nested = list(y = 5)))
       )
@@ -55,7 +55,7 @@ test_that("transform_params merging honors precedence and deep merge", {
 
 test_that("unknown transform names in transform_params error", {
   expect_error(
-    core_write(x = 1, transforms = c("tA"), transform_params = list(tB = list())),
+    core_write(x = array(1, dim = c(1, 1, 1)), transforms = c("tA"), transform_params = list(tB = list())),
     class = "lna_error_validation"
   )
 })
@@ -71,7 +71,7 @@ test_that("unnamed list input generates run names accessible to forward_step", {
   assign("forward_step.runTest", forward_step.runTest, envir = .GlobalEnv)
   withr::defer(rm(forward_step.runTest, envir = .GlobalEnv))
 
-  res <- core_write(x = list(matrix(1), matrix(2)), transforms = "runTest")
+  res <- core_write(x = list(array(1, dim = c(1,1,1)), array(2, dim = c(1,1,1))), transforms = "runTest")
 
   expect_equal(captured$run_ids, c("run-01", "run-02"))
   expect_equal(captured$names, c("run-01", "run-02"))
@@ -100,7 +100,7 @@ test_that("core_write works with progress handlers", {
   progressr::handlers(progressr::handler_void)
   expect_silent(
     progressr::with_progress(
-      core_write(x = 1, transforms = c("tA"))
+      core_write(x = array(1, dim = c(1, 1, 1)), transforms = c("tA"))
     )
   )
   progressr::handlers(NULL)

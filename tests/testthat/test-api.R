@@ -5,7 +5,7 @@ library(withr)
 # Basic functionality test using actual file
 
 test_that("write_lna with file=NULL uses in-memory HDF5", {
-  result <- write_lna(x = 1, file = NULL, transforms = character(0))
+  result <- write_lna(x = array(1, dim = c(1, 1, 1)), file = NULL, transforms = character(0))
   expect_s3_class(result, "lna_write_result")
   expect_null(result$file)
   expect_true(inherits(result$plan, "Plan"))
@@ -13,7 +13,7 @@ test_that("write_lna with file=NULL uses in-memory HDF5", {
 
 test_that("write_lna writes header attributes to file", {
   tmp <- local_tempfile(fileext = ".h5")
-  result <- write_lna(x = 1, file = tmp, transforms = character(0),
+  result <- write_lna(x = array(1, dim = c(1, 1, 1)), file = tmp, transforms = character(0),
                       header = list(foo = 2L))
   expect_true(file.exists(tmp))
   h5 <- neuroarchive:::open_h5(tmp, mode = "r")
@@ -24,7 +24,7 @@ test_that("write_lna writes header attributes to file", {
 
 test_that("write_lna plugins list is written to /plugins", {
   tmp <- local_tempfile(fileext = ".h5")
-  write_lna(x = 1, file = tmp, transforms = character(0),
+  write_lna(x = array(1, dim = c(1, 1, 1)), file = tmp, transforms = character(0),
             plugins = list(myplugin = list(a = 1)))
   h5 <- neuroarchive:::open_h5(tmp, mode = "r")
   expect_true(h5$exists("plugins/myplugin.json"))
@@ -98,7 +98,7 @@ test_that("read_lna forwards arguments to core_read", {
 })
 
 test_that("read_lna lazy=TRUE keeps file open", {
-  result <- write_lna(x = 1, file = NULL, transforms = character(0))
+  result <- write_lna(x = array(1, dim = c(1, 1, 1)), file = NULL, transforms = character(0))
   handle <- read_lna(result$file, lazy = TRUE)
   expect_true(handle$h5$is_valid())
   neuroarchive:::close_h5_safely(handle$h5)
