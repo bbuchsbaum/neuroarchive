@@ -91,4 +91,72 @@ h5_attr_delete <- function(h5_obj, name) {
   }
 
   invisible(NULL)
-} 
+}
+
+#' Write a dataset to an HDF5 group
+#'
+#' @description Creates or overwrites a dataset at `path`, optionally using
+#'   chunking and gzip compression. Intermediate groups in `path` are created as
+#'   needed. If `chunk_dims` is `NULL`, a basic heuristic limits chunk dimensions
+#'   to at most 128 along each axis.
+#'
+#' @param h5_group An `H5Group` object used as the starting location for `path`.
+#' @param path Character string giving the dataset path relative to `h5_group`.
+#' @param data Numeric matrix/array to write.
+#' @param chunk_dims Optional integer vector specifying HDF5 chunk dimensions.
+#' @param compression_level Integer 0–9 giving gzip compression level.
+#' @return The created `H5D` dataset object (invisibly).
+h5_write_dataset <- function(h5_group, path, data,
+                             chunk_dims = NULL, compression_level = 0) {
+  stopifnot(inherits(h5_group, "H5Group"))
+  stopifnot(is.character(path), length(path) == 1)
+  stopifnot(is.numeric(compression_level), length(compression_level) == 1)
+
+  if (!is.array(data)) {
+    if (is.vector(data)) {
+      dim(data) <- length(data)
+    } else {
+      stop("`data` must be a matrix or array")
+    }
+  }
+
+  parts <- strsplit(path, "/")[[1]]
+  parts <- parts[nzchar(parts)]
+  stopifnot(length(parts) > 0)
+  ds_name <- tail(parts, 1)
+
+  grp <- h5_group
+  if (length(parts) > 1) {
+    for (g in parts[-length(parts)]) {
+      grp <- if (!grp$exists(g)) grp$create_group(g) else grp[[g]]
+    }
+  }
+
+  if (is.null(chunk_dims)) {
+    chunk_dims <- pmin(dim(data), rep(128L, length(dim(data))))
+  } else {
+    chunk_dims <- as.integer(chunk_dims)
+  }
+
+  create_fun <- function(level) {
+    grp$create_dataset(ds_name,
+                       data = data,
+                       chunk_dims = chunk_dims,
+                       gzip_level = level)
+  }
+
+  dset <- NULL
+  if (!is.null(compression_level) && compression_level > 0) {
+    dset <- tryCatch(create_fun(compression_level), error = function(e) {
+      warning("Compression filter unavailable, writing without compression")
+      NULL
+    })
+    if (is.null(dset)) {
+      dset <- create_fun(NULL)
+    }
+  } else {
+    dset <- create_fun(NULL)
+  }
+
+  invisible(dset)
+}
