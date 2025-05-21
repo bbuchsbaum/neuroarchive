@@ -89,9 +89,12 @@ write_lna <- function(x, file = NULL, transforms = character(),
 
   on.exit(neuroarchive:::close_h5_safely(h5))
 
+  plugins <- result$handle$meta$plugins
+  if (length(plugins) == 0) plugins <- NULL
+
   materialise_plan(h5, result$plan,
                    header = result$handle$meta$header,
-                   plugins = result$handle$meta$plugins)
+                   plugins = plugins)
 
 
   if (!is.null(block_table)) {
