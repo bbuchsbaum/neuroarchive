@@ -9,6 +9,11 @@ forward_step.quant <- function(type, desc, handle) {
   center <- p$center %||% TRUE
   scope <- p$scale_scope %||% "global"
 
+  if (!scope %in% c("global", "voxel")) {
+    warning(sprintf("unknown scale_scope '%s'; falling back to 'global'", scope))
+    scope <- "global"
+  }
+
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   x <- handle$get_inputs(input_key)[[1]]
 
