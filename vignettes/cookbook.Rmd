@@ -74,3 +74,63 @@ paths <- scaffold_transform("mycustom")
 
 This creates template files in `R/`, `inst/schemas/`, and `tests/` for a
 new transform implementation.
+
+## Temporal Transform Example
+
+```r
+# DCT temporal compression then quantisation
+temp_file <- "temporal_example.h5"
+write_lna(
+  x,
+  temp_file,
+  transforms = c("temporal", "quant"),
+  transform_params = list(temporal = list(kind = "dct", n_basis = 3))
+)
+
+# Read back the temporally compressed data
+read_lna(temp_file)
+```
+
+## Delta Transform Example
+
+```r
+# Compute first order differences along the time axis after quantisation
+delta_file <- "delta_example.h5"
+write_lna(
+  x,
+  delta_file,
+  transforms = c("quant", "delta"),
+  transform_params = list(delta = list(axis = 4))
+)
+
+read_lna(delta_file)
+```
+
+## Custom Sparse PCA Pipeline
+
+```r
+# Scaffold the example transforms (once per project)
+scaffold_transform("myorg.aggregate_runs")
+scaffold_transform("myorg.sparsepca")
+
+# After implementing forward_step and invert_step in the generated files
+# the transforms can be chained like any built-in step
+spca_file <- "spca_example.h5"
+write_lna(
+  list(run1 = x, run2 = x * 0.5),
+  spca_file,
+  transforms = c("myorg.aggregate_runs", "myorg.sparsepca", "quant"),
+  transform_params = list(`myorg.sparsepca` = list(k = 10))
+)
+```
+
+## Understanding `validate_lna()` Output
+
+```r
+# Validation returns TRUE when the file is sound
+validate_lna(spca_file)
+
+# With strict = FALSE all issues are reported instead of throwing
+issues <- validate_lna(spca_file, strict = FALSE)
+print(issues)
+```
