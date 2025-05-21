@@ -48,3 +48,7 @@ write.  This avoids collisions between concurrent writers.
 
 See `vignettes/cookbook.Rmd` for additional examples including ROI/time
 slicing with the lazy reader and scaffolding new transforms.
+
+### Validation and Fork Safety
+
+`validate_lna()` uses cached compiled JSON schemas. When running validation inside forked workers (e.g., with `future::plan(multicore)`), clear this cache in each worker using `lna:::schema_cache_clear()` to avoid potential fork-safety issues.
