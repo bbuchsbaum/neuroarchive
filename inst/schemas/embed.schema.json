@@ -3,9 +3,10 @@
   "title": "Parameters for 'embed' transform",
   "type": "object",
   "properties": {
-    "basis_path": {"type": "string", "default": ""},
+    "basis_path": {"type": "string"},
     "center_data_with": {"type": ["string", "null"], "default": null},
     "scale_data_with": {"type": ["string", "null"], "default": null}
   },
+  "required": ["basis_path"],
   "additionalProperties": false
 }

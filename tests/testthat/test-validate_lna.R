@@ -42,3 +42,31 @@ test_that("validate_lna detects checksum mismatch", {
   expect_error(validate_lna(tmp), class = "lna_error_validation")
   expect_true(validate_lna(tmp, checksum = FALSE))
 })
+
+# helper to create a file with basis and embed descriptors
+create_schema_lna <- function(path) {
+  h5 <- neuroarchive:::open_h5(path, mode = "w")
+  plan <- Plan$new()
+  plan$add_descriptor("00_basis.json", list(type = "basis",
+                                            params = list(basis_path = "foo")))
+  plan$add_descriptor("01_embed.json", list(type = "embed",
+                                            params = list(basis_path = "foo")))
+  materialise_plan(h5, plan, checksum = "none")
+}
+
+
+test_that("validate_lna validates descriptor schemas", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_schema_lna(tmp)
+  expect_true(validate_lna(tmp))
+})
+
+test_that("validate_lna fails on invalid descriptor", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
+  plan <- Plan$new()
+  plan$add_descriptor("00_basis.json", list(type = "basis",
+                                            params = list(method = "bogus")))
+  materialise_plan(h5, plan, checksum = "none")
+  expect_error(validate_lna(tmp), class = "lna_error_validation")
+})
