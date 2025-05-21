@@ -64,8 +64,9 @@ test_that("invert_step.embed errors when datasets are missing", {
     invert_step.embed("embed", desc, handle),
     class = "lna_error_contract",
     regexp = "not found"
-    )
-  }
+  )
+  h5$close_all()
+})
 
 test_that("invert_step.embed errors when datasets missing", {
   tmp <- local_tempfile(fileext = ".h5")
