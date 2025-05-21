@@ -1,0 +1,44 @@
+library(testthat)
+library(hdf5r)
+library(withr)
+
+# helper to create a simple valid LNA file
+create_valid_lna <- function(path, checksum = TRUE) {
+  h5 <- neuroarchive:::open_h5(path, mode = "w")
+  plan <- Plan$new()
+  plan$add_descriptor("00_dummy.json", list(type = "dummy"))
+  plan$add_payload("payload", matrix(1:4, nrow = 2))
+  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}",
+                      "payload", "eager")
+  materialise_plan(h5, plan, checksum = if (checksum) "sha256" else "none")
+}
+
+
+test_that("validate_lna succeeds on valid file", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  expect_true(validate_lna(tmp))
+})
+
+
+test_that("validate_lna detects spec mismatch", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  root <- h5[["/"]]
+  h5_attr_write(root, "lna_spec", "wrong")
+  neuroarchive:::close_h5_safely(h5)
+  expect_error(validate_lna(tmp), class = "lna_error_validation")
+})
+
+
+test_that("validate_lna detects checksum mismatch", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  root <- h5[["/"]]
+  h5_attr_write(root, "lna_checksum", "bogus")
+  neuroarchive:::close_h5_safely(h5)
+  expect_error(validate_lna(tmp), class = "lna_error_validation")
+  expect_true(validate_lna(tmp, checksum = FALSE))
+})
