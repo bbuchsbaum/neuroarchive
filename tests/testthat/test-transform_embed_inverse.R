@@ -47,3 +47,55 @@ test_that("read_lna applies roi_mask and time_idx for embed", {
   expect_equal(dim(out), c(2, sum(roi)))
   expect_equal(out, arr[c(2,4), roi])
 })
+
+test_that("invert_step.embed errors when datasets are missing", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  desc <- list(
+    type = "embed",
+    params = list(basis_path = "/missing/matrix"),
+    inputs = c("dense"),
+    outputs = c("coef")
+  )
+  handle <- DataHandle$new(initial_stash = list(coef = matrix(0, nrow = 1, ncol = 1)), h5 = h5)
+
+  expect_error(
+    invert_step.embed("embed", desc, handle),
+    class = "lna_error_contract",
+    regexp = "not found"
+  )
+  h5$close_all()
+})
+
+test_that("invert_step.embed applies scaling and centering", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  basis_mat <- diag(2)
+  center_vec <- c(5, 10)
+  scale_vec <- c(2, 4)
+  neuroarchive:::h5_write_dataset(h5, "/basis/mat", basis_mat)
+  neuroarchive:::h5_write_dataset(h5, "/basis/center", center_vec)
+  neuroarchive:::h5_write_dataset(h5, "/basis/scale", scale_vec)
+
+  desc <- list(
+    type = "embed",
+    params = list(
+      basis_path = "/basis/mat",
+      center_data_with = "/basis/center",
+      scale_data_with = "/basis/scale"
+    ),
+    inputs = c("dense_mat"),
+    outputs = c("coef")
+  )
+
+  coef_mat <- matrix(c(1,2,3,4), nrow = 2)
+  handle <- DataHandle$new(initial_stash = list(coef = coef_mat), h5 = h5)
+
+  h <- invert_step.embed("embed", desc, handle)
+
+  expected <- sweep(coef_mat %*% basis_mat, 2, scale_vec, "*")
+  expected <- sweep(expected, 2, center_vec, "+")
+  expect_equal(h$stash$dense_mat, expected)
+
+  h5$close_all()
+})

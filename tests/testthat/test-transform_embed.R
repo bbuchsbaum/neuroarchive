@@ -33,3 +33,18 @@ test_that("embed transform forward computes coefficients", {
   coeff <- plan$payloads[[coeff_path]]
   expect_equal(nrow(coeff), nrow(X))
 })
+
+test_that("embed transform requires numeric input", {
+  plan <- Plan$new()
+  basis_mat <- diag(2)
+  plan$add_payload("/basis/mat", basis_mat)
+  desc <- list(type = "embed", params = list(basis_path = "/basis/mat"))
+  handle <- DataHandle$new(initial_stash = list(input = matrix("a", nrow = 2, ncol = 2)),
+                           plan = plan)
+
+  expect_error(
+    forward_step.embed("embed", desc, handle),
+    class = "lna_error_validation",
+    regexp = "numeric input"
+  )
+})
