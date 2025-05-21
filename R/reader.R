@@ -60,7 +60,7 @@ lna_reader <- R6::R6Class("lna_reader",
       self$subset_params <- subset_params
 
       h5 <- open_h5(file, mode = "r")
-      on.exit(close_h5_safely(h5))
+        on.exit(neuroarchive:::close_h5_safely(h5))
 
       runs_avail <- discover_run_ids(h5)
       runs <- resolve_run_ids(core_read_args$run_id, runs_avail)
@@ -82,7 +82,7 @@ lna_reader <- R6::R6Class("lna_reader",
     #' Close the HDF5 handle. Safe to call multiple times.
     close = function() {
       if (!is.null(self$h5)) {
-        close_h5_safely(self$h5)
+          neuroarchive:::close_h5_safely(self$h5)
         self$h5 <- NULL
       }
       self$data_cache <- NULL

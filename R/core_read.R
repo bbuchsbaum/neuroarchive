@@ -40,7 +40,7 @@ core_read <- function(file, run_id = NULL,
   output_dtype <- match.arg(output_dtype)
   h5 <- open_h5(file, mode = "r")
   if (!lazy) {
-    on.exit(close_h5_safely(h5))
+    on.exit(neuroarchive:::close_h5_safely(h5))
   }
 
   available_runs <- discover_run_ids(h5)
