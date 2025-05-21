@@ -312,7 +312,7 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   # --- 1. Get Input (Dynamically) & Fit Sparse PCA ---
   # Determine input key based on expected upstream transform
   # Convention: Aggregation step outputs "aggregated_matrix", default input is "dense_mat"
-  input_key <- if (handle$exists("aggregated_matrix")) "aggregated_matrix" else "dense_mat"
+  input_key <- if (handle$has_key("aggregated_matrix")) "aggregated_matrix" else "dense_mat"
   inputs <- handle$get_inputs(input_key)
   X <- inputs[[input_key]] # nTime (or nTotalTime) x nVox matrix
 

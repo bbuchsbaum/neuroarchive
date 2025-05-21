@@ -18,7 +18,7 @@ forward_step.myorg.aggregate_runs <- function(type, desc, handle) {
 }
 
 invert_step.myorg.aggregate_runs <- function(type, desc, handle) {
-  if (!handle$exists("aggregated_matrix")) return(handle)
+  if (!handle$has_key("aggregated_matrix")) return(handle)
   X <- handle$get_inputs("aggregated_matrix")[[1]]
   handle$update_stash("aggregated_matrix", list(input = X))
 }

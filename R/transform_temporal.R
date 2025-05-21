@@ -95,7 +95,7 @@ invert_step.temporal <- function(type, desc, handle) {
 
   coeff_key <- desc$outputs[[1]] %||% "temporal_coefficients"
   input_key  <- desc$inputs[[1]] %||% "input"
-  if (!handle$exists(coeff_key)) {
+  if (!handle$has_key(coeff_key)) {
     return(handle)
   }
 
