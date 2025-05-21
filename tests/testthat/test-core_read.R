@@ -202,3 +202,43 @@ test_that("core_read run_id globbing lazy returns first", {
   neuroarchive:::close_h5_safely(h$h5)
 
 })
+
+test_that("core_read validate=TRUE checks dataset existence", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
+  tf <- h5$create_group("transforms")
+  desc <- list(type = "dummy",
+               datasets = list(list(path = "/scans/run-01/missing", role = "data")))
+  write_json_descriptor(tf, "00_dummy.json", desc)
+  neuroarchive:::close_h5_safely(h5)
+
+  with_mocked_bindings(
+    invert_step.dummy = function(type, desc, handle) handle,
+    {
+      expect_error(core_read(tmp, validate = TRUE),
+                   class = "lna_error_missing_path")
+      expect_silent(core_read(tmp, validate = FALSE))
+    }
+  )
+})
+
+test_that("core_read validate=TRUE checks required params", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
+  tf <- h5$create_group("transforms")
+  desc <- list(
+    type = "embed",
+    datasets = list(
+      list(path = "/basis/B", role = "basis_matrix"),
+      list(path = "/scans/run-01/coeff", role = "coefficients")
+    ),
+    params = list()
+  )
+  write_json_descriptor(tf, "00_embed.json", desc)
+  root <- h5[["/"]]
+  h5_write_dataset(root, "/basis/B", matrix(1))
+  h5_write_dataset(root, "/scans/run-01/coeff", matrix(1))
+  neuroarchive:::close_h5_safely(h5)
+
+  expect_error(core_read(tmp, validate = TRUE), class = "lna_error_descriptor")
+})

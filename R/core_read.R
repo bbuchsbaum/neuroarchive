@@ -103,6 +103,7 @@ core_read <- function(file, run_id = NULL,
           name <- transforms$name[[i]]
           type <- transforms$type[[i]]
           desc <- read_json_descriptor(tf_group, name)
+          if (validate) runtime_validate_step(type, desc, h5)
           handle <<- invert_step(type, desc, handle)
         }
       }
