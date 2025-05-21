@@ -9,6 +9,13 @@ forward_step.delta <- function(type, desc, handle) {
   axis <- p$axis %||% -1
   ref_store <- p$reference_value_storage %||% "first_value_verbatim"
   coding <- p$coding_method %||% "none"
+  if (!coding %in% c("none", "rle")) {
+    abort_lna(
+      sprintf("Unsupported coding_method '%s'", coding),
+      .subclass = "lna_error_validation",
+      location = "forward_step.delta:coding_method"
+    )
+  }
 
   if (!identical(order, 1L)) {
     abort_lna("only order=1 supported", .subclass = "lna_error_validation",
@@ -39,6 +46,7 @@ forward_step.delta <- function(type, desc, handle) {
   }
 
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   plan <- handle$plan
   fname <- plan$get_next_filename(type)
   base <- tools::file_path_sans_ext(fname)
@@ -83,6 +91,13 @@ invert_step.delta <- function(type, desc, handle) {
   axis <- p$axis %||% -1
   ref_store <- p$reference_value_storage %||% "first_value_verbatim"
   coding <- p$coding_method %||% "none"
+  if (!coding %in% c("none", "rle")) {
+    abort_lna(
+      sprintf("Unsupported coding_method '%s'", coding),
+      .subclass = "lna_error_validation",
+      location = "invert_step.delta:coding_method"
+    )
+  }
   dims <- p$orig_dims
   if (is.null(dims)) {
     abort_lna("orig_dims missing in descriptor", .subclass = "lna_error_descriptor",

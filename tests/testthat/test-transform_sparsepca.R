@@ -4,8 +4,7 @@ library(withr)
 
 
 test_that("default_params for myorg.sparsepca loads schema", {
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   p <- neuroarchive:::default_params("myorg.sparsepca")
   expect_equal(p$k, 50)
   expect_equal(p$alpha, 0.001)

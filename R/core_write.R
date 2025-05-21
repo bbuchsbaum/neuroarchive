@@ -18,50 +18,15 @@ core_write <- function(x, transforms, transform_params = list(),
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
 
-  # --- Validate and store mask ---
-  mask_array <- NULL
-  active_voxels <- NULL
-  if (!is.null(mask)) {
-    if (inherits(mask, "LogicalNeuroVol")) {
-      mask_array <- as.array(mask)
-    } else if (is.array(mask) && length(dim(mask)) == 3 && is.logical(mask)) {
-      mask_array <- mask
-    } else {
-      abort_lna(
-        "mask must be LogicalNeuroVol or 3D logical array",
-        .subclass = "lna_error_validation",
-        location = "core_write:mask"
-      )
-    }
-    active_voxels <- sum(mask_array)
-  }
-  if (!is.null(header)) {
-    stopifnot(is.list(header))
-    if (is.null(names(header)) || any(names(header) == "")) {
-      abort_lna(
-        "header must be a named list",
-        .subclass = "lna_error_validation",
-        location = "core_write:header"
-      )
-    }
-    header_list <- header
-  } else {
-    header_list <- list()
-  }
+  validate_input_data(x)
 
-  if (!is.null(plugins)) {
-    stopifnot(is.list(plugins))
-    if (is.null(names(plugins)) || any(names(plugins) == "")) {
-      abort_lna(
-        "plugins must be a named list",
-        .subclass = "lna_error_validation",
-        location = "core_write:plugins"
-      )
-    }
-    plugin_list <- plugins
-  } else {
-    plugin_list <- list()
-  }
+  mask_info <- validate_mask(mask)
+  mask_array <- mask_info$array
+  active_voxels <- mask_info$active_voxels
+
+  header_list <- validate_named_list(header, "header")
+
+  plugin_list <- validate_named_list(plugins, "plugins")
 
   # --- Determine run identifiers ---
   if (is.list(x)) {
@@ -74,6 +39,8 @@ core_write <- function(x, transforms, transform_params = list(),
   }
 
   if (!is.null(mask_array)) {
+    # Strict check: mask must cover all voxels of the input data. This
+    # may be relaxed when partial masking is supported.
     check_mask <- function(obj) {
       dims <- dim(obj)
       if (is.null(dims) || length(dims) < 3) {
@@ -133,4 +100,82 @@ core_write <- function(x, transforms, transform_params = list(),
   }
 
   list(handle = handle, plan = plan)
+}
+
+#' Validate and normalise mask argument
+#'
+#' @param mask Optional mask object.
+#' @return List with `array` and `active_voxels` entries.
+#' @keywords internal
+validate_mask <- function(mask) {
+  if (is.null(mask)) {
+    return(list(array = NULL, active_voxels = NULL))
+  }
+
+  if (inherits(mask, "LogicalNeuroVol")) {
+    arr <- as.array(mask)
+  } else if (is.array(mask) && length(dim(mask)) == 3 && is.logical(mask)) {
+    arr <- mask
+  } else {
+    abort_lna(
+      "mask must be LogicalNeuroVol or 3D logical array",
+      .subclass = "lna_error_validation",
+      location = "core_write:mask"
+    )
+  }
+
+  list(array = arr, active_voxels = sum(arr))
+}
+
+#' Validate optional named lists
+#'
+#' Used for the `header` and `plugins` arguments in `core_write`.
+#'
+#' @param lst List or `NULL`.
+#' @param field Field name used in error messages.
+#' @return The validated list or an empty list if `NULL`.
+#' @keywords internal
+validate_named_list <- function(lst, field) {
+  if (is.null(lst)) {
+    return(list())
+  }
+
+  stopifnot(is.list(lst))
+  if (is.null(names(lst)) || any(names(lst) == "")) {
+    abort_lna(
+      sprintf("%s must be a named list", field),
+      .subclass = "lna_error_validation",
+      location = sprintf("core_write:%s", field)
+    )
+  }
+  lst
+}
+
+#' Validate input data
+#'
+#' Ensures that `x` (or each element of a list `x`) has at least three
+#' dimensions. This prevents ambiguous handling of 2D matrices.
+#'
+#' @param x Input object for `core_write`.
+#' @keywords internal
+validate_input_data <- function(x) {
+  check_dims <- function(obj) {
+    dims <- dim(obj)
+    if (is.null(dims) || length(dims) < 3) {
+      abort_lna(
+        "input data must have at least 3 dimensions",
+        .subclass = "lna_error_validation",
+        location = "core_write:input"
+      )
+    }
+    invisible(TRUE)
+  }
+
+  if (is.list(x)) {
+    lapply(x, check_dims)
+  } else {
+    check_dims(x)
+  }
+
+  invisible(TRUE)
 }

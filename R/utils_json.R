@@ -24,17 +24,40 @@ read_json_descriptor <- function(h5_group, name) {
   json_string <- NULL
   parsed_list <- NULL
 
+  loc <- sprintf("read_json_descriptor:%s", name)
+
   tryCatch({
     json_string <- h5_read(h5_group, name)
 
     if (length(json_string) != 1 || !is.character(json_string)) {
-      stop(paste("Dataset '", name, "' did not contain a single string.", sep=""))
+      abort_lna(
+        sprintf("Dataset '%s' did not contain a single string.", name),
+        .subclass = "lna_error_invalid_descriptor",
+        location = loc
+      )
     }
 
-    parsed_list <- jsonlite::fromJSON(json_string, simplifyVector = TRUE, simplifyDataFrame = FALSE, simplifyMatrix = FALSE)
+    parsed_list <- jsonlite::fromJSON(
+      json_string,
+      simplifyVector = TRUE,
+      simplifyDataFrame = FALSE,
+      simplifyMatrix = FALSE
+    )
   }, error = function(e) {
-    detailed_error <- tryCatch(conditionMessage(e), error = function(e2) paste("Failed to get message:", e2$message))
-    stop(paste("Error reading/parsing JSON descriptor '", name, "': ", detailed_error, sep = ""))
+    detailed_error <- tryCatch(
+      conditionMessage(e),
+      error = function(e2) paste("Failed to get message:", e2$message)
+    )
+    abort_lna(
+      sprintf(
+        "Error reading/parsing JSON descriptor '%s': %s",
+        name,
+        detailed_error
+      ),
+      .subclass = "lna_error_json_parse",
+      location = loc,
+      parent = e
+    )
   })
 
   return(parsed_list)
@@ -89,14 +112,16 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
 } 
 #' Schema Cache Environment
 #'
-#' Creates an internal environment to store compiled JSON schemas.
-#' Only a clearing function is provided.
+#' Internal environment used to store compiled JSON schema objects for
+#' transform validation.  It is not intended for direct use but can be
+#' emptied via [schema_cache_clear()] when needed (e.g. during unit
+#' testing).
 #' @keywords internal
 .schema_cache <- new.env(parent = emptyenv())
 
 #' Clear the schema cache
 #'
-#' Removes all entries from the internal schema cache.
+#' Removes all entries from the internal \code{.schema_cache} environment.
 #' Intended primarily for unit tests or to avoid stale compiled objects.
 #'
 #' @return invisible(NULL)

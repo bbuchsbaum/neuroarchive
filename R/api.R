@@ -127,10 +127,15 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #' @param validate Logical flag for validation; forwarded to `core_read`.
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.
+#' @param roi_mask Optional ROI mask used to subset voxels before
+#'   applying transforms.
+#' @param time_idx Optional vector of time indices for subsetting
+#'   volumes prior to transformation.
 #' @param lazy Logical. If `TRUE`, the HDF5 file remains open and the
 #'   returned `lna_reader` can load data lazily.
-#' @return The result of `core_read`: a `DataHandle` for a single run or a list
-#'   of `DataHandle` objects when multiple runs are loaded.
+#' @return When `lazy = TRUE`, an `lna_reader` object.  Otherwise the result of
+#'   `core_read`: a `DataHandle` for a single run or a list of `DataHandle`
+#'   objects when multiple runs are loaded.
 #' @seealso write_lna, validate_lna
 #' @examples
 #' tmp <- tempfile(fileext = ".h5")
@@ -144,6 +149,13 @@ read_lna <- function(file, run_id = NULL,
                      output_dtype = c("float32", "float64", "float16"),
                      roi_mask = NULL, time_idx = NULL,
                      lazy = FALSE) {
+  if (!(is.character(file) && length(file) == 1)) {
+    abort_lna(
+      "file must be a path",
+      .subclass = "lna_error_validation",
+      location = "read_lna:file"
+    )
+  }
   output_dtype <- match.arg(output_dtype)
   allow_plugins <- match.arg(allow_plugins)
 

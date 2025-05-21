@@ -58,8 +58,11 @@ lna_reader <- R6::R6Class("lna_reader",
         subset_params$time_idx <- as.integer(core_read_args$time_idx)
       }
       self$subset_params <- subset_params
-      self$h5 <- open_h5(file, mode = "r")
-      runs_avail <- discover_run_ids(self$h5)
+
+      h5 <- open_h5(file, mode = "r")
+      on.exit(close_h5_safely(h5))
+
+      runs_avail <- discover_run_ids(h5)
       runs <- resolve_run_ids(core_read_args$run_id, runs_avail)
       if (length(runs) == 0) {
         abort_lna("run_id did not match any runs", .subclass = "lna_error_run_id")
@@ -68,8 +71,11 @@ lna_reader <- R6::R6Class("lna_reader",
         warning("Multiple runs matched; using first match for lazy reader")
         runs <- runs[1]
       }
+
       self$run_ids <- runs
       self$current_run_id <- runs[1]
+      self$h5 <- h5
+      on.exit(NULL, add = FALSE)
     },
 
     #' @description
@@ -79,6 +85,8 @@ lna_reader <- R6::R6Class("lna_reader",
         close_h5_safely(self$h5)
         self$h5 <- NULL
       }
+      self$data_cache <- NULL
+      self$cache_params <- NULL
       invisible(NULL)
     },
 
@@ -98,12 +106,31 @@ lna_reader <- R6::R6Class("lna_reader",
 
     #' @description
     #' Store subsetting parameters for later `$data()` calls.
+    #' Only `roi_mask` and `time_idx` are accepted.
     #' @param ... Named parameters such as `roi_mask`, `time_idx`
     subset = function(...) {
+      allowed <- c("roi_mask", "time_idx")
       args <- list(...)
       if (length(args) > 0) {
-        self$subset_params <- utils::modifyList(self$subset_params, args,
-                                                keep.null = TRUE)
+        if (is.null(names(args)) || any(names(args) == "")) {
+          abort_lna(
+            "subset parameters must be named",
+            .subclass = "lna_error_validation",
+            location = "lna_reader:subset"
+          )
+        }
+        unknown <- setdiff(names(args), allowed)
+        if (length(unknown) > 0) {
+          abort_lna(
+            paste0("Unknown subset parameter(s): ",
+                   paste(unknown, collapse = ", ")),
+            .subclass = "lna_error_validation",
+            location = "lna_reader:subset"
+          )
+        }
+        self$subset_params <- utils::modifyList(
+          self$subset_params, args, keep.null = TRUE
+        )
       }
       invisible(self)
     },
@@ -112,12 +139,20 @@ lna_reader <- R6::R6Class("lna_reader",
     #' Load and reconstruct data applying current subsetting.
     #' @param ... Optional subsetting parameters overriding stored ones
     #' @return A `DataHandle` object representing the loaded data
-    data = function(...) {
-      args <- list(...)
-      params <- self$subset_params
-      if (length(args) > 0) {
-        params <- utils::modifyList(params, args, keep.null = TRUE)
-      }
+      data = function(...) {
+        args <- list(...)
+        if (is.null(self$h5) || !self$h5$is_valid()) {
+          abort_lna(
+            "lna_reader is closed",
+            .subclass = "lna_error_closed_reader",
+            location = sprintf("lna_reader:data:%s", self$file)
+          )
+        }
+
+        params <- self$subset_params
+        if (length(args) > 0) {
+          params <- utils::modifyList(params, args, keep.null = TRUE)
+        }
       if (!is.null(self$data_cache) && identical(params, self$cache_params)) {
         return(self$data_cache)
       }
@@ -156,8 +191,9 @@ lna_reader <- R6::R6Class("lna_reader",
         for (i in rev(seq_len(nrow(transforms)))) {
           name <- transforms$name[[i]]
           type <- transforms$type[[i]]
+          step_idx <- transforms$index[[i]]
           desc <- read_json_descriptor(tf_group, name)
-          handle <- invert_step(type, desc, handle)
+          handle <- run_transform_step("invert", type, desc, handle, step_idx)
         }
       }
 

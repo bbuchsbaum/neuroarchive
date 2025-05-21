@@ -3,8 +3,7 @@ library(neuroarchive)
 
 
 test_that("default_params for embed loads schema", {
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   p <- neuroarchive:::default_params("embed")
   expect_equal(p$basis_path, "")
   expect_null(p$center_data_with)
@@ -36,6 +35,7 @@ test_that("embed transform forward computes coefficients", {
 
 test_that("embed transform requires numeric input", {
   plan <- Plan$new()
+
   basis_mat <- diag(2)
   plan$add_payload("/basis/mat", basis_mat)
   desc <- list(type = "embed", params = list(basis_path = "/basis/mat"))
@@ -46,5 +46,17 @@ test_that("embed transform requires numeric input", {
     forward_step.embed("embed", desc, handle),
     class = "lna_error_validation",
     regexp = "numeric input"
+    )
+
+  h <- DataHandle$new(initial_stash = list(input = matrix("a", nrow = 2)),
+                      plan = plan)
+  plan$add_payload("/basis/mat", diag(2))
+  desc <- list(type = "embed", params = list(basis_path = "/basis/mat"),
+               inputs = c("input"))
+  expect_error(
+    neuroarchive:::forward_step.embed("embed", desc, h),
+    class = "lna_error_validation",
+    regexp = "numeric"
+
   )
 })

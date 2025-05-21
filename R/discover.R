@@ -12,23 +12,30 @@
 #'   * `index` (integer): The zero-based index extracted from the name (e.g., 0).
 #'   Returns an empty tibble if the group is empty.
 #'
-#' @details Raises an error (currently `stop`, planned `lna_error_sequence`)
-#'   if names don't match the pattern or if the indices are not contiguous
-#'   starting from 0.
+#' @details
+#'   Invalid descriptor names or indices trigger errors. Sequence validation
+#'   uses `abort_lna()` and signals the subclass `lna_error_sequence` when the
+#'   numeric indices are not contiguous starting from zero. Other malformed
+#'   names currently raise standard errors via `stop()`.
 #'
 #' @import hdf5r
 #' @importFrom tibble tibble
 #' @keywords internal
 discover_transforms <- function(h5_group) {
-  print(paste("Input object class:", paste(class(h5_group), collapse=", ")))
   stopifnot(inherits(h5_group, "H5Group"))
 
   obj_names <- tryCatch({
     names(h5_group)
   }, error = function(e) {
+
     print("Error occurred during h5_group$names():")
     print(conditionMessage(e))
-    stop("Failed to list names in HDF5 group.", call. = FALSE)
+    abort_lna(
+      "Failed to list names in HDF5 group.",
+      .subclass = "lna_error_io",
+      location = "discover_transforms",
+      parent = e
+    )
   })
 
   # Handle empty group
@@ -47,11 +54,15 @@ discover_transforms <- function(h5_group) {
       # Consider warning or error? Spec says ensure NN_ is contiguous,
       # implies non-matching names might be an error or ignored.
       # Let's error for now if non-matching names are found.
-      stop(paste0(
-        "Invalid object name found in /transforms: ",
-        obj_names[i],
-        ". Expected format NN_type.json."
-      ), call. = FALSE)
+      abort_lna(
+        paste0(
+          "Invalid object name found in /transforms: ",
+          obj_names[i],
+          ". Expected format NN_type.json."
+        ),
+        .subclass = "lna_error_descriptor",
+        location = "discover_transforms"
+      )
       # return(NULL) # Alternative: ignore non-matching files
     }
     full_name <- obj_names[i]
@@ -61,10 +72,14 @@ discover_transforms <- function(h5_group) {
     # Convert index, handle potential non-integer strings caught by regex (though unlikely)
     index_int <- suppressWarnings(as.integer(index_str))
     if (is.na(index_int)) {
-      stop(paste0(
-        "Invalid numeric index found in transform name: ",
-        full_name
-      ), call. = FALSE)
+      abort_lna(
+        paste0(
+          "Invalid numeric index found in transform name: ",
+          full_name
+        ),
+        .subclass = "lna_error_descriptor",
+        location = "discover_transforms"
+      )
     }
 
     list(name = full_name, type = type_str, index = index_int)
@@ -77,7 +92,11 @@ discover_transforms <- function(h5_group) {
       # This case occurs if obj_names was not empty but nothing matched the pattern
       # and we chose to ignore non-matching names. Should probably error if we expect
       # all names to match.
-       stop("No valid transform descriptors (NN_type.json) found in non-empty /transforms group.", call. = FALSE)
+       abort_lna(
+         "No valid transform descriptors (NN_type.json) found in non-empty /transforms group.",
+         .subclass = "lna_error_descriptor",
+         location = "discover_transforms"
+       )
       # return(tibble::tibble(name = character(), type = character(), index = integer()))
   }
 

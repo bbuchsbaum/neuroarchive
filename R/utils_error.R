@@ -20,3 +20,8 @@ abort_lna <- function(message, ..., .subclass, location = NULL, parent = NULL) {
     parent = parent
   )
 }
+
+#' Error thrown when `lna_reader` methods are called after the reader is closed.
+#'
+#' @keywords internal
+lna_error_closed_reader <- NULL

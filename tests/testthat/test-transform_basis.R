@@ -3,8 +3,7 @@ library(neuroarchive)
 
 
 test_that("default_params for basis loads schema", {
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   p <- neuroarchive:::default_params("basis")
   expect_equal(p$method, "pca")
   expect_true(is.numeric(p$k))

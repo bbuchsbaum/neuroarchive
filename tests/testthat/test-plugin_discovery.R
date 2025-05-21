@@ -3,8 +3,7 @@ library(withr)
 
 # Ensure caches cleared between tests
 teardown({
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
   rm(list = ls(envir = schema_env), envir = schema_env)
 })

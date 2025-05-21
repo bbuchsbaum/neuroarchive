@@ -100,20 +100,22 @@ test_that("read_json_descriptor error handling works", {
   # 1. Read non-existent descriptor
   expect_error(
     read_json_descriptor(root_group_r, "missing_desc"),
-    "JSON descriptor dataset 'missing_desc' not found"
+    class = "lna_error_missing_path"
   )
 
   # 2. Read descriptor with invalid JSON
   expect_error(
     read_json_descriptor(root_group_r, "bad_desc"),
-    "Error reading/parsing JSON descriptor 'bad_desc'"
+    "bad_desc",
+    class = "lna_error_json_parse"
     # regexp = "lexical error: invalid character inside string" # Error msg might vary
   )
 
   # 3. Read descriptor that is not a string (or not scalar char)
   expect_error(
       read_json_descriptor(root_group_r, "numeric_desc"),
-      "Dataset 'numeric_desc' did not contain a single string."
+      "numeric_desc",
+      class = "lna_error_invalid_descriptor"
   )
 
   # Close file

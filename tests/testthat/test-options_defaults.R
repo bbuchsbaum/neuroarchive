@@ -7,8 +7,7 @@ opts_env <- get(".lna_opts", envir = neuroarchive:::lna_options_env)
 # Ensure a clean state
 teardown({
   rm(list = ls(envir = opts_env), envir = opts_env)
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
   rm(list = ls(envir = schema_env), envir = schema_env)
 })
@@ -31,9 +30,9 @@ test_that("lna_options set and get work", {
 # Test default_params caching behavior
 
 test_that("default_params warns and caches empty list when schema missing", {
+  neuroarchive:::default_param_cache_clear()
   cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
   schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
   rm(list = ls(envir = schema_env), envir = schema_env)
 
   expect_warning(p1 <- neuroarchive:::default_params("foo"), "not found")
@@ -46,9 +45,9 @@ test_that("default_params warns and caches empty list when schema missing", {
 })
 
 test_that("default_params loads defaults from schema and caches", {
+  neuroarchive:::default_param_cache_clear()
   cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
   schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
   rm(list = ls(envir = schema_env), envir = schema_env)
 
   expect_false("test" %in% ls(envir = cache_env))
@@ -59,4 +58,15 @@ test_that("default_params loads defaults from schema and caches", {
 
   d2 <- neuroarchive:::default_params("test")
   expect_identical(d1, d2)
+})
+
+test_that("defaults are extracted from array items", {
+  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
+  schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
+  rm(list = ls(envir = cache_env), envir = cache_env)
+  rm(list = ls(envir = schema_env), envir = schema_env)
+
+  d <- neuroarchive:::default_params("test_array")
+  expect_equal(d$numArray$items, 2)
+  expect_equal(d$objArray$items, list(flag = TRUE))
 })
