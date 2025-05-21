@@ -106,6 +106,13 @@ invert_step.quant <- function(type, desc, handle) {
 #' @keywords internal
 .quantize_global <- function(x, bits, method, center) {
   stopifnot(is.numeric(x))
+  if (any(!is.finite(x))) {
+    abort_lna(
+      "non-finite values found in input",
+      .subclass = "lna_error_validation",
+      location = ".quantize_global"
+    )
+  }
   rng <- range(x)
   m <- mean(x)
   s <- stats::sd(x)
@@ -140,6 +147,13 @@ invert_step.quant <- function(type, desc, handle) {
 #' Compute quantization parameters per voxel (time series)
 #' @keywords internal
 .quantize_voxel <- function(x, bits, method, center) {
+  if (any(!is.finite(x))) {
+    abort_lna(
+      "non-finite values found in input",
+      .subclass = "lna_error_validation",
+      location = ".quantize_voxel"
+    )
+  }
   dims <- dim(x)
   vox <- prod(dims[1:3])
   time <- dims[4]
