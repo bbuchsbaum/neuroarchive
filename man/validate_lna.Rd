@@ -19,6 +19,7 @@ in forked processes (for example with \code{future::plan(multicore)}),
 these cached objects may not be fork-safe. Clear the cache inside each
 worker with \code{lna:::schema_cache_clear()} before calling
 \code{validate_lna()}.}
+\seealso{\code{\link{write_lna}}, \code{\link{read_lna}}}
 \examples{
 validate_lna("ex.h5")
 }

@@ -24,6 +24,11 @@
 #'   `file.rename()` it to the final path once writing succeeds.
 #'   The underlying HDF5 handle is opened with mode `"w"` which
 #'   truncates any existing file at `file`.
+#' @seealso read_lna, validate_lna
+#' @examples
+#' tmp <- tempfile(fileext = ".h5")
+#' arr <- array(rnorm(16), dim = c(4, 4, 1, 1))
+#' write_lna(arr, tmp, transforms = "quant")
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
@@ -126,6 +131,12 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #'   returned `lna_reader` can load data lazily.
 #' @return The result of `core_read`: a `DataHandle` for a single run or a list
 #'   of `DataHandle` objects when multiple runs are loaded.
+#' @seealso write_lna, validate_lna
+#' @examples
+#' tmp <- tempfile(fileext = ".h5")
+#' arr <- array(rnorm(16), dim = c(4, 4, 1, 1))
+#' write_lna(arr, tmp, transforms = "quant")
+#' read_lna(tmp)
 #' @export
 read_lna <- function(file, run_id = NULL,
                      allow_plugins = c("installed", "none", "prompt"),

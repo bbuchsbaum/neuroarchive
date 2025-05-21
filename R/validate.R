@@ -13,6 +13,7 @@
 #'
 #' @return `TRUE` if validation succeeds. If `strict = FALSE` and problems are
 #'   found, a character vector of issue messages is returned instead.
+#' @seealso write_lna, read_lna
 #' @examples
 #' validate_lna("example.lna.h5")
 #' @export
