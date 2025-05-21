@@ -51,3 +51,25 @@ test_that("invert_step.quant applies roi_mask and time_idx", {
   out <- h$stash$input
   expect_equal(dim(out), c(sum(roi), 2))
 })
+
+test_that(".quantize_global handles constant arrays", {
+  x <- rep(5, 10)
+  res <- neuroarchive:::.quantize_global(x, bits = 8, method = "range", center = TRUE)
+  expect_equal(res$scale, 1)
+  expect_true(all(res$q == 0))
+
+  res2 <- neuroarchive:::.quantize_global(x, bits = 8, method = "range", center = FALSE)
+  expect_equal(res2$scale, 1)
+  expect_true(all(res2$q == 0))
+})
+
+test_that(".quantize_voxel handles constant arrays", {
+  arr <- array(5, dim = c(2,2,2,3))
+  res <- neuroarchive:::.quantize_voxel(arr, bits = 8, method = "range", center = TRUE)
+  expect_true(all(as.numeric(res$scale) == 1))
+  expect_true(all(res$q == 0))
+
+  res2 <- neuroarchive:::.quantize_voxel(arr, bits = 8, method = "range", center = FALSE)
+  expect_true(all(as.numeric(res2$scale) == 1))
+  expect_true(all(res2$q == 0))
+})

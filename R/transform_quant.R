@@ -128,9 +128,14 @@ invert_step.quant <- function(type, desc, handle) {
     offset <- lo
   }
 
-  q <- round((x - offset) / scale)
-  q[q < 0] <- 0L
-  q[q > 2^bits - 1] <- 2^bits - 1L
+  if (scale == 0) {
+    scale <- 1
+    q <- rep.int(0L, length(x))
+  } else {
+    q <- round((x - offset) / scale)
+    q[q < 0] <- 0L
+    q[q > 2^bits - 1] <- 2^bits - 1L
+  }
 
   list(q = q, scale = scale, offset = offset)
 }
@@ -164,9 +169,14 @@ invert_step.quant <- function(type, desc, handle) {
     offset <- lo
   }
 
-  q <- round((mat - offset) / scale)
-  q[q < 0] <- 0L
-  q[q > 2^bits - 1] <- 2^bits - 1L
+  zero_idx <- scale == 0
+  q <- matrix(0L, vox, time)
+  if (any(!zero_idx)) {
+    q[!zero_idx, ] <- round((mat[!zero_idx, , drop = FALSE] - offset[!zero_idx]) / scale[!zero_idx])
+    q[q < 0] <- 0L
+    q[q > 2^bits - 1] <- 2^bits - 1L
+  }
+  scale[zero_idx] <- 1
 
   arr_q <- array(as.integer(q), dim = dims)
   list(q = arr_q,
