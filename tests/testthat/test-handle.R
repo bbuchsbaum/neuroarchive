@@ -215,4 +215,17 @@ test_that("DataHandle update_stash provides immutability", {
   expect_false(identical(h1, h6)) # But object should be new (due to clone)
   expect_identical(h1$stash, h1_stash) # h1 unchanged
 
-}) 
+})
+
+test_that("DataHandle update_stash warns when overwriting without removal", {
+  h <- DataHandle$new(initial_stash = list(a = 1, b = 2))
+
+  expect_warning(
+    h2 <- h$update_stash(keys = character(0), new_values = list(a = 99)),
+    "Overwriting existing stash entries: a"
+  )
+
+  expect_equal(h2$stash$a, 99)
+  expect_equal(h2$stash$b, 2)
+  expect_identical(h$stash, list(a = 1, b = 2))
+})
