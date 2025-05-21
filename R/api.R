@@ -13,6 +13,7 @@
 #' @param transform_params Named list of transform parameters.
 #' @param mask Optional mask passed to `core_write`.
 #' @param header Optional named list of header attributes.
+#' @param plugins Optional named list saved under `/plugins/`.
 #' @param block_table Optional data frame specifying spatial block coordinates
 #'   stored at `/spatial/block_table`. Coordinate columns must contain
 #'   1-based voxel indices in masked space when a mask is provided.
@@ -25,7 +26,8 @@
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
-                      header = NULL, block_table = NULL) {
+                      header = NULL, plugins = NULL, block_table = NULL) {
+
   in_memory <- FALSE
   if (is.null(file)) {
     tmp <- tempfile(fileext = ".h5")
@@ -35,7 +37,7 @@ write_lna <- function(x, file = NULL, transforms = character(),
 
   result <- core_write(x = x, transforms = transforms,
                        transform_params = transform_params,
-                       mask = mask, header = header)
+                       mask = mask, header = header, plugins = plugins)
 
   if (!is.null(block_table)) {
     if (!is.data.frame(block_table)) {
@@ -78,11 +80,16 @@ write_lna <- function(x, file = NULL, transforms = character(),
   } else {
     h5 <- open_h5(file, mode = "w")
   }
-  materialise_plan(h5, result$plan, header = result$handle$meta$header)
+
+  materialise_plan(h5, result$plan,
+                   header = result$handle$meta$header,
+                   plugins = result$handle$meta$plugins)
+
 
   if (!is.null(block_table)) {
     h5_write_dataset(h5[["/"]], "spatial/block_table", as.matrix(block_table))
   }
+
   close_h5_safely(h5)
 
   out_file <- if (in_memory) NULL else file

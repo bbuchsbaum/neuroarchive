@@ -3,7 +3,8 @@
 \title{Write data to an LNA file}
 \usage{
 write_lna(x, file = NULL, transforms = character(),
-          transform_params = list(), mask = NULL, header = NULL)
+          transform_params = list(), mask = NULL, header = NULL,
+          plugins = NULL)
 }
 \arguments{
   \item{x}{Input object passed to \code{core_write}.}
@@ -12,6 +13,7 @@ write_lna(x, file = NULL, transforms = character(),
   \item{transform_params}{Named list of transform parameters.}
   \item{mask}{Optional mask passed to \code{core_write}.}
   \item{header}{Optional named list of header attributes.}
+  \item{plugins}{Optional named list saved to the \code{/plugins} group.}
 }
 \value{Invisibly returns a list with the output file and plan.}
 \description{Compresses and stores a neuroimaging object using the
