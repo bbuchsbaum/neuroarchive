@@ -1,8 +1,10 @@
 #' Sparse PCA Transform - Forward Step
 #'
-#' Performs a very simple sparse PCA using a truncated SVD as a stand in for
-#' a real sparse PCA algorithm. This example demonstrates how an external
-#' plugin transform might integrate with the LNA pipeline.
+#' Performs a sparse PCA on the input matrix. If the optional `sparsepca`
+#' package is available, the transform uses `sparsepca::spca()` to compute
+#' sparse loadings. Otherwise it falls back to a truncated SVD via `irlba`
+#' (or base `svd`). This example demonstrates how an external plugin transform
+#' might integrate with the LNA pipeline.
 #' @keywords internal
 forward_step.myorg.sparsepca <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -16,7 +18,12 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
     X <- as.matrix(X)
   }
 
-  if (requireNamespace("irlba", quietly = TRUE)) {
+  if (requireNamespace("sparsepca", quietly = TRUE)) {
+    fit <- sparsepca::spca(X, k = as.integer(k), alpha = alpha,
+                           verbose = FALSE)
+    basis <- fit$loadings
+    embed <- fit$scores
+  } else if (requireNamespace("irlba", quietly = TRUE)) {
     fit <- irlba::irlba(X, nv = as.integer(k))
     basis <- fit$v
     embed <- fit$u %*% diag(fit$d)
