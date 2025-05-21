@@ -1,5 +1,6 @@
 library(testthat)
 library(neuroarchive)
+
 library(hdf5r)
 library(withr)
 
@@ -9,6 +10,7 @@ test_that("default_params for delta loads schema", {
   rm(list = ls(envir = cache_env), envir = cache_env)
   p <- neuroarchive:::default_params("delta")
   expect_equal(p$order, 1)
+
   expect_true(is.numeric(p$axis))
   expect_equal(p$reference_value_storage, "first_value_verbatim")
 })
@@ -38,4 +40,10 @@ test_that("delta transform with rle coding works", {
   h <- read_lna(tmp)
   out <- h$stash$input
   expect_equal(out, arr)
+
+  expect_equal(p$axis, 4)
+  expect_equal(p$reference_value_storage, "first_value_verbatim")
+  expect_null(p$delta_quantization_bits)
+  expect_equal(p$coding_method, "none")
+
 })
