@@ -11,6 +11,15 @@ test_that("default_params for embed loads schema", {
   expect_null(p$scale_data_with)
 })
 
+test_that("embed transform errors when basis_path missing", {
+  X <- matrix(rnorm(10), nrow = 5)
+  expect_error(
+    core_write(X, transforms = "embed"),
+    class = "lna_error_validation",
+    regexp = "basis_path"
+  )
+})
+
 
 test_that("embed transform forward computes coefficients", {
   set.seed(1)
