@@ -9,9 +9,10 @@
 #' @param checksum Character string indicating checksum mode.
 #' @param header Optional named list of header attributes.
 #' @param plugins Optional named list of plugin metadata.
-#' @return Invisibly returns the `H5File` handle. When `checksum = "sha256"` the
-#'   handle is closed as part of digest computation and the returned object will
-#'   no longer be valid.
+
+#' @return Invisibly returns the `H5File` handle. When `checksum = "sha256"`
+#'   the handle is closed as part of computing the digest and the returned
+#'   handle will be invalid.
 #' @import hdf5r
 #' @keywords internal
 materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
@@ -19,7 +20,12 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
   if (!h5$is_valid()) {
-    stop("`h5` handle is not valid", call. = FALSE)
+
+    abort_lna(
+      "Provided HDF5 handle is not open or valid",
+      .subclass = "lna_error_validation",
+      location = "materialise_plan:h5"
+    )
   }
   stopifnot(inherits(plan, "Plan"))
   if (!is.null(header)) {
@@ -34,6 +40,37 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 
   # Create core groups
   if (h5$exists("transforms")) {
+    tf_group <- h5[["transforms"]]
+    if (!inherits(tf_group, "H5Group")) {
+      abort_lna(
+        "'/transforms' already exists and is not a group",
+        .subclass = "lna_error_validation",
+        location = "materialise_plan:transforms"
+      )
+    }
+  } else {
+    tf_group <- h5$create_group("transforms")
+  }
+  if (h5$exists("basis")) {
+    if (!inherits(h5[["basis"]], "H5Group")) {
+      abort_lna(
+        "'/basis' already exists and is not a group",
+        .subclass = "lna_error_validation",
+        location = "materialise_plan:basis"
+      )
+    }
+  } else {
+    h5$create_group("basis")
+  }
+  if (h5$exists("scans")) {
+    if (!inherits(h5[["scans"]], "H5Group")) {
+      abort_lna(
+        "'/scans' already exists and is not a group",
+        .subclass = "lna_error_validation",
+        location = "materialise_plan:scans"
+      )
+    }
+
     obj <- h5[["transforms"]]
     if (!inherits(obj, "H5Group")) {
       obj$close()
@@ -62,6 +99,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       stop("'/scans' exists but is not a group", call. = FALSE)
     }
     obj$close()
+
   } else {
     h5$create_group("scans")
   }
@@ -101,6 +139,12 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       }
     }
 
+
+    dtype <- guess_h5_type(data)
+    dtype_size <- dtype$get_size(variable_as_inf = FALSE)
+    if (!is.finite(dtype_size) || dtype_size <= 0) {
+      dtype_size <- 1L
+    }
     if (is.integer(data)) {
       dtype_size <- 4L
     } else if (is.double(data)) {
@@ -140,6 +184,8 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         location = sprintf("materialise_plan[%d]:%s", step_index, path),
         parent = res
       )
+    } else if (inherits(res, "H5D")) {
+      res$close()
     }
   }
 
@@ -157,7 +203,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         if (!nzchar(key)) next
         payload <- plan$payloads[[key]]
         if (is.null(payload)) {
-          warning(sprintf("Payload '%s' missing for dataset '%s'", key, row$path))
+          warning(sprintf("Payload '%s' missing; skipping dataset %s", key, row$path))
           next
         }
         if (!is.null(p)) p(message = row$path)
@@ -184,8 +230,12 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   if (!is.null(plugins) && length(plugins) > 0) {
     pl_grp <- if (!h5$exists("plugins")) h5$create_group("plugins") else h5[["plugins"]]
     for (nm in names(plugins)) {
-      if (grepl("/", nm, fixed = TRUE)) {
-        stop(sprintf("Invalid plugin name '%s'", nm), call. = FALSE)
+      if (grepl("/", nm)) {
+        abort_lna(
+          sprintf("Plugin name '%s' contains '/' which is not allowed", nm),
+          .subclass = "lna_error_validation",
+          location = sprintf("materialise_plan:plugin[%s]", nm)
+        )
       }
       write_json_descriptor(pl_grp, paste0(nm, ".json"), plugins[[nm]])
     }
