@@ -98,7 +98,8 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
     if (is.null(names(transform_params)) || any(names(transform_params) == "")) {
       abort_lna(
         "transform_params must be a named list",
-        .subclass = "lna_error_validation"
+        .subclass = "lna_error_validation",
+        location = "resolve_transform_params"
       )
     }
 
@@ -109,7 +110,8 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
           "Unknown transform(s) in transform_params: ",
           paste(unknown, collapse = ", ")
         ),
-        .subclass = "lna_error_validation"
+        .subclass = "lna_error_validation",
+        location = "resolve_transform_params"
       )
     }
   }

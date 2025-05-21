@@ -66,9 +66,14 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     }
 
     if (inherits(res, "error")) {
-      abort_lna(sprintf("Failed to write dataset '%s' (step %d): %s",
-                        path, step_index, conditionMessage(res)),
-                .subclass = "lna_error_hdf5_write")
+      abort_lna(
+        sprintf(
+          "Failed to write dataset '%s' (step %d): %s",
+          path, step_index, conditionMessage(res)
+        ),
+        .subclass = "lna_error_hdf5_write",
+        location = sprintf("materialise_plan:%s", path)
+      )
     }
   }
 

@@ -31,7 +31,8 @@ forward_step.default <- function(type, desc, handle) {
       "No forward_step method implemented for transform type: %s",
       type
     ),
-    .subclass = "lna_error_no_method"
+    .subclass = "lna_error_no_method",
+    location = sprintf("forward_step:%s", type)
   )
 }
 
@@ -61,6 +62,7 @@ invert_step.default <- function(type, desc, handle) {
       "No invert_step method implemented for transform type: %s",
       type
     ),
-    .subclass = "lna_error_no_method"
+    .subclass = "lna_error_no_method",
+    location = sprintf("invert_step:%s", type)
   )
 }

@@ -98,7 +98,8 @@ discover_transforms <- function(h5_group) {
         "Transform descriptor indices are not contiguous starting from 0. Found indices: ",
         paste(sorted_df$index, collapse = ", ")
       ),
-      .subclass = "lna_error_sequence"
+      .subclass = "lna_error_sequence",
+      location = "discover_transforms"
     )
   }
 

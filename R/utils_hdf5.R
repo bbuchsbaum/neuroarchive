@@ -263,7 +263,8 @@ assert_h5_path <- function(h5, path) {
   if (!h5$exists(path)) {
     abort_lna(
       sprintf("HDF5 path '%s' not found", path),
-      .subclass = "lna_error_missing_path"
+      .subclass = "lna_error_missing_path",
+      location = sprintf("assert_h5_path:%s", path)
     )
   }
   invisible(NULL)
@@ -297,7 +298,8 @@ map_dtype <- function(dtype) {
     uint64  = hdf5r::h5types$H5T_STD_U64LE,
     abort_lna(
       sprintf("Unknown dtype '%s'", dtype),
-      .subclass = "lna_error_validation"
+      .subclass = "lna_error_validation",
+      location = "map_dtype"
     )
   )
 }
@@ -322,7 +324,8 @@ guess_h5_type <- function(x) {
 
   abort_lna(
     "Unsupported object type for HDF5 storage",
-    .subclass = "lna_error_validation"
+    .subclass = "lna_error_validation",
+    location = "guess_h5_type"
   )
 }
 

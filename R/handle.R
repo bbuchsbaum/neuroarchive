@@ -80,7 +80,8 @@ DataHandle <- R6::R6Class("DataHandle",
             paste(missing_keys, collapse = ", ")
           ),
           .subclass = "lna_error_contract",
-          missing_keys = missing_keys
+          missing_keys = missing_keys,
+          location = "DataHandle$get_inputs"
         )
       }
       return(self$stash[keys])
