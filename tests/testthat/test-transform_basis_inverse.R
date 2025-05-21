@@ -6,6 +6,7 @@ library(withr)
 
 test_that("invert_step.basis reconstructs dense data for both storage orders", {
   coef_mat <- matrix(c(1,2,3,4), nrow = 2)
+
   base_mat_cxv <- matrix(c(1,0,0,1,1,1), nrow = 2) # component x voxel
   base_mat_vxc <- t(base_mat_cxv)                      # voxel x component
 
@@ -32,6 +33,18 @@ test_that("invert_step.basis reconstructs dense data for both storage orders", {
     expect_equal(h$stash$dense_mat, expected)
     h5$close_all()
   }
+
+  handle <- DataHandle$new(initial_stash = list(coef = coef_mat), h5 = h5)
+
+  h <- invert_step.basis("basis", desc, handle)
+
+  expect_true(h$has_key("dense_mat"))
+  expect_false(h$has_key("coef"))
+  expected <- tcrossprod(coef_mat, basis_mat)
+  expect_equal(h$stash$dense_mat, expected)
+
+  h5$close_all()
+
 })
 
 test_that("invert_step.basis applies subset", {

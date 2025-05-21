@@ -64,18 +64,18 @@ test_that("DataHandle initialization works correctly", {
 
 })
 
-test_that("DataHandle exists works correctly", {
+test_that("DataHandle has_key works correctly", {
   h <- DataHandle$new(initial_stash = list(a = 1, b = NULL))
 
-  expect_true(h$exists("a"))
-  expect_true(h$exists("b")) # Key exists even if value is NULL
-  expect_false(h$exists("c"))
-  expect_false(h$exists("stash")) # Should not find fields
+  expect_true(h$has_key("a"))
+  expect_true(h$has_key("b")) # Key exists even if value is NULL
+  expect_false(h$has_key("c"))
+  expect_false(h$has_key("stash")) # Should not find fields
 
   # Check error on invalid key type
-  expect_error(h$exists(123))
-  expect_error(h$exists(c("a", "b")))
-  expect_error(h$exists(list()))
+  expect_error(h$has_key(123))
+  expect_error(h$has_key(c("a", "b")))
+  expect_error(h$has_key(list()))
 })
 
 test_that("DataHandle get_inputs works correctly", {
@@ -163,6 +163,15 @@ test_that("DataHandle with method provides immutability", {
 
 })
 
+test_that("DataHandle $with works without class in search path", {
+  local_class <- DataHandle
+  h1 <- local_class$new(initial_stash = list(a = 1))
+  rm(DataHandle, envir = environment())
+  on.exit(assign("DataHandle", local_class, envir = environment()))
+  h2 <- h1$with(stash = list(b = 2))
+  expect_identical(h2$stash, list(b = 2))
+})
+
 test_that("DataHandle update_stash provides immutability", {
   # Initial object
   h1_stash <- list(a = 1, b = 2, c = 3)
@@ -215,4 +224,17 @@ test_that("DataHandle update_stash provides immutability", {
   expect_false(identical(h1, h6)) # But object should be new (due to clone)
   expect_identical(h1$stash, h1_stash) # h1 unchanged
 
-}) 
+})
+
+test_that("DataHandle update_stash warns when overwriting without removal", {
+  h <- DataHandle$new(initial_stash = list(a = 1, b = 2))
+
+  expect_warning(
+    h2 <- h$update_stash(keys = character(0), new_values = list(a = 99)),
+    "Overwriting existing stash entries: a"
+  )
+
+  expect_equal(h2$stash$a, 99)
+  expect_equal(h2$stash$b, 2)
+  expect_identical(h$stash, list(a = 1, b = 2))
+})
