@@ -112,12 +112,20 @@ lna_reader <- R6::R6Class("lna_reader",
     #' Load and reconstruct data applying current subsetting.
     #' @param ... Optional subsetting parameters overriding stored ones
     #' @return A `DataHandle` object representing the loaded data
-    data = function(...) {
-      args <- list(...)
-      params <- self$subset_params
-      if (length(args) > 0) {
-        params <- utils::modifyList(params, args, keep.null = TRUE)
-      }
+      data = function(...) {
+        args <- list(...)
+        if (is.null(self$h5) || !self$h5$is_valid()) {
+          abort_lna(
+            "lna_reader is closed",
+            .subclass = "lna_error_closed_reader",
+            location = sprintf("lna_reader:data:%s", self$file)
+          )
+        }
+
+        params <- self$subset_params
+        if (length(args) > 0) {
+          params <- utils::modifyList(params, args, keep.null = TRUE)
+        }
       if (!is.null(self$data_cache) && identical(params, self$cache_params)) {
         return(self$data_cache)
       }
