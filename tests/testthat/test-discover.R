@@ -117,7 +117,8 @@ test_that("discover_transforms errors on invalid names (no match)", {
 
   expect_error(
     discover_transforms(transforms_group),
-    "Invalid object name found in /transforms: invalid_name.txt. Expected format NN_type.json."
+    "Invalid object name found in /transforms: invalid_name.txt. Expected format NN_type.json.",
+    class = "lna_error_descriptor"
   )
 
   h5_file$close_all()
@@ -132,7 +133,8 @@ test_that("discover_transforms errors on non-numeric prefix", {
 
   expect_error(
     discover_transforms(transforms_group),
-    "Invalid object name found in /transforms: aa_mask.json. Expected format NN_type.json."
+    "Invalid object name found in /transforms: aa_mask.json. Expected format NN_type.json.",
+    class = "lna_error_descriptor"
   )
 
   h5_file$close_all()
@@ -148,7 +150,8 @@ test_that("discover_transforms errors if only invalid names found", {
   # Currently errors on the first invalid name found
   expect_error(
     discover_transforms(transforms_group),
-    "Invalid object name found in /transforms: aa.json. Expected format NN_type.json."
+    "Invalid object name found in /transforms: aa.json. Expected format NN_type.json.",
+    class = "lna_error_descriptor"
   )
 
   h5_file$close_all()
