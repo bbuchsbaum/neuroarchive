@@ -88,3 +88,9 @@ when `kind` matches `<kind>`.
 ### Validation and Fork Safety
 
 `validate_lna()` uses cached compiled JSON schemas. When running validation inside forked workers (e.g., with `future::plan(multicore)`), clear this cache in each worker using `lna:::schema_cache_clear()` to avoid potential fork-safety issues.
+
+### Running Unit Tests
+
+Unit tests require an R installation. Use the `run-tests.sh` helper script to
+execute them from the project root. If `R` is unavailable, the script will
+gracefully skip the tests.
