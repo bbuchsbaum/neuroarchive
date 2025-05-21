@@ -1,10 +1,12 @@
-#' Temporal Transform - Forward Step (DCT)
+#' Temporal Transform - Forward Step
 #'
-#' Projects data onto a discrete cosine transform basis.
+#' Projects data onto a temporal basis (DCT or B-spline).
 #' @keywords internal
 forward_step.temporal <- function(type, desc, handle) {
   p <- desc$params %||% list()
+  kind <- p$kind %||% "dct"
   n_basis <- p$n_basis
+  order <- p$order %||% 3
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
 
   X <- handle$get_inputs(input_key)[[1]]
@@ -22,7 +24,18 @@ forward_step.temporal <- function(type, desc, handle) {
   if (is.null(n_basis)) n_basis <- n_time
   n_basis <- min(n_basis, n_time)
 
-  basis <- .dct_basis(n_time, n_basis)
+  if (identical(kind, "dct")) {
+    basis <- .dct_basis(n_time, n_basis)
+  } else if (identical(kind, "bspline")) {
+    basis <- .bspline_basis(n_time, n_basis, order)
+  } else {
+    abort_lna(
+      sprintf("Unsupported temporal kind '%s'", kind),
+      .subclass = "lna_error_validation",
+      location = "forward_step.temporal:kind"
+    )
+  }
+
   coeff <- crossprod(basis, X)
 
   run_id <- handle$current_run_id %||% "run-01"
@@ -31,21 +44,32 @@ forward_step.temporal <- function(type, desc, handle) {
   base_name <- tools::file_path_sans_ext(fname)
   basis_path <- paste0("/temporal/", base_name, "/basis")
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
+  knots_path <- paste0("/temporal/", base_name, "/knots")
   params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
   desc$outputs <- c("temporal_coefficients")
-  desc$datasets <- list(
+  datasets <- list(
     list(path = basis_path, role = "temporal_basis"),
     list(path = coef_path, role = "temporal_coefficients")
   )
+  if (identical(kind, "bspline")) {
+    datasets[[length(datasets) + 1]] <- list(path = knots_path, role = "knots")
+  }
+  desc$datasets <- datasets
 
   plan$add_descriptor(fname, desc)
   plan$add_payload(basis_path, basis)
   plan$add_dataset_def(basis_path, "temporal_basis", type, run_id,
                        as.integer(plan$next_index), params_json,
                        basis_path, "eager")
+  if (identical(kind, "bspline")) {
+    plan$add_payload(knots_path, attr(basis, "knots"))
+    plan$add_dataset_def(knots_path, "knots", type, run_id,
+                         as.integer(plan$next_index), params_json,
+                         knots_path, "eager")
+  }
   plan$add_payload(coef_path, coeff)
   plan$add_dataset_def(coef_path, "temporal_coefficients", type, run_id,
                        as.integer(plan$next_index), params_json,
@@ -57,9 +81,9 @@ forward_step.temporal <- function(type, desc, handle) {
                                         temporal_coefficients = coeff))
 }
 
-#' Temporal Transform - Inverse Step (DCT)
+#' Temporal Transform - Inverse Step
 #'
-#' Reconstructs data from DCT coefficients using the stored basis.
+#' Reconstructs data from stored temporal basis coefficients.
 #' @keywords internal
 invert_step.temporal <- function(type, desc, handle) {
   basis_path <- NULL
@@ -112,4 +136,11 @@ invert_step.temporal <- function(type, desc, handle) {
   B <- sqrt(2 / n_time) * cos(outer(t, k, function(ti, ki) pi * ti * ki / n_time))
   B[,1] <- B[,1] / sqrt(2)
   B
+}
+
+#' Generate a B-spline basis matrix
+#' @keywords internal
+.bspline_basis <- function(n_time, n_basis, order) {
+  x <- seq_len(n_time)
+  splines::bs(x, df = n_basis, degree = order, intercept = TRUE)
 }

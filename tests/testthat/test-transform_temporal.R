@@ -41,3 +41,17 @@ test_that("default_params for temporal loads schema", {
   expect_true(is.numeric(p$n_basis))
 
 })
+
+test_that("temporal transform bspline roundtrip", {
+  set.seed(1)
+  X <- matrix(rnorm(60), nrow = 15, ncol = 4)
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(X, file = tmp, transforms = "temporal",
+            transform_params = list(temporal = list(kind = "bspline",
+                                                    n_basis = 8,
+                                                    order = 3)))
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(dim(out), dim(X))
+  expect_equal(out, X, tolerance = 1e-6)
+})
