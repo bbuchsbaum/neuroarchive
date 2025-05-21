@@ -63,13 +63,26 @@ core_read <- function(file, run_id = NULL,
     if (inherits(roi_mask, "LogicalNeuroVol")) {
       roi_mask <- as.array(roi_mask)
     }
+    if (!(is.logical(roi_mask) && (is.vector(roi_mask) ||
+                                   (is.array(roi_mask) && length(dim(roi_mask)) == 3)))) {
+      abort_lna(
+        "roi_mask must be logical vector or 3D logical array",
+        .subclass = "lna_error_validation",
+        location = "core_read:roi_mask"
+      )
+    }
     subset_params$roi_mask <- roi_mask
   }
   if (!is.null(time_idx)) {
+    if (!is.numeric(time_idx)) {
+      abort_lna(
+        "time_idx must be numeric",
+        .subclass = "lna_error_validation",
+        location = "core_read:time_idx"
+      )
+    }
     subset_params$time_idx <- as.integer(time_idx)
   }
-
-  handle <- DataHandle$new(h5 = h5, subset = subset_params)
 
   tf_group <- h5[["transforms"]]
 
@@ -92,7 +105,12 @@ core_read <- function(file, run_id = NULL,
   }
 
   process_run <- function(rid) {
-    handle <- DataHandle$new(h5 = h5, run_ids = runs, current_run_id = rid)
+    handle <- DataHandle$new(
+      h5 = h5,
+      subset = subset_params,
+      run_ids = runs,
+      current_run_id = rid
+    )
 
     if (nrow(transforms) > 0) {
       progress_enabled <- !progressr::handlers_is_empty()
@@ -104,10 +122,8 @@ core_read <- function(file, run_id = NULL,
           type <- transforms$type[[i]]
           step_idx <- transforms$index[[i]]
           desc <- read_json_descriptor(tf_group, name)
-
-          handle <<- run_transform_step("invert", type, desc, handle, step_idx)
           if (validate) runtime_validate_step(type, desc, h5)
-          handle <<- invert_step(type, desc, handle)
+          handle <- run_transform_step("invert", type, desc, handle, step_idx)
 
         }
       }
