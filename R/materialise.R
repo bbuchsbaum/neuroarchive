@@ -103,9 +103,8 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     chunk_dims <- NULL
 
     attempt <- function(level, chunks) {
-      ds <- h5_write_dataset(root, path, data, chunk_dims = chunks,
-                             compression_level = level)
-      if (inherits(ds, "H5D")) ds$close()
+      h5_write_dataset(root, path, data, chunk_dims = chunks,
+                       compression_level = level)
       NULL
     }
 
@@ -157,8 +156,6 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         location = sprintf("materialise_plan[%d]:%s", step_index, path),
         parent = res
       )
-    } else if (inherits(res, "H5D")) {
-      res$close()
     }
   }
 

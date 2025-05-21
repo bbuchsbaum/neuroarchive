@@ -171,7 +171,7 @@ reduce_chunk_dims <- function(chunk, dtype_size, target_bytes) {
 #' @param data Numeric matrix/array to write.
 #' @param chunk_dims Optional integer vector specifying HDF5 chunk dimensions.
 #' @param compression_level Integer 0–9 giving gzip compression level.
-#' @return The created `H5D` dataset object (invisibly).
+#' @return Invisibly returns `TRUE` on success.
 h5_write_dataset <- function(h5_group, path, data,
                              chunk_dims = NULL, compression_level = 0) {
   stopifnot(inherits(h5_group, "H5Group"))
@@ -225,7 +225,8 @@ h5_write_dataset <- function(h5_group, path, data,
     dset <- create_fun(NULL)
   }
 
-  invisible(dset)
+  if (inherits(dset, "H5D")) dset$close()
+  invisible(TRUE)
 }
 
 
