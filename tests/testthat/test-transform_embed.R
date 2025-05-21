@@ -33,3 +33,17 @@ test_that("embed transform forward computes coefficients", {
   coeff <- plan$payloads[[coeff_path]]
   expect_equal(nrow(coeff), nrow(X))
 })
+
+test_that("embed transform requires numeric input", {
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = matrix("a", nrow = 2)),
+                      plan = plan)
+  plan$add_payload("/basis/mat", diag(2))
+  desc <- list(type = "embed", params = list(basis_path = "/basis/mat"),
+               inputs = c("input"))
+  expect_error(
+    neuroarchive:::forward_step.embed("embed", desc, h),
+    class = "lna_error_validation",
+    regexp = "numeric"
+  )
+})
