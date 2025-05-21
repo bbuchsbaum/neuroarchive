@@ -167,44 +167,43 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
   merged
 }
 
-#' Default parameters for the 'quant' transform
-#'
-#' Convenience wrapper around `default_params("quant")`.
+#' @title Default parameters for the 'quant' transform
+#' @description Convenience wrapper around `default_params("quant")`.
+#' @seealso default_params
 #' @export
 lna_default.quant <- function() {
   default_params("quant")
 }
 
-#' Default parameters for the 'basis' transform
-#'
-#' Convenience wrapper around `default_params("basis")`.
+#' @title Default parameters for the 'basis' transform
+#' @description Convenience wrapper around `default_params("basis")`.
+#' @seealso default_params
 #' @export
 lna_default.basis <- function() {
   default_params("basis")
 }
 
-#' Default parameters for the 'embed' transform
-#'
-#' Convenience wrapper around `default_params("embed")`.
+#' @title Default parameters for the 'embed' transform
+#' @description Convenience wrapper around `default_params("embed")`.
+#' @seealso default_params
 #' @export
 lna_default.embed <- function() {
   default_params("embed")
 }
 
 
-#' Default parameters for the 'delta' transform
-#'
-#' Convenience wrapper around `default_params("delta")`.
+#' @title Default parameters for the 'delta' transform
+#' @description Convenience wrapper around `default_params("delta")`.
+#' @seealso default_params
 #' @export
 lna_default.delta <- function() {
   default_params("delta")
 }
 
-#' Default parameters for the 'temporal' transform
-#'
-#' Convenience wrapper around `default_params("temporal")`.
+#' @title Default parameters for the 'temporal' transform
+#' @description Convenience wrapper around `default_params("temporal")`.
+#' @seealso default_params
 #' @export
 lna_default.temporal <- function() {
   default_params("temporal")
-
 }
