@@ -1,10 +1,10 @@
-Okay, this is a great Phase 0 ticket list! It sets a very solid foundation.
-
-Now, let's define **Phase 1**, which will focus on making the LNA package *functional* for a basic end-to-end use case. This means implementing core data handling, the first real transform (e.g., `quant`), and fleshing out the stubs from Phase 0 related to actual data I/O and file finalization.
 
 ---
 
 # Milestone 1: End-to-End Basic Quantization - Implementation Tickets
+
+**Always chec off items when complete**
+
 
 **Epic M1-E1: Core Data I/O & `materialise_plan` Implementation**
 *Goal: Enable actual writing and reading of numerical data to/from HDF5, including compression and checksums, by fully implementing `materialise_plan` and related helpers.*
