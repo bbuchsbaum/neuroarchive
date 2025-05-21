@@ -48,6 +48,12 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
     }
   }
 
+  for (attr_name in c("creator", "required_transforms")) {
+    if (!h5_attr_exists(root, attr_name)) {
+      fail(sprintf("Missing %s attribute", attr_name))
+    }
+  }
+
   if (checksum && h5_attr_exists(root, "lna_checksum")) {
     stored <- h5_attr_read(root, "lna_checksum")
     if (is.character(file) && file.exists(file)) {
@@ -57,6 +63,19 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
       }
     } else {
       warning("Checksum requested but file path unavailable; skipping")
+    }
+  }
+
+  for (grp in c("transforms", "basis", "scans")) {
+    if (!h5$exists(grp)) {
+      fail(sprintf("Required group '%s' missing", grp))
+    }
+  }
+
+  optional_groups <- c("spatial", "plugins")
+  for (grp in optional_groups) {
+    if (h5$exists(grp)) {
+      NULL  # presence noted but no action; placeholder for future checks
     }
   }
 
@@ -90,6 +109,45 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
         if (!isTRUE(valid)) {
           fail(sprintf("Descriptor %s failed schema validation", nm))
         }
+
+        if (!is.null(desc$datasets)) {
+          for (ds in desc$datasets) {
+            path <- ds$path
+            if (is.null(path) || !nzchar(path)) next
+            if (!h5$exists(path)) {
+              fail(sprintf("Dataset '%s' referenced in %s missing", path, nm))
+              next
+            }
+
+            dset <- h5[[path]]
+            if (!is.null(ds$dims)) {
+              if (!identical(as.integer(ds$dims), as.integer(dset$dims))) {
+                fail(sprintf("Dimensions mismatch for dataset '%s'", path))
+              }
+            }
+
+            if (!is.null(ds$dtype)) {
+              dt <- dset$get_type()
+              class_id <- dt$get_class()
+              size <- dt$get_size()
+              actual <- switch(as.character(class_id),
+                `1` = paste0(ifelse(dt$get_sign() == "H5T_SGN_NONE", "u", ""),
+                              "int", size * 8),
+                `0` = paste0("float", size * 8),
+                "unknown" )
+              if (!identical(tolower(ds$dtype), actual)) {
+                fail(sprintf("Dtype mismatch for dataset '%s'", path))
+              }
+            }
+
+            data <- tryCatch(h5_read(root, path), error = function(e) NULL)
+            if (is.numeric(data)) {
+              if (all(is.na(data)) || all(data == 0)) {
+                fail(sprintf("Dataset '%s' contains only zeros/NaN", path))
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -99,5 +157,47 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
   }
 
   TRUE
+}
+
+#' Runtime validation for a transform step
+#'
+#' Checks dataset paths referenced in a descriptor and verifies that all
+#' required parameters are present before a transform is executed.
+#'
+#' @param type Transform type name.
+#' @param desc Descriptor list parsed from JSON.
+#' @param h5 An open `H5File` object.
+#' @return Invisibly `TRUE` or throws an error on validation failure.
+#' @keywords internal
+runtime_validate_step <- function(type, desc, h5) {
+  stopifnot(is.character(type), length(type) == 1)
+  stopifnot(is.list(desc))
+  stopifnot(inherits(h5, "H5File"))
+
+  root <- h5[["/"]]
+  if (!is.null(desc$datasets)) {
+    for (ds in desc$datasets) {
+      if (!is.null(ds$path)) {
+        assert_h5_path(root, ds$path)
+      }
+    }
+  }
+
+  req <- required_params(type)
+  params <- desc$params %||% list()
+  missing <- setdiff(req, names(params))
+  if (length(missing) > 0) {
+    abort_lna(
+      paste0(
+        "Descriptor for transform '", type,
+        "' missing required parameter(s): ",
+        paste(missing, collapse = ", ")
+      ),
+      .subclass = "lna_error_descriptor",
+      location = sprintf("runtime_validate_step:%s", type)
+    )
+  }
+
+  invisible(TRUE)
 }
 

@@ -96,3 +96,33 @@ test_that("validate_lna strict=TRUE errors on first issue", {
 
   expect_error(validate_lna(tmp, strict = TRUE), class = "lna_error_validation")
 })
+
+test_that("validate_lna detects missing required groups", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  h5$link_delete("basis")
+  neuroarchive:::close_h5_safely(h5)
+  expect_error(validate_lna(tmp), class = "lna_error_validation")
+})
+
+test_that("validate_lna detects missing dataset referenced by descriptor", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  h5$link_delete("scans/run-01/data")
+  neuroarchive:::close_h5_safely(h5)
+  expect_error(validate_lna(tmp), class = "lna_error_validation")
+})
+
+test_that("validate_lna detects dimension mismatch hints", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  tf <- h5[["transforms"]]
+  desc <- read_json_descriptor(tf, "00_dummy.json")
+  desc$datasets[[1]]$dims <- c(1L, 1L)
+  write_json_descriptor(tf, "00_dummy.json", desc)
+  neuroarchive:::close_h5_safely(h5)
+  expect_error(validate_lna(tmp), class = "lna_error_validation")
+})
