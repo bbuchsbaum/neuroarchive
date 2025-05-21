@@ -134,3 +134,11 @@ test_that("lna_reader$data allow_plugins='prompt' interactive respects choice", 
   )
   reader$close()
 })
+
+test_that("lna_reader$data errors when called after close", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  reader <- read_lna(tmp, lazy = TRUE)
+  reader$close()
+  expect_error(reader$data(), class = "lna_error_closed_reader")
+})
