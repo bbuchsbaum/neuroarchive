@@ -1,6 +1,6 @@
 #' Temporal Transform - Forward Step
 #'
-#' Projects data onto a temporal basis (DCT or B-spline).
+#' Projects data onto a temporal basis (DCT, B-spline, DPSS, polynomial, or wavelet).
 #' @keywords internal
 forward_step.temporal <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -28,6 +28,17 @@ forward_step.temporal <- function(type, desc, handle) {
     basis <- .dct_basis(n_time, n_basis)
   } else if (identical(kind, "bspline")) {
     basis <- .bspline_basis(n_time, n_basis, order)
+  } else if (identical(kind, "dpss")) {
+    nw <- p$time_bandwidth_product %||% 3
+    n_tapers <- p$n_tapers %||% n_basis
+    n_basis <- min(n_basis, n_tapers, n_time)
+    basis <- .dpss_basis(n_time, n_basis, nw)
+  } else if (identical(kind, "polynomial")) {
+    basis <- .polynomial_basis(n_time, n_basis)
+  } else if (identical(kind, "wavelet")) {
+    wavelet_name <- p$wavelet %||% "db4"
+    basis <- .wavelet_basis(n_time, wavelet_name)
+    n_basis <- ncol(basis)
   } else {
     abort_lna(
       sprintf("Unsupported temporal kind '%s'", kind),
@@ -35,6 +46,9 @@ forward_step.temporal <- function(type, desc, handle) {
       location = "forward_step.temporal:kind"
     )
   }
+
+  basis <- temporal_basis(kind, n_time, n_basis, order = order)
+
 
   coeff <- crossprod(basis, X)
 
@@ -143,4 +157,117 @@ invert_step.temporal <- function(type, desc, handle) {
 .bspline_basis <- function(n_time, n_basis, order) {
   x <- seq_len(n_time)
   splines::bs(x, df = n_basis, degree = order, intercept = TRUE)
+}
+
+
+#' Generate DPSS basis matrix
+#' @keywords internal
+.dpss_basis <- function(n_time, n_basis, nw) {
+  W <- nw / n_time
+  m <- seq_len(n_time) - 1
+  S <- outer(m, m, function(i, j) {
+    if (i == j) {
+      2 * W
+    } else {
+      sin(2 * pi * W * (i - j)) / (pi * (i - j))
+    }
+  })
+  eig <- eigen(S, symmetric = TRUE)
+  eig$vectors[, seq_len(n_basis), drop = FALSE]
+}
+
+#' Generate orthogonal polynomial basis matrix
+#' @keywords internal
+.polynomial_basis <- function(n_time, n_basis) {
+  degree <- max(n_basis - 1, 0)
+  const <- matrix(rep(1 / sqrt(n_time), n_time), ncol = 1)
+  if (degree > 0) {
+    P <- stats::poly(seq_len(n_time), degree = degree, simple = TRUE)
+    cbind(const, P)
+  } else {
+    const
+  }
+}
+
+#' Generate Daubechies wavelet basis matrix
+#'
+#' Daubechies 4 ("db4") tends to balance temporal resolution and smoothness
+#' for fMRI applications, so it is used as the default.
+#' @keywords internal
+.wavelet_basis <- function(n_time, wavelet = "db4") {
+  if (!identical(wavelet, "db4")) {
+    abort_lna(sprintf("Unsupported wavelet '%s'", wavelet),
+              .subclass = "lna_error_validation",
+              location = ".wavelet_basis")
+  }
+  if (log2(n_time) %% 1 != 0) {
+    abort_lna("wavelet basis requires power-of-two length",
+              .subclass = "lna_error_validation",
+              location = ".wavelet_basis")
+  }
+  h <- c(0.48296291314469025, 0.8365163037378079,
+          0.22414386804201339, -0.12940952255126034)
+  g <- c(-0.12940952255126034, -0.22414386804201339,
+          0.8365163037378079, -0.48296291314469025)
+  L <- length(h)
+  dwt_single <- function(x) {
+    n <- length(x)
+    J <- log2(n)
+    res <- numeric(n)
+    offset <- 0
+    for (level in seq_len(J)) {
+      n_curr <- n / 2^(level - 1)
+      cA <- numeric(n_curr/2)
+      cD <- numeric(n_curr/2)
+      for (k in seq_len(n_curr/2)) {
+        idx <- (2 * k - 1) + seq_len(L) - 1
+        idx <- ((idx - 1) %% n_curr) + 1
+        cA[k] <- sum(h * x[idx])
+        cD[k] <- sum(g * x[idx])
+      }
+      res[(offset + 1):(offset + n_curr/2)] <- cD
+      offset <- offset + n_curr/2
+      x[seq_len(n_curr/2)] <- cA
+    }
+    res[offset + 1] <- x[1]
+    res
+  }
+  I <- diag(n_time)
+  apply(I, 2, dwt_single)
+
+#' Generate temporal basis matrix
+#'
+#' Dispatches on \code{kind} to create a temporal basis. Package authors can
+#' extend this generic by defining methods named \code{temporal_basis.<kind>}.
+#'
+#' @param kind Character scalar identifying the basis type.
+#' @param n_time Integer number of time points.
+#' @param n_basis Integer number of basis functions.
+#' @param ... Additional arguments passed to methods.
+#' @return A basis matrix with dimensions \code{n_time x n_basis}.
+#' @export
+temporal_basis <- function(kind, n_time, n_basis, ...) {
+  stopifnot(is.character(kind), length(kind) == 1)
+  obj <- structure(kind, class = c(kind, "character"))
+  UseMethod("temporal_basis", obj)
+}
+
+#' @export
+temporal_basis.dct <- function(kind, n_time, n_basis, ...) {
+  .dct_basis(n_time, n_basis)
+}
+
+#' @export
+temporal_basis.bspline <- function(kind, n_time, n_basis, order = 3, ...) {
+  .bspline_basis(n_time, n_basis, order)
+}
+
+#' @export
+temporal_basis.default <- function(kind, n_time, n_basis, ...) {
+  abort_lna(
+    sprintf("Unsupported temporal kind '%s'", kind),
+    .subclass = "lna_error_validation",
+    location = "temporal_basis:kind"
+  )
+
 }

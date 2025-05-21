@@ -77,6 +77,14 @@ write.  This avoids collisions between concurrent writers.
 See `vignettes/cookbook.Rmd` for additional examples including ROI/time
 slicing with the lazy reader and scaffolding new transforms.
 
+### Extending Temporal Basis Types
+
+Packages can provide additional temporal basis kinds by defining functions of
+the form `temporal_basis.<kind>()`. These methods should return a matrix with
+`n_time` rows and `n_basis` columns. The generic `temporal_basis()` is used by
+the core `temporal` transform and will dispatch to these user-defined methods
+when `kind` matches `<kind>`.
+
 ### Validation and Fork Safety
 
 `validate_lna()` uses cached compiled JSON schemas. When running validation inside forked workers (e.g., with `future::plan(multicore)`), clear this cache in each worker using `lna:::schema_cache_clear()` to avoid potential fork-safety issues.

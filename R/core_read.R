@@ -10,9 +10,12 @@
 #'   against available run groups under `/scans`.
 #' @param allow_plugins Character. How to handle transforms requiring
 #'   external packages. One of "installed" (default), "none", or "prompt".
-#'   "none" errors on missing implementations. "installed" warns and
-#'   proceeds if a transform implementation is unavailable. "prompt"
-#'   behaves like "installed" when \code{!rlang::is_interactive()}.
+#'   "installed" attempts to use a transform if its implementation is
+#'   available, issuing a warning when missing. "prompt" in interactive
+#'   sessions asks whether to continue when a transform implementation is
+#'   missing (non-affirmative answers abort). Non-interactive sessions treat
+#'   "prompt" the same as "installed". "none" errors immediately when an
+#'   implementation is missing.
 #' @param validate Logical flag indicating if validation should be
 #'   performed via `validate_lna()` before reading.
 #' @param output_dtype Desired output data type. One of
@@ -79,16 +82,13 @@ core_read <- function(file, run_id = NULL,
       logical(1)
     )
   ]
-  if (length(missing_methods) > 0) {
-    msg <- paste0(
-      "Missing invert_step implementation for transform(s): ",
-      paste(unique(missing_methods), collapse = ", ")
-    )
-    if (identical(allow_plugins, "none")) {
-      abort_lna(msg, .subclass = "lna_error_no_method")
-    } else {
-      warning(msg)
-    }
+  skip_types <- handle_missing_methods(
+    missing_methods,
+    allow_plugins,
+    location = sprintf("core_read:%s", file)
+  )
+  if (length(skip_types) > 0) {
+    transforms <- transforms[!transforms$type %in% skip_types, , drop = FALSE]
   }
 
   process_run <- function(rid) {

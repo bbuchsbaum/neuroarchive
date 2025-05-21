@@ -579,4 +579,51 @@ This addendum provides further details and clarifications for implementing the `
 
 By adhering to these refined conventions, especially regarding stash key management and the roles of `core_write` versus individual transforms, the LNA ecosystem can maintain clarity and robustness as more complex transform sequences are developed.
 
-.
+.Below is a self-contained “Recipe Card” you can paste into your wiki or docs/ folder, followed by a short Addendum that captures caveats, pro-tips, and links back to the relevant paragraphs of the LNA v1.4 spec + coding blueprint.
+
+⸻
+
+📄 Recipe Card — Adding a New LNA Transform
+
+Goal: Take any clever encoder/decoder you’ve written (Sparse PCA, Oct-tree PCA, tiny Conv-AE, …) and make it a first-class step in the LNA pipeline so write_lna() and read_lna() pick it up automatically.
+
+Step	What you write	Where	Why
+1. Pick a stable type name	e.g. "myorg.octree_pca"  (namespace + short slug)	In every descriptor & function name	Avoid clashes with core types (quant, basis, …).
+2. Draft a JSON-Schema	inst/schemas/myorg.octree_pca.schema.json	Defines allowed params + defaults that lna:::default_params() will surface.	
+3. Implement two S3 methods	r<br># forward (writer)<br>forward_step.myorg.octree_pca <- function(type, desc, handle) { … }<br><br># inverse (reader)<br>invert_step.myorg.octree_pca  <- function(type, desc, handle) { … }	R/transform_octree_pca.R	• Forward fits the model, pushes payloads into handle$plan.  • Inverse re-hydrates from HDF5, applies ROI/temporal subset, returns new handle.
+4. Register payload paths in the Plan	handle$plan$add_payload("/basis/blocks/<id>/matrix", block_mat)	Ensures materialise_plan() knows what to write to disk later.	
+5. Fill the JSON descriptor	r<br>desc$datasets <- list(…); desc$inputs <- …; desc$outputs <- …<br>handle$plan$add_descriptor(handle$plan$get_next_filename(type), desc)	Keeps the on-disk /transforms/NN_myorg.octree_pca.json self-describing.	
+6. (Optional) Provide an lna_default helper	r<br>lna_default.myorg.octree_pca <- function() list(k = 32L, depth = 3L)	Lets users omit most transform_params.	
+7. Add unit tests	• Round-trip write → read for a toy array. • ROI & temporal subset behave.	tests/testthat/test-octree_pca.R	Keeps CI green.
+8. Declare Imports	Matrix, irlba, etc. in DESCRIPTION	So NAMESPACE is generated correctly.	
+
+That’s it.  Drop the package under Suggests: in the main lna package and the ecosystem will auto-discover your transform when it sees a descriptor of that type.
+
+⸻
+
+📎 Addendum — Odds, Ends & Best-Practices
+
+Topic	Quick guidance	Spec §
+Aggregation before encoding	Chain an up-front transform (myorg.aggregate_runs) whose outputs (e.g. "aggregated_matrix") are the inputs for your encoder.  The inverse can be a no-op if you only need the pooled result.	§3, Recipe Card Pt 1
+Oct-tree PCA details	• Use /spatial/block_table to store the 8-/16-/64-cube bounds and /basis/blocks/<id> for each local matrix. • Column offsets live in /spatial/coeff_offset_block.	Table in previous answer
+“stream” vs “eager” writes	In v1.4 every payload is written eagerly; set write_mode = "stream" if you plan to support streaming later—materialise_plan() will silently fall back and emit a once-per-session warning.	Spec v1.4 §7
+Auxiliary files (e.g. grey-matter mask)	Put them in /plugins/<your_step>/ and list them in the descriptor’s datasets with role = "aux_mask".  Your inverse reads them through handle$h5[[path]].	Spec v1.4 §2
+Default-param merge order	1. Schema defaults → 2. lna_options() → 3. User transform_params.  Handle this in your forward_step.* by calling lna:::default_params(type) then utils::modifyList().	Spec v1.4 §2
+Error classes	Throw with lna:::abort_lna("message", class = "lna_error_contract", location = "myorg.octree_pca") so upstream code can catch/filter.	Spec v1.4 §6
+ROI / time sub-setting	Declare capabilities.supports_spatial_subsetting = "block-only" (oct-tree) and implement the fast path; fall back to full data if request outside capability.	Spec v1.4 §3.5
+Schema URI	The schema_uri in the descriptor does not need to be publicly reachable in early days—just set it to the canonical path you shipped under inst/schemas/.  Validation will load from the installed package.	Conversation answer
+
+
+⸻
+
+⏩ Next steps for engineers
+	1.	Fork the lna repo, scaffold a new transform with
+
+lna::scaffold_transform("myorg.octree_pca")
+
+	2.	Flesh out the two S3 methods using the template.
+	3.	Run devtools::test() → ensure your round-trip passes.
+	4.	Document the new transform in a vignette snippet.
+	5.	Submit a PR or keep it in your own extension package—both coexist happily thanks to the plugin model.
+
+Happy compressing!
