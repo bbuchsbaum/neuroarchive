@@ -189,51 +189,26 @@ invert_step.temporal <- function(type, desc, handle) {
   }
 }
 
-#' Generate Daubechies wavelet basis matrix
+#' Generate wavelet basis matrix using the `wavelets` package
 #'
 #' Daubechies 4 ("db4") tends to balance temporal resolution and smoothness
 #' for fMRI applications, so it is used as the default.
+#' Any wavelet supported by the `wavelets` package may be supplied.
 #' @keywords internal
 .wavelet_basis <- function(n_time, wavelet = "db4") {
-  if (!identical(wavelet, "db4")) {
-    abort_lna(sprintf("Unsupported wavelet '%s'", wavelet),
-              .subclass = "lna_error_validation",
-              location = ".wavelet_basis")
-  }
   if (log2(n_time) %% 1 != 0) {
     abort_lna("wavelet basis requires power-of-two length",
               .subclass = "lna_error_validation",
               location = ".wavelet_basis")
   }
-  h <- c(0.48296291314469025, 0.8365163037378079,
-          0.22414386804201339, -0.12940952255126034)
-  g <- c(-0.12940952255126034, -0.22414386804201339,
-          0.8365163037378079, -0.48296291314469025)
-  L <- length(h)
+  J <- log2(n_time)
   dwt_single <- function(x) {
-    n <- length(x)
-    J <- log2(n)
-    res <- numeric(n)
-    offset <- 0
-    for (level in seq_len(J)) {
-      n_curr <- n / 2^(level - 1)
-      cA <- numeric(n_curr/2)
-      cD <- numeric(n_curr/2)
-      for (k in seq_len(n_curr/2)) {
-        idx <- (2 * k - 1) + seq_len(L) - 1
-        idx <- ((idx - 1) %% n_curr) + 1
-        cA[k] <- sum(h * x[idx])
-        cD[k] <- sum(g * x[idx])
-      }
-      res[(offset + 1):(offset + n_curr/2)] <- cD
-      offset <- offset + n_curr/2
-      x[seq_len(n_curr/2)] <- cA
-    }
-    res[offset + 1] <- x[1]
-    res
+    w <- wavelets::dwt(x, filter = wavelet, n.levels = J, boundary = "periodic")
+    c(unlist(w@W), w@V[[w@level]])
   }
   I <- diag(n_time)
   apply(I, 2, dwt_single)
+}
 
 #' Generate temporal basis matrix
 #'
