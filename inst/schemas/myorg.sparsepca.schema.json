@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://my-lab.org/schemas/lna/2.0/myorg.sparsepca.schema.json",
+  "title": "Parameters for 'myorg.sparsepca' transform",
+  "type": "object",
+  "properties": {
+    "k": {"type": "integer", "minimum": 1, "default": 50},
+    "alpha": {"type": "number", "default": 0.001},
+    "whiten": {"type": "boolean", "default": false},
+    "storage_order": {
+      "type": "string",
+      "enum": ["component_x_voxel", "voxel_x_component"],
+      "default": "component_x_voxel"
+    }
+  },
+  "required": ["k"],
+  "additionalProperties": false
+}
