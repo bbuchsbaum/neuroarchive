@@ -24,30 +24,9 @@ forward_step.temporal <- function(type, desc, handle) {
   if (is.null(n_basis)) n_basis <- n_time
   n_basis <- min(n_basis, n_time)
 
-  if (identical(kind, "dct")) {
-    basis <- .dct_basis(n_time, n_basis)
-  } else if (identical(kind, "bspline")) {
-    basis <- .bspline_basis(n_time, n_basis, order)
-  } else if (identical(kind, "dpss")) {
-    NW <- p$time_bandwidth_product %||% 3
-    n_tapers <- p$n_tapers %||% n_basis
-    n_basis <- min(n_basis, n_tapers, n_time)
-    basis <- .dpss_basis(n_time, n_basis, NW)
-  } else if (identical(kind, "polynomial")) {
-    basis <- .polynomial_basis(n_time, n_basis)
-  } else if (identical(kind, "wavelet")) {
-    wavelet_name <- p$wavelet %||% "db4"
-    basis <- .wavelet_basis(n_time, wavelet_name)
-    n_basis <- ncol(basis)
-  } else {
-    abort_lna(
-      sprintf("Unsupported temporal kind '%s'", kind),
-      .subclass = "lna_error_validation",
-      location = "forward_step.temporal:kind"
-    )
-  }
-
-  basis <- temporal_basis(kind, n_time, n_basis, order = order)
+  args <- c(list(kind = kind, n_time = n_time, n_basis = n_basis, order = order),
+            p)
+  basis <- do.call(temporal_basis, args)
 
 
   coeff <- crossprod(basis, X)
@@ -240,6 +219,27 @@ temporal_basis.dct <- function(kind, n_time, n_basis, ...) {
 #' @export
 temporal_basis.bspline <- function(kind, n_time, n_basis, order = 3, ...) {
   .bspline_basis(n_time, n_basis, order)
+}
+
+#' @export
+temporal_basis.dpss <- function(kind, n_time, n_basis,
+                               time_bandwidth_product = 3,
+                               n_tapers = n_basis, ...) {
+  n_tapers <- n_tapers %||% n_basis
+  n_basis <- min(n_basis, n_tapers, n_time)
+  .dpss_basis(n_time, n_basis, time_bandwidth_product)
+}
+
+#' @export
+temporal_basis.polynomial <- function(kind, n_time, n_basis, ...) {
+  .polynomial_basis(n_time, n_basis)
+}
+
+#' @export
+temporal_basis.wavelet <- function(kind, n_time, n_basis, wavelet = "db4", ...) {
+  basis <- .wavelet_basis(n_time, wavelet)
+  if (!is.null(n_basis)) basis <- basis[, seq_len(min(n_basis, ncol(basis))), drop = FALSE]
+  basis
 }
 
 #' @export
