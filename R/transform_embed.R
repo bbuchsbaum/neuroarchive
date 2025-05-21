@@ -119,43 +119,34 @@ invert_step.embed <- function(type, desc, handle) {
               .subclass = "lna_error_descriptor",
               location = "invert_step.embed")
   }
+
+  coeff_key <- desc$outputs[[1]] %||% "coefficients"
+  input_key  <- desc$inputs[[1]] %||% "dense_mat"
+  if (!handle$exists(coeff_key)) {
+    return(handle)
+  }
+
   root <- handle$h5[["/"]]
   basis <- h5_read(root, basis_path)
   mean_vec <- if (!is.null(p$center_data_with)) h5_read(root, p$center_data_with) else NULL
   scale_vec <- if (!is.null(p$scale_data_with)) h5_read(root, p$scale_data_with) else NULL
 
-  coeff_key <- desc$outputs[[1]] %||% "coefficients"
-  output_key <- desc$inputs[[1]] %||% "input"
-
-  center_path <- p$center_data_with
-  scale_path <- p$scale_data_with
-
-  coeff_key <- desc$outputs[[1]] %||% "coefficients"
-  input_key  <- desc$inputs[[1]] %||% "dense_mat"
-
-
-  if (!handle$exists(coeff_key)) {
-    return(handle)
-  }
-
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 
-  if (ncol(basis) == nrow(coeff)) {
-    X <- coeff %*% basis
-  } else {
-    X <- coeff %*% t(basis)
+  subset <- handle$subset
+  roi_mask <- subset$roi_mask %||% subset$roi
+  if (!is.null(roi_mask)) {
+    vox_idx <- which(as.logical(roi_mask))
+    if (nrow(basis) == ncol(coeff)) {
+      basis <- basis[, vox_idx, drop = FALSE]
+    } else if (ncol(basis) == ncol(coeff)) {
+      basis <- basis[vox_idx, , drop = FALSE]
+    }
   }
-  if (!is.null(scale_vec)) X <- sweep(X, 2, scale_vec, "*")
-  if (!is.null(mean_vec)) X <- sweep(X, 2, mean_vec, "+")
-
-  handle$update_stash(keys = coeff_key,
-                      new_values = setNames(list(X), output_key))
-}
-
-
-  root <- handle$h5[["/"]]
-  basis <- h5_read(root, basis_path)
-  coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
+  time_idx <- subset$time_idx %||% subset$time
+  if (!is.null(time_idx)) {
+    coeff <- coeff[time_idx, , drop = FALSE]
+  }
 
   if (nrow(basis) == ncol(coeff)) {
     dense <- tcrossprod(coeff, basis)
@@ -169,14 +160,8 @@ invert_step.embed <- function(type, desc, handle) {
     )
   }
 
-  if (!is.null(scale_path)) {
-    svec <- as.numeric(h5_read(root, scale_path))
-    dense <- sweep(dense, 2, svec, FUN = "*")
-  }
-  if (!is.null(center_path)) {
-    mvec <- as.numeric(h5_read(root, center_path))
-    dense <- sweep(dense, 2, mvec, FUN = "+")
-  }
+  if (!is.null(scale_vec)) dense <- sweep(dense, 2, scale_vec, FUN = "*")
+  if (!is.null(mean_vec))  dense <- sweep(dense, 2, mean_vec, FUN = "+")
 
   handle$update_stash(keys = coeff_key,
                       new_values = setNames(list(dense), input_key))

@@ -29,3 +29,21 @@ test_that("invert_step.embed reconstructs dense data", {
 
   h5$close_all()
 })
+
+test_that("read_lna applies roi_mask and time_idx for embed", {
+  arr <- matrix(seq_len(20), nrow = 5, ncol = 4)
+  tmp <- local_tempfile(fileext = ".h5")
+
+  write_lna(arr, file = tmp, transforms = c("basis", "embed"),
+            transform_params = list(
+              embed = list(basis_path = "/basis/00_basis/matrix",
+                            center_data_with = "/basis/00_basis/center")
+            ))
+
+  roi <- c(TRUE, FALSE, TRUE, FALSE)
+  h <- read_lna(tmp, roi_mask = roi, time_idx = c(2,4))
+  out <- h$stash$input
+
+  expect_equal(dim(out), c(2, sum(roi)))
+  expect_equal(out, arr[c(2,4), roi])
+})
