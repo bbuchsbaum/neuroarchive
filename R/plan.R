@@ -208,6 +208,79 @@ Plan <- R6::R6Class("Plan",
         self$payloads[[key]] <- NULL
       }
       invisible(self)
+    },
+
+    #' @description
+    #' Get the first run ID associated with this plan.
+    #' Returns the origin_label if it matches "run-XX", otherwise NULL.
+    #' @return Character string (e.g., "run-01") or NULL.
+    first_run_id = function() {
+      if (grepl("^run-[0-9]{2}$", self$origin_label)) {
+        return(self$origin_label)
+      }
+      # If datasets have origins, try to get the first one that is a run_id
+      if (!is.null(self$datasets) && nrow(self$datasets) > 0) {
+        run_origins <- self$datasets$origin[grepl("^run-[0-9]{2}$", self$datasets$origin)]
+        if (length(run_origins) > 0) {
+          return(run_origins[1])
+        }
+      }
+      return(NULL)
+    },
+
+    #' @description
+    #' Import an array into the plan as the initial dataset.
+    #' @param x The array data.
+    #' @param mask Optional mask array.
+    #' @param space Optional space definition.
+    #' @param run_id Optional run_id to associate, defaults to self$origin_label or "run-01".
+    import_from_array = function(x, mask = NULL, space = NULL, run_id = NULL) {
+      stopifnot(is.array(x))
+
+      determined_run_id <- if (!is.null(run_id)) {
+        sanitize_run_id(run_id) # Ensure it's valid if provided
+      } else if (grepl("^run-[0-9]{2}$", self$origin_label)) {
+        self$origin_label
+      } else {
+        "run-01" # Default if origin_label isn't a run_id
+      }
+
+      # Store the main array data as a payload
+      main_payload_key <- paste0(determined_run_id, "_initial_array")
+      self$add_payload(main_payload_key, x, overwrite = TRUE)
+
+      # Add a dataset definition for the main array
+      # Path will be fully resolved by core_write/materialise_plan later
+      self$add_dataset_def(
+        path = "/neurodesktop/values", # Placeholder, core_write will prepend /scans/<run_id>/data
+        role = "data_array",
+        producer = "import_from_array",
+        origin = determined_run_id, # Use the determined run_id
+        step_index = 0L, # Initial step
+        params_json = "{}",
+        payload_key = main_payload_key,
+        write_mode = "eager"
+      )
+
+      if (!is.null(mask)) {
+        stopifnot(is.array(mask) || is.logical(mask))
+        mask_payload_key <- paste0(determined_run_id, "_initial_mask")
+        self$add_payload(mask_payload_key, mask, overwrite = TRUE)
+        self$add_dataset_def(
+          path = "/neurodesktop/mask", # Placeholder
+          role = "mask_array",
+          producer = "import_from_array",
+          origin = determined_run_id,
+          step_index = 0L,
+          params_json = "{}",
+          payload_key = mask_payload_key,
+          write_mode = "eager"
+        )
+      }
+      
+      # Space handling can be added here if needed, e.g., as attributes or separate dataset
+
+      invisible(self)
     }
   )
 ) 

@@ -18,6 +18,8 @@
 #' @param block_table Optional data frame specifying spatial block coordinates
 #'   stored at `/spatial/block_table`. Coordinate columns must contain
 #'   1-based voxel indices in masked space when a mask is provided.
+#' @param run_id Character vector of run identifiers or glob patterns. Passed to
+#'   `core_write` for selection of specific runs.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
 #'   `header` with class `"lna_write_result"`.
 #' @details For parallel workflows use a unique temporary file and
@@ -32,7 +34,8 @@
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
-                      header = NULL, plugins = NULL, block_table = NULL) {
+                      header = NULL, plugins = NULL, block_table = NULL,
+                      run_id = NULL) {
 
   in_memory <- FALSE
   if (is.null(file)) {
@@ -40,6 +43,8 @@ write_lna <- function(x, file = NULL, transforms = character(),
     file <- tmp
     in_memory <- TRUE
   }
+
+
 
   result <- core_write(x = x, transforms = transforms,
                        transform_params = transform_params,
@@ -87,21 +92,25 @@ write_lna <- function(x, file = NULL, transforms = character(),
     h5 <- open_h5(file, mode = "w")
   }
 
-  on.exit(neuroarchive:::close_h5_safely(h5))
+  on.exit(neuroarchive:::close_h5_safely(h5), add = TRUE)
 
   plugins <- result$handle$meta$plugins
   if (length(plugins) == 0) plugins <- NULL
+
+  # Debug: Print the structure of the datasets in the plan
+  # cat("\nDebug - Plan datasets before materialise_plan:\n")
+  # print(str(result$plan$datasets))
+  # cat("-----\n")
 
   materialise_plan(h5, result$plan,
                    header = result$handle$meta$header,
                    plugins = plugins)
 
-
   if (!is.null(block_table)) {
-    h5_write_dataset(h5[["/"]], "spatial/block_table", as.matrix(block_table))
+    # Convert to matrix and ensure dimensions are preserved
+    bt_matrix <- as.matrix(block_table)
+    h5_write_dataset(h5[["/"]], "spatial/block_table", bt_matrix)
   }
-
-  neuroarchive:::close_h5_safely(h5)
 
   out_file <- if (in_memory) NULL else file
   out <- list(file = out_file, plan = result$plan,

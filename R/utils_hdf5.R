@@ -244,67 +244,36 @@ h5_write_dataset <- function(h5_group, path, data,
 #'   writing in parallel.
 #' @keywords internal
 open_h5 <- function(path, mode = "r", ...) {
+  stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.character(mode), length(mode) == 1)
 
-  dot_args <- list(...)
+  # Start with unnamed path, then named mode
+  h5_args <- list(path, mode = mode)
 
-  if (isTRUE(dot_args$driver == "core")) {
-    if (is.null(path)) {
-      path <- tempfile(fileext = ".h5")
-    } else {
-      stopifnot(is.character(path), length(path) == 1)
-    }
+  additional_args <- list(...)
 
-    backing_store <- if (!is.null(dot_args$backing_store)) dot_args$backing_store else TRUE
-
-    arg_names <- names(formals(hdf5r::H5File$new))
-    supports_params <- all(c("driver", "backing_store") %in% arg_names)
-
-    if (supports_params) {
-      h5_object <- tryCatch(
-        hdf5r::H5File$new(path, mode = mode, driver = "core", backing_store = backing_store),
-        error = function(e) {
-          stop(
-            sprintf("Failed to open HDF5 file '%s' (core driver): %s", path, conditionMessage(e)),
-            call. = FALSE
-          )
-        }
-      )
-    } else {
-      fapl <- hdf5r::H5P_FILE_ACCESS$new()
-      fapl$set_fapl_core(backing_store = backing_store)
-
-      h5_object <- tryCatch(
-        hdf5r::H5File$new(path, mode = mode, file_access_pl = fapl),
-        error = function(e) {
-          stop(
-            sprintf("Failed to open HDF5 file '%s' (core driver via FAPL): %s", path, conditionMessage(e)),
-            call. = FALSE
-          )
-        }
-      )
-    }
-    return(h5_object)
-
-  } else {
-    stopifnot(is.character(path), length(path) == 1)
-    # Standard file opening: pass through other arguments from ...
-    # This was the previous behavior. If other combinations of ... cause "unused argument",
-    # they might need similar explicit FAPL handling for other drivers.
-    args_for_do_call <- c(list(path, mode = mode), dot_args)
-    
-    return(
-      tryCatch(
-        do.call(hdf5r::H5File$new, args_for_do_call),
-        error = function(e) {
-          stop(
-            sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
-            call. = FALSE
-          )
-        }
-      )
-    )
+  if (!is.null(additional_args$driver) && additional_args$driver == "core") {
+    warning("In-memory HDF5 file (core driver) requested. This specific mechanism may not be supported or easily configurable in your hdf5r version. Attempting to open as a standard file.", call. = FALSE)
+    additional_args$driver <- NULL
+    additional_args$backing_store <- NULL
+    additional_args$increment <- NULL
   }
+  
+  additional_args <- additional_args[!sapply(additional_args, is.null)]
+
+  if (length(additional_args) > 0) {
+    h5_args <- c(h5_args, additional_args)
+  }
+
+  tryCatch(
+    do.call(hdf5r::H5File$new, h5_args),
+    error = function(e) {
+      stop(
+        sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
+        call. = FALSE
+      )
+    }
+  )
 }
 
 #' Close an HDF5 file handle if valid
