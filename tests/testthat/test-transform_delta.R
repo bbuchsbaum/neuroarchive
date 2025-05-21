@@ -41,6 +41,8 @@ test_that("delta transform with rle coding works", {
   out <- h$stash$input
   expect_equal(out, arr)
 
+  p <- neuroarchive:::default_params("delta")
+
   expect_equal(p$axis, 4)
   expect_equal(p$reference_value_storage, "first_value_verbatim")
   expect_equal(p$coding_method, "none")
