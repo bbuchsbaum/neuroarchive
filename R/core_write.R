@@ -25,23 +25,8 @@ core_write <- function(x, transforms, transform_params = list()) {
     plan = plan
   )
 
-  # --- Stub: merge parameters with defaults ---
-  pkg_opts <- lna_options()
-  merged_params <- list()
-  for (type in transforms) {
-    defaults <- default_params(type)
-    pkg_default <- pkg_opts[[type]]
-    user <- transform_params[[type]]
-
-    params <- defaults
-    if (is.list(pkg_default)) {
-      params <- utils::modifyList(params, pkg_default)
-    }
-    if (is.list(user)) {
-      params <- utils::modifyList(params, user)
-    }
-    merged_params[[type]] <- params
-  }
+  # --- Resolve parameters with defaults and package options ---
+  merged_params <- resolve_transform_params(transforms, transform_params)
 
   # --- Loop through transforms calling forward_step ---
   for (type in transforms) {
