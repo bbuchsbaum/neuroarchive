@@ -19,7 +19,7 @@ create_dummy_transforms_in_group <- function(h5_group, transform_names) {
       dset <- NULL
       tryCatch({
         # Create scalar integer dataset, preventing chunking
-        dset <- h5_group$create_dataset(name, dtype = dtype, space = space, chunk_dim = NULL)
+        dset <- h5_group$create_dataset(name, dtype = dtype, space = space, chunk_dims = NULL)
         # Write dummy data using slice assignment
         dset[] <- 0L
       }, finally = {
