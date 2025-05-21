@@ -114,8 +114,10 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #' @param allow_plugins Character string specifying how to handle
 #'   transforms that require optional packages. One of
 #'   \code{"installed"} (default), \code{"none"}, or \code{"prompt"}.
-#'   See \code{core_read} for details. Non-interactive sessions treat
-#'   \code{"prompt"} the same as \code{"installed"}.
+#'   Non-interactive sessions treat \code{"prompt"} the same as
+#'   \code{"installed"}. Interactive use of \code{"prompt"} will ask
+#'   whether to continue when a transform implementation is missing;
+#'   declining aborts reading.
 #' @param validate Logical flag for validation; forwarded to `core_read`.
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.

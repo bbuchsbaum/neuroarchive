@@ -143,17 +143,11 @@ lna_reader <- R6::R6Class("lna_reader",
             logical(1)
           )
         ]
-        if (length(missing_methods) > 0) {
-          msg <- paste0(
-            "Missing invert_step implementation for transform(s): ",
-            paste(unique(missing_methods), collapse = ", ")
-          )
-          if (identical(allow_plugins, "none")) {
-            abort_lna(msg, .subclass = "lna_error_no_method")
-          } else {
-            warning(msg)
-          }
-        }
+        handle_missing_methods(
+          missing_methods,
+          allow_plugins,
+          location = sprintf("lna_reader:data:%s", self$file)
+        )
       }
       if (nrow(transforms) > 0) {
         for (i in rev(seq_len(nrow(transforms)))) {
