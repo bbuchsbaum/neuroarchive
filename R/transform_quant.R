@@ -33,6 +33,7 @@ forward_step.quant <- function(type, desc, handle) {
   storage.mode(q) <- "integer"
 
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   data_path <- paste0("/scans/", run_id, "/quantized")
   scale_path <- paste0("/scans/", run_id, "/quant_scale")
   offset_path <- paste0("/scans/", run_id, "/quant_offset")
@@ -65,6 +66,7 @@ forward_step.quant <- function(type, desc, handle) {
 #' @keywords internal
 invert_step.quant <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   data_path <- paste0("/scans/", run_id, "/quantized")
   scale_path <- paste0("/scans/", run_id, "/quant_scale")
   offset_path <- paste0("/scans/", run_id, "/quant_offset")

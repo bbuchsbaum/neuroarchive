@@ -32,6 +32,7 @@ forward_step.temporal <- function(type, desc, handle) {
   coeff <- crossprod(basis, X)
 
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   plan <- handle$plan
   fname <- plan$get_next_filename(type)
   base_name <- tools::file_path_sans_ext(fname)
