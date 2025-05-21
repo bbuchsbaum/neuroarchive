@@ -155,3 +155,21 @@ read_lna <- function(file, run_id = NULL,
     )
   }
 }
+
+#' Convenience alias for `write_lna`
+#'
+#' `compress_fmri()` simply forwards its arguments to `write_lna()`.
+#'
+#' @inheritParams write_lna
+#' @seealso write_lna
+#' @export
+compress_fmri <- function(...) write_lna(...)
+
+#' Convenience alias for `read_lna`
+#'
+#' `open_lna()` simply forwards its arguments to `read_lna()`.
+#'
+#' @inheritParams read_lna
+#' @seealso read_lna
+#' @export
+open_lna <- read_lna
