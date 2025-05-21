@@ -83,7 +83,17 @@ forward_step.basis <- function(type, desc, handle) {
   } else {
     fit <- stats::prcomp(X, rank. = k, center = center, scale. = scale)
   }
-  rotation <- fit$rotation[, seq_len(k), drop = FALSE]
+
+  k_effective <- ncol(fit$rotation)
+  if (k_effective < k) {
+    warning(sprintf(
+      "Requested k=%d but fit returned %d components; truncating",
+      k, k_effective
+    ), call. = FALSE)
+  }
+  k_effective <- min(k, k_effective)
+  rotation <- fit$rotation[, seq_len(k_effective), drop = FALSE]
+  p$k <- k_effective
   mean_vec <- if (isTRUE(center)) fit$center else NULL
   scale_vec <- if (isTRUE(scale)) fit$scale else NULL
 
@@ -98,6 +108,7 @@ forward_step.basis <- function(type, desc, handle) {
   center_path <- paste0("/basis/", base_name, "/center")
   scale_path <- paste0("/basis/", base_name, "/scale")
   params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  desc$params <- p
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
