@@ -58,9 +58,11 @@ DataHandle <- R6::R6Class("DataHandle",
       missing_keys <- setdiff(keys, stash_names)
 
       if (length(missing_keys) > 0) {
-        # TODO: Replace with lna:::abort_lna once M0-12 is done.
-        rlang::abort(
-          paste("Required key(s) not found in stash:", paste(missing_keys, collapse = ", ")),
+        abort_lna(
+          paste(
+            "Required key(s) not found in stash:",
+            paste(missing_keys, collapse = ", ")
+          ),
           .subclass = "lna_error_contract",
           missing_keys = missing_keys
         )

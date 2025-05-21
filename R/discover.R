@@ -93,11 +93,13 @@ discover_transforms <- function(h5_group) {
   # Validate sequence: indices must be 0, 1, 2, ..., n-1
   expected_indices <- seq(0, nrow(sorted_df) - 1)
   if (!identical(sorted_df$index, expected_indices)) {
-    # TODO: Replace with lna:::abort_lna("lna_error_sequence", ...)
-    stop(paste0(
-      "Transform descriptor indices are not contiguous starting from 0. Found indices: ",
-      paste(sorted_df$index, collapse = ", ")
-    ), call. = FALSE)
+    abort_lna(
+      paste0(
+        "Transform descriptor indices are not contiguous starting from 0. Found indices: ",
+        paste(sorted_df$index, collapse = ", ")
+      ),
+      .subclass = "lna_error_sequence"
+    )
   }
 
   # Convert to final tibble
