@@ -8,16 +8,23 @@
 #' @param plan A `Plan` R6 object produced by `core_write`.
 #' @param checksum Character string indicating checksum mode.
 #' @param header Optional named list of header attributes.
+#' @param plugins Optional named list of plugin metadata.
 #' @return Invisibly returns the modified `plan`.
 #' @import hdf5r
 #' @keywords internal
 materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
-                             header = NULL) {
+                             header = NULL, plugins = NULL) {
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
   stopifnot(inherits(plan, "Plan"))
   if (!is.null(header)) {
     stopifnot(is.list(header))
+  }
+  if (!is.null(plugins)) {
+    stopifnot(is.list(plugins))
+    if (is.null(names(plugins)) || any(names(plugins) == "")) {
+      stop("plugins must be a named list", call. = FALSE)
+    }
   }
 
   # Create core groups
@@ -123,6 +130,13 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     g <- if (hdr_grp$exists("global")) hdr_grp[["global"]] else hdr_grp$create_group("global")
     for (nm in names(header)) {
       h5_attr_write(g, nm, header[[nm]])
+    }
+  }
+
+  if (!is.null(plugins) && length(plugins) > 0) {
+    pl_grp <- if (!h5$exists("plugins")) h5$create_group("plugins") else h5[["plugins"]]
+    for (nm in names(plugins)) {
+      write_json_descriptor(pl_grp, paste0(nm, ".json"), plugins[[nm]])
     }
   }
 

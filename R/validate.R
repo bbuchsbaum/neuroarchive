@@ -6,13 +6,13 @@
 #'
 #' @param file Path to the `.h5` file to validate.
 #' @param strict Logical. If `TRUE` (default) validation failures abort with
-#'   `lna_error_validation`. If `FALSE`, the function returns `FALSE` on the
-#'   first failure and issues a warning.
+#'   `lna_error_validation`. If `FALSE`, all validation issues are collected and
+#'   returned. A warning is issued for each problem found.
 #' @param checksum Logical. If `TRUE` (default) verify the `lna_checksum`
 #'   attribute when present.
 #'
-#' @return `TRUE` if validation succeeds. If `strict = FALSE` and a problem is
-#'   detected the function returns `FALSE`.
+#' @return `TRUE` if validation succeeds. If `strict = FALSE` and problems are
+#'   found, a character vector of issue messages is returned instead.
 #' @examples
 #' validate_lna("example.lna.h5")
 #' @export
@@ -23,6 +23,8 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
   on.exit(close_h5_safely(h5))
   root <- h5[["/"]]
 
+  issues <- character()
+
   fail <- function(msg) {
     if (strict) {
       abort_lna(
@@ -32,18 +34,17 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
       )
     } else {
       warning(msg)
-      return(FALSE)
+      issues <<- c(issues, msg)
+      invisible(NULL)
     }
   }
 
   if (!h5_attr_exists(root, "lna_spec")) {
-    res <- fail("Missing lna_spec attribute")
-    if (!is.null(res)) return(res)
+    fail("Missing lna_spec attribute")
   } else {
     spec <- h5_attr_read(root, "lna_spec")
     if (!identical(spec, "LNA R v2.0")) {
-      res <- fail(sprintf("Unsupported lna_spec '%s'", spec))
-      if (!is.null(res)) return(res)
+      fail(sprintf("Unsupported lna_spec '%s'", spec))
     }
   }
 
@@ -52,8 +53,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
     if (is.character(file) && file.exists(file)) {
       calc <- digest::digest(file = file, algo = "sha256")
       if (!identical(calc, stored)) {
-        res <- fail("Checksum does not match")
-        if (!is.null(res)) return(res)
+        fail("Checksum does not match")
       }
     } else {
       warning("Checksum requested but file path unavailable; skipping")
@@ -73,19 +73,21 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
         )
 
         if (!nzchar(schema_path) || !file.exists(schema_path)) {
-          res <- fail(sprintf("Schema for transform '%s' not found", desc$type))
-          if (!is.null(res)) return(res)
+          fail(sprintf("Schema for transform '%s' not found", desc$type))
           next
         }
 
         json <- jsonlite::toJSON(desc, auto_unbox = TRUE)
         valid <- jsonvalidate::json_validate(json, schema_path, verbose = TRUE)
         if (!isTRUE(valid)) {
-          res <- fail(sprintf("Descriptor %s failed schema validation", nm))
-          if (!is.null(res)) return(res)
+          fail(sprintf("Descriptor %s failed schema validation", nm))
         }
       }
     }
+  }
+
+  if (length(issues) > 0) {
+    return(issues)
   }
 
   TRUE
