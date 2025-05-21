@@ -56,6 +56,18 @@ test_that("temporal transform bspline roundtrip", {
   expect_equal(out, X, tolerance = 1e-6)
 })
 
+
+
+test_that("temporal transform rejects unsupported kind", {
+  X <- matrix(rnorm(10), nrow = 5)
+  expect_error(
+    core_write(X, transforms = "temporal",
+               transform_params = list(temporal = list(kind = "dpss"))),
+    class = "lna_error_validation",
+    regexp = "temporal kind"
+  )
+}
+          
 test_that("temporal transform dpss roundtrip", {
   set.seed(1)
   X <- matrix(rnorm(64), nrow = 16, ncol = 4)
@@ -95,4 +107,5 @@ test_that("temporal transform wavelet roundtrip", {
   out <- h$stash$input
   expect_equal(dim(out), dim(X))
   expect_equal(out, X, tolerance = 1e-6)
+
 })
