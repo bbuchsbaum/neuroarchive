@@ -85,10 +85,20 @@ core_write <- function(x, transforms, transform_params = list(),
   merged_params <- resolve_transform_params(transforms, transform_params)
 
   # --- Loop through transforms calling forward_step ---
-  for (type in transforms) {
-    desc <- list(type = type, params = merged_params[[type]])
-    cls <- structure(type, class = c(type, "character"))
-    handle <- forward_step(cls, desc, handle)
+  progress_enabled <- !progressr::handlers_is_empty()
+  loop <- function() {
+    p <- if (progress_enabled) progressr::progressor(steps = length(transforms)) else NULL
+    for (type in transforms) {
+      if (!is.null(p)) p(message = type)
+      desc <- list(type = type, params = merged_params[[type]])
+      cls <- structure(type, class = c(type, "character"))
+      handle <<- forward_step(cls, desc, handle)
+    }
+  }
+  if (progress_enabled) {
+    progressr::with_progress(loop())
+  } else {
+    loop()
   }
 
   list(handle = handle, plan = plan)

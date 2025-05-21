@@ -78,3 +78,11 @@ test_that("core_read allows float16 when support present", {
     }
   )
 })
+
+test_that("core_read works with progress handlers", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_dummy_lna(tmp)
+  progressr::handlers(progressr::handler_void)
+  expect_silent(progressr::with_progress(core_read(tmp)))
+  progressr::handlers(NULL)
+})

@@ -34,11 +34,21 @@ core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = F
   # TODO: make use of allow_plugins and validate
 
   if (nrow(transforms) > 0) {
-    for (i in rev(seq_len(nrow(transforms)))) {
-      name <- transforms$name[[i]]
-      type <- transforms$type[[i]]
-      desc <- read_json_descriptor(tf_group, name)
-      handle <- invert_step(type, desc, handle)
+    progress_enabled <- !progressr::handlers_is_empty()
+    loop <- function() {
+      p <- if (progress_enabled) progressr::progressor(steps = nrow(transforms)) else NULL
+      for (i in rev(seq_len(nrow(transforms)))) {
+        if (!is.null(p)) p(message = transforms$type[[i]])
+        name <- transforms$name[[i]]
+        type <- transforms$type[[i]]
+        desc <- read_json_descriptor(tf_group, name)
+        handle <<- invert_step(type, desc, handle)
+      }
+    }
+    if (progress_enabled) {
+      progressr::with_progress(loop())
+    } else {
+      loop()
     }
   }
 

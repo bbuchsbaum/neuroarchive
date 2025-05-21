@@ -47,3 +47,19 @@ test_that("materialise_plan writes header attributes", {
   expect_identical(h5_attr_read(grp, "note"), "hi")
   neuroarchive:::close_h5_safely(h5)
 })
+
+test_that("materialise_plan respects progress handlers", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
+  plan <- Plan$new()
+  for (i in 1:3) {
+    key <- paste0("p", i)
+    path <- paste0("/scans/run-01/d", i)
+    plan$add_payload(key, 1:5)
+    plan$add_dataset_def(path, "data", "dummy", "run-01", 0L, "{}", key, "eager")
+  }
+  progressr::handlers(progressr::handler_void)
+  expect_silent(progressr::with_progress(materialise_plan(h5, plan)))
+  progressr::handlers(NULL)
+  neuroarchive:::close_h5_safely(h5)
+})
