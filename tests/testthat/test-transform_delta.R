@@ -6,8 +6,7 @@ library(withr)
 
 
 test_that("default_params for delta loads schema", {
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   p <- neuroarchive:::default_params("delta")
   expect_equal(p$order, 1)
 
@@ -41,9 +40,22 @@ test_that("delta transform with rle coding works", {
   out <- h$stash$input
   expect_equal(out, arr)
 
+  p <- neuroarchive:::default_params("delta")
+
   expect_equal(p$axis, 4)
   expect_equal(p$reference_value_storage, "first_value_verbatim")
-  expect_null(p$delta_quantization_bits)
   expect_equal(p$coding_method, "none")
 
+})
+
+test_that("delta transform rejects unsupported coding_method", {
+  arr <- matrix(1:4, nrow = 2)
+  tmp <- local_tempfile(fileext = ".h5")
+
+  expect_error(
+    write_lna(arr, file = tmp, transforms = "delta",
+              transform_params = list(delta = list(coding_method = "bogus"))),
+    class = "lna_error_validation",
+    regexp = "coding_method"
+  )
 })

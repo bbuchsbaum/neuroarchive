@@ -114,7 +114,7 @@ core_read <- function(file, run_id = NULL,
 
     if (nrow(transforms) > 0) {
       progress_enabled <- !progressr::handlers_is_empty()
-      loop <- function() {
+      step_loop <- function(h) {
         p <- if (progress_enabled) progressr::progressor(steps = nrow(transforms)) else NULL
         for (i in rev(seq_len(nrow(transforms)))) {
           if (!is.null(p)) p(message = transforms$type[[i]])
@@ -122,15 +122,18 @@ core_read <- function(file, run_id = NULL,
           type <- transforms$type[[i]]
           step_idx <- transforms$index[[i]]
           desc <- read_json_descriptor(tf_group, name)
-          if (validate) runtime_validate_step(type, desc, h5)
+     
           handle <- run_transform_step("invert", type, desc, handle, step_idx)
+          if (validate) runtime_validate_step(type, desc, h5)
+
 
         }
+        h
       }
-      if (progress_enabled) {
-        progressr::with_progress(loop())
+      handle <- if (progress_enabled) {
+        progressr::with_progress(step_loop(handle))
       } else {
-        loop()
+        step_loop(handle)
       }
     }
 

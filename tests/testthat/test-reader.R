@@ -27,6 +27,25 @@ test_that("read_lna(lazy=TRUE) returns lna_reader", {
   reader$close()
 })
 
+test_that("lna_reader initialize closes file on failure", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  orig_open_h5 <- getFromNamespace("open_h5", "neuroarchive")
+  captured_h5 <- NULL
+  expect_error(
+    with_mocked_bindings(
+      open_h5 = function(file, mode = "r") {
+        captured_h5 <<- orig_open_h5(file, mode)
+        captured_h5
+      },
+      read_lna(tmp, run_id = "run-01", lazy = TRUE)
+    ),
+    class = "lna_error_run_id"
+  )
+  expect_true(inherits(captured_h5, "H5File"))
+  expect_false(captured_h5$is_valid())
+})
+
 
 test_that("lna_reader close is idempotent", {
   tmp <- local_tempfile(fileext = ".h5")
@@ -37,6 +56,20 @@ test_that("lna_reader close is idempotent", {
   reader$close()
   expect_null(reader$h5)
   expect_silent(reader$close())
+})
+
+
+test_that("lna_reader close clears caches", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+
+  reader <- read_lna(tmp, lazy = TRUE)
+  reader$data()
+  expect_false(is.null(reader$data_cache))
+  expect_false(is.null(reader$cache_params))
+  reader$close()
+  expect_null(reader$data_cache)
+  expect_null(reader$cache_params)
 })
 
 
@@ -68,6 +101,17 @@ test_that("read_lna lazy passes subset params", {
   reader <- read_lna(tmp, lazy = TRUE, roi_mask = msk, time_idx = 2)
   expect_identical(reader$subset_params$roi_mask, msk)
   expect_identical(reader$subset_params$time_idx, 2L)
+  reader$close()
+})
+
+test_that("lna_reader$subset validates parameters", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  reader <- read_lna(tmp, lazy = TRUE)
+
+  expect_error(reader$subset(bad = 1), class = "lna_error_validation")
+  expect_error(reader$subset(1), class = "lna_error_validation")
+
   reader$close()
 })
 
@@ -108,4 +152,12 @@ test_that("lna_reader$data allow_plugins='prompt' interactive respects choice", 
     { expect_warning(reader$data(), "Missing invert_step") }
   )
   reader$close()
+})
+
+test_that("lna_reader$data errors when called after close", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  reader <- read_lna(tmp, lazy = TRUE)
+  reader$close()
+  expect_error(reader$data(), class = "lna_error_closed_reader")
 })

@@ -1,0 +1,19 @@
+{
+  "title": "Test Array Defaults Schema",
+  "type": "object",
+  "properties": {
+    "numArray": {
+      "type": "array",
+      "items": {"type": "integer", "default": 2}
+    },
+    "objArray": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "flag": {"type": "boolean", "default": true}
+        }
+      }
+    }
+  }
+}

@@ -33,8 +33,7 @@ test_that("invert_step.temporal applies time_idx subset", {
 
 
 test_that("default_params for temporal loads schema", {
-  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
-  rm(list = ls(envir = cache_env), envir = cache_env)
+  neuroarchive:::default_param_cache_clear()
   p <- neuroarchive:::default_params("temporal")
   expect_equal(p$kind, "dct")
   expect_equal(p$scope, "global")
