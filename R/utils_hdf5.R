@@ -456,3 +456,31 @@ resolve_run_ids <- function(patterns, available) {
   }
   unique(out)
 }
+
+#' Validate and sanitize run identifiers
+#'
+#' Ensures that \code{run_id} matches the expected ``"run-XX"`` pattern and
+#' does not contain path separators.  Returns the sanitized identifier or
+#' throws an error on invalid input.
+#'
+#' @param run_id Character scalar run identifier.
+#' @return The validated \code{run_id} string.
+#' @keywords internal
+sanitize_run_id <- function(run_id) {
+  stopifnot(is.character(run_id), length(run_id) == 1)
+  if (grepl("/|\\\\", run_id)) {
+    abort_lna(
+      "run_id must not contain path separators",
+      .subclass = "lna_error_validation",
+      location = "sanitize_run_id"
+    )
+  }
+  if (!grepl("^run-[0-9]{2}$", run_id)) {
+    abort_lna(
+      "run_id must match 'run-XX' pattern",
+      .subclass = "lna_error_validation",
+      location = "sanitize_run_id"
+    )
+  }
+  run_id
+}

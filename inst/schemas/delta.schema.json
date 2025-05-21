@@ -12,7 +12,6 @@
       "default": "first_value_verbatim"
     },
 
-    "delta_quantization_bits": {"type": "integer", "minimum": 1},
     "coding_method": {"type": "string", "enum": ["none", "rle", "range_coded"], "default": "none"}
 
   },

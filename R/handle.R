@@ -8,7 +8,7 @@
 #' @keywords internal
 DataHandle <- R6::R6Class("DataHandle",
   public = list(
-    #' @field stash A list environment holding temporary data objects during transform chain.
+    #' @field stash A list holding temporary data objects during transform chain.
     stash = NULL,
     #' @field meta A list holding metadata associated with the data.
     meta = NULL,
@@ -103,10 +103,17 @@ DataHandle <- R6::R6Class("DataHandle",
          current_stash[keys_to_remove] <- NULL
       }
 
-      # Add new values (potentially overwriting existing keys if not removed)
-      # Consider if overwriting should be prevented/warned if key wasn't in `keys`?
-      # For now, allow overwriting as list assignment does.
+      # Warn if new_values will overwrite existing stash entries that were not removed
       if (length(new_values) > 0) {
+          overlap <- intersect(names(new_values), names(current_stash))
+          if (length(overlap) > 0) {
+              warning(
+                paste(
+                  "Overwriting existing stash entries:",
+                  paste(overlap, collapse = ", ")
+                )
+              )
+          }
           # Use modifyList for safe merging/overwriting
           current_stash <- utils::modifyList(current_stash, new_values)
       }
@@ -122,7 +129,11 @@ DataHandle <- R6::R6Class("DataHandle",
     with = function(...) {
       new_obj <- self$clone(deep = TRUE) # Use deep clone for safety with lists
       updates <- list(...)
-      allowed_fields <- names(get(class(self)[1])$public_fields)
+      class_def <- self$.__enclos_env__$private$.class
+      if (is.null(class_def)) {
+        class_def <- self$.__enclos_env__$self
+      }
+      allowed_fields <- names(class_def$public_fields)
 
       for (field_name in names(updates)) {
         if (!field_name %in% allowed_fields) {
@@ -139,9 +150,9 @@ DataHandle <- R6::R6Class("DataHandle",
     #' Check if a key exists in the stash.
     #' @param key Character string, the key to check.
     #' @return Logical, TRUE if the key exists in the stash, FALSE otherwise.
-    exists = function(key) {
+    has_key = function(key) {
       stopifnot(is.character(key), length(key) == 1)
       return(key %in% names(self$stash))
     }
   )
-) 
+)

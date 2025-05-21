@@ -9,6 +9,7 @@ forward_step.quant <- function(type, desc, handle) {
   center <- p$center %||% TRUE
   scope <- p$scale_scope %||% "global"
 
+
   if (!(is.numeric(bits) && length(bits) == 1 &&
         bits == as.integer(bits) && bits >= 1 && bits <= 16)) {
     abort_lna(
@@ -39,6 +40,11 @@ forward_step.quant <- function(type, desc, handle) {
       .subclass = "lna_error_validation",
       location = "forward_step.quant:scale_scope"
     )
+
+  if (!scope %in% c("global", "voxel")) {
+    warning(sprintf("unknown scale_scope '%s'; falling back to 'global'", scope))
+    scope <- "global"
+
   }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
@@ -65,6 +71,7 @@ forward_step.quant <- function(type, desc, handle) {
   storage.mode(q) <- "integer"
 
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   data_path <- paste0("/scans/", run_id, "/quantized")
   scale_path <- paste0("/scans/", run_id, "/quant_scale")
   offset_path <- paste0("/scans/", run_id, "/quant_offset")
@@ -97,6 +104,7 @@ forward_step.quant <- function(type, desc, handle) {
 #' @keywords internal
 invert_step.quant <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   data_path <- paste0("/scans/", run_id, "/quantized")
   scale_path <- paste0("/scans/", run_id, "/quant_scale")
   offset_path <- paste0("/scans/", run_id, "/quant_offset")
@@ -136,6 +144,13 @@ invert_step.quant <- function(type, desc, handle) {
 #' @keywords internal
 .quantize_global <- function(x, bits, method, center) {
   stopifnot(is.numeric(x))
+  if (any(!is.finite(x))) {
+    abort_lna(
+      "non-finite values found in input",
+      .subclass = "lna_error_validation",
+      location = ".quantize_global"
+    )
+  }
   rng <- range(x)
   m <- mean(x)
   s <- stats::sd(x)
@@ -160,9 +175,14 @@ invert_step.quant <- function(type, desc, handle) {
     offset <- lo
   }
 
-  q <- round((x - offset) / scale)
-  q[q < 0] <- 0L
-  q[q > 2^bits - 1] <- 2^bits - 1L
+  if (scale == 0) {
+    scale <- 1
+    q <- rep.int(0L, length(x))
+  } else {
+    q <- round((x - offset) / scale)
+    q[q < 0] <- 0L
+    q[q > 2^bits - 1] <- 2^bits - 1L
+  }
 
   list(q = q, scale = scale, offset = offset)
 }
@@ -170,6 +190,13 @@ invert_step.quant <- function(type, desc, handle) {
 #' Compute quantization parameters per voxel (time series)
 #' @keywords internal
 .quantize_voxel <- function(x, bits, method, center) {
+  if (any(!is.finite(x))) {
+    abort_lna(
+      "non-finite values found in input",
+      .subclass = "lna_error_validation",
+      location = ".quantize_voxel"
+    )
+  }
   dims <- dim(x)
   vox <- prod(dims[1:3])
   time <- dims[4]
@@ -196,9 +223,14 @@ invert_step.quant <- function(type, desc, handle) {
     offset <- lo
   }
 
-  q <- round((mat - offset) / scale)
-  q[q < 0] <- 0L
-  q[q > 2^bits - 1] <- 2^bits - 1L
+  zero_idx <- scale == 0
+  q <- matrix(0L, vox, time)
+  if (any(!zero_idx)) {
+    q[!zero_idx, ] <- round((mat[!zero_idx, , drop = FALSE] - offset[!zero_idx]) / scale[!zero_idx])
+    q[q < 0] <- 0L
+    q[q > 2^bits - 1] <- 2^bits - 1L
+  }
+  scale[zero_idx] <- 1
 
   arr_q <- array(as.integer(q), dim = dims)
   list(q = arr_q,
