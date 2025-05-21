@@ -5,10 +5,13 @@
 #' @keywords internal
 forward_step.embed <- function(type, desc, handle) {
   p <- desc$params %||% list()
-  basis_path <- p$basis_path %||% ""
-  if (!nzchar(basis_path)) {
-    abort_lna("'basis_path' is required", .subclass = "lna_error_validation",
-              location = "forward_step.embed:basis_path")
+  basis_path <- p$basis_path
+  if (is.null(basis_path) || !nzchar(basis_path)) {
+    abort_lna(
+      "'basis_path' must be provided",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:basis_path"
+    )
   }
   plan <- handle$plan
   basis <- plan$payloads[[basis_path]]
