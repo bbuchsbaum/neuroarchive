@@ -47,36 +47,26 @@ default_params <- function(type) {
     return(cache[[type]])
   }
 
-  schema_file <- system.file("schemas", paste0(type, ".schema.json"),
-                             package = "neuroarchive")
-  defaults <- list()
-  if (nzchar(schema_file) && file.exists(schema_file)) {
-    schema <- jsonlite::read_json(schema_file, simplifyVector = TRUE)
-    if (is.list(schema$properties)) {
-      for (nm in names(schema$properties)) {
-        prop <- schema$properties[[nm]]
-        if (!is.null(prop$default)) {
-          defaults[[nm]] <- prop$default
-        }
-      }
+  pkgs <- unique(c("neuroarchive", loadedNamespaces()))
+  schema_path <- ""
+  for (pkg in pkgs) {
+    path <- system.file("schemas", paste0(type, ".schema.json"), package = pkg)
+    if (nzchar(path) && file.exists(path)) {
+      schema_path <- path
+      break
     }
   }
 
-  schema_path <- system.file("schemas", paste0(type, ".schema.json"),
-                              package = "neuroarchive")
-
-  if (schema_path == "") {
+  if (!nzchar(schema_path)) {
     warning(sprintf("Schema for transform '%s' not found", type), call. = FALSE)
     defaults <- list()
   } else {
     schema <- jsonlite::read_json(schema_path, simplifyVector = FALSE)
     assign(type, schema, envir = .schema_cache)
-    defaults <- .extract_schema_defaults(schema)
+    defaults <- .extract_schema_defaults(schema) %||% list()
   }
 
-  assign(type, defaults, envir = .default_param_cache)
-
-  cache[[type]] <- defaults
+  assign(type, defaults, envir = cache)
   defaults
 }
 
