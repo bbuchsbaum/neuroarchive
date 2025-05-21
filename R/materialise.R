@@ -1,14 +1,16 @@
+
 #' Materialise Plan to HDF5 (Stub)
 #'
 #' @description Minimal implementation that writes transform descriptors
 #'   and core groups to an open HDF5 file. Numeric datasets are not written.
 #' @param h5 An open `H5File` object.
 #' @param plan A `Plan` R6 object produced by `core_write`.
+#' @return Invisibly returns the modified `plan`.
+#' @import hdf5r
 #' @keywords internal
 materialise_plan <- function(h5, plan) {
   stopifnot(inherits(h5, "H5File"))
   stopifnot(inherits(plan, "Plan"))
-
   # Create core groups
   tf_group <- if (h5$exists("transforms")) h5[["transforms"]] else h5$create_group("transforms")
   if (!h5$exists("basis")) h5$create_group("basis")
