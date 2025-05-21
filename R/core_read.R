@@ -6,10 +6,10 @@
 #'
 #' @param file Path to an LNA file on disk.
 #' @param allow_plugins Character. How to handle transforms requiring
-#'   external packages. One of "warn" (default), "off", or "on". When
-#'   "off", an error is raised if a transform lacks an implementation.
-#'   "warn" issues a warning and proceeds. "on" behaves like "warn" for
-#'   now as plugin loading is not yet implemented.
+#'   external packages. One of "installed" (default), "none", or "prompt".
+#'   "none" errors on missing implementations. "installed" warns and
+#'   proceeds if a transform implementation is unavailable. "prompt"
+#'   behaves like "installed" when \code{!rlang::is_interactive()}.
 #' @param validate Logical flag indicating if validation should be
 #'   performed via `validate_lna()` before reading.
 #' @param output_dtype Desired output data type. One of
@@ -20,10 +20,13 @@
 #' @return A `DataHandle` object representing the loaded data.
 #' @import hdf5r
 #' @keywords internal
-core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = FALSE,
+core_read <- function(file, allow_plugins = c("installed", "none", "prompt"), validate = FALSE,
                       output_dtype = c("float32", "float64", "float16"),
                       lazy = FALSE) {
   allow_plugins <- match.arg(allow_plugins)
+  if (identical(allow_plugins, "prompt") && !rlang::is_interactive()) {
+    allow_plugins <- "installed"
+  }
   output_dtype <- match.arg(output_dtype)
   h5 <- open_h5(file, mode = "r")
   if (!lazy) {
@@ -51,7 +54,7 @@ core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = F
       "Missing invert_step implementation for transform(s): ",
       paste(unique(missing_methods), collapse = ", ")
     )
-    if (identical(allow_plugins, "off")) {
+    if (identical(allow_plugins, "none")) {
       abort_lna(msg, .subclass = "lna_error_no_method")
     } else {
       warning(msg)

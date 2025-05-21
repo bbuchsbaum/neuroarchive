@@ -67,13 +67,13 @@ test_that("read_lna forwards arguments to core_read", {
                             lazy = lazy)
       DataHandle$new()
     }, {
-      read_lna("somefile.h5", allow_plugins = "on", validate = TRUE,
+      read_lna("somefile.h5", allow_plugins = "prompt", validate = TRUE,
                output_dtype = "float64", lazy = TRUE)
     }
   )
 
   expect_equal(captured$core$file, "somefile.h5")
-  expect_equal(captured$core$allow_plugins, "on")
+  expect_equal(captured$core$allow_plugins, "prompt")
   expect_true(captured$core$validate)
   expect_equal(captured$core$output_dtype, "float64")
   expect_true(captured$core$lazy)
