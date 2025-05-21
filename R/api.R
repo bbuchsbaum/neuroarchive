@@ -115,9 +115,10 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #'   transforms that require optional packages. One of
 #'   \code{"installed"} (default), \code{"none"}, or \code{"prompt"}.
 #'   Non-interactive sessions treat \code{"prompt"} the same as
-#'   \code{"installed"}. Interactive use of \code{"prompt"} will ask
-#'   whether to continue when a transform implementation is missing;
-#'   declining aborts reading.
+#'   \code{"installed"}.  When a required transform implementation is
+#'   missing, \code{"installed"} emits a warning and skips that
+#'   transform. Interactive use of \code{"prompt"} will ask whether to
+#'   continue; declining aborts reading.
 #' @param validate Logical flag for validation; forwarded to `core_read`.
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.

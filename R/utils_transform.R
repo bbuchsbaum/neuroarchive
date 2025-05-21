@@ -42,7 +42,7 @@ check_transform_implementation <- function(type) {
 #' @param location Optional string used in error conditions.
 #' @keywords internal
 handle_missing_methods <- function(missing_types, allow_plugins, location = NULL) {
-  if (length(missing_types) == 0) return(invisible(NULL))
+  if (length(missing_types) == 0) return(character())
 
   msg <- paste0(
     "Missing invert_step implementation for transform(s): ",
@@ -61,5 +61,5 @@ handle_missing_methods <- function(missing_types, allow_plugins, location = NULL
     warning(msg, call. = FALSE)
   }
 
-  invisible(NULL)
+  invisible(missing_types)
 }
