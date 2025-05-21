@@ -127,4 +127,28 @@ test_that("HDF5 attribute helpers handle edge cases and errors", {
   expect_null(h5_attr_delete(root_group, "does_not_exist"))
 
   h5_file$close_all()
-}) 
+})
+
+test_that("assert_h5_path validates paths", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  root <- h5[["/"]]
+  root$create_group("exists")
+
+  expect_invisible(assert_h5_path(h5, "exists"))
+  expect_error(assert_h5_path(h5, "missing"), class = "lna_error_missing_path")
+
+  h5$close_all()
+})
+
+test_that("map_dtype and guess_h5_type return H5T objects", {
+  t1 <- map_dtype("float32")
+  expect_true(inherits(t1, "H5T"))
+  expect_equal(t1$get_size(), 4)
+
+  t2 <- guess_h5_type(1L)
+  expect_true(inherits(t2, "H5T"))
+  expect_equal(t2$get_size(), 4)
+
+  expect_error(map_dtype("bogus"), class = "lna_error_validation")
+})
