@@ -34,12 +34,12 @@ forward_step.embed <- function(type, desc, handle) {
   } else {
     X <- as.matrix(X)
   }
+
+
   if (!is.numeric(X)) {
-    abort_lna(
-      "embed transform requires numeric input matrix",
-      .subclass = "lna_error_validation",
-      location = "forward_step.embed:input"
-    )
+    abort_lna("embed transform requires numeric input matrix",
+              .subclass = "lna_error_validation",
+              location = "forward_step.embed:input")
   }
   if (!is.null(mean_vec)) X <- sweep(X, 2, mean_vec, "-")
   if (!is.null(scale_vec)) X <- sweep(X, 2, scale_vec, "/")
@@ -107,6 +107,28 @@ invert_step.embed <- function(type, desc, handle) {
 
   root <- handle$h5[["/"]]
   if (!root$exists(basis_path)) {
+    abort_lna(sprintf("dataset '%s' not found", basis_path),
+              .subclass = "lna_error_contract",
+              location = "invert_step.embed:basis")
+  }
+  basis <- h5_read(root, basis_path)
+  mean_vec <- if (!is.null(p$center_data_with)) {
+    if (!root$exists(p$center_data_with)) {
+      abort_lna(sprintf("dataset '%s' not found", p$center_data_with),
+                .subclass = "lna_error_contract",
+                location = "invert_step.embed:center")
+    }
+    h5_read(root, p$center_data_with)
+  } else NULL
+  scale_vec <- if (!is.null(p$scale_data_with)) {
+    if (!root$exists(p$scale_data_with)) {
+      abort_lna(sprintf("dataset '%s' not found", p$scale_data_with),
+                .subclass = "lna_error_contract",
+                location = "invert_step.embed:scale")
+    }
+    h5_read(root, p$scale_data_with)
+  } else NULL
+
     abort_lna(
       sprintf("basis matrix dataset '%s' not found", basis_path),
       .subclass = "lna_error_contract",
@@ -138,6 +160,7 @@ invert_step.embed <- function(type, desc, handle) {
   } else {
     scale_vec <- NULL
   }
+
 
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 
