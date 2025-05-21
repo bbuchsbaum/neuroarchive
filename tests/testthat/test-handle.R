@@ -30,6 +30,7 @@ test_that("DataHandle initialization works correctly", {
   expect_equal(length(h_default$subset), 0)
   expect_equal(h_default$run_ids, character(0))
   expect_null(h_default$current_run_id)
+  expect_null(h_default$mask_info)
 
   # Initialization with values
   init_stash <- list(a = 1, b = "hello")
@@ -52,6 +53,7 @@ test_that("DataHandle initialization works correctly", {
   expect_identical(h_init$subset, init_subset)
   expect_equal(h_init$run_ids, c("run-01", "run-02"))
   expect_equal(h_init$current_run_id, "run-01")
+  expect_null(h_init$mask_info)
 
   # Input validation checks
   expect_error(DataHandle$new(initial_stash = "not_a_list"))

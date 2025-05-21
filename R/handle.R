@@ -22,6 +22,8 @@ DataHandle <- R6::R6Class("DataHandle",
     run_ids = NULL,
     #' @field current_run_id The run identifier currently being processed.
     current_run_id = NULL,
+    #' @field mask_info List with mask array and active voxel count
+    mask_info = NULL,
 
     #' @description
     #' Initialize a new DataHandle object.
@@ -32,7 +34,7 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @param subset A list specifying subsetting (optional, for reading).
     initialize = function(initial_stash = list(), initial_meta = list(), plan = NULL,
                           h5 = NULL, subset = list(), run_ids = character(),
-                          current_run_id = NULL) {
+                          current_run_id = NULL, mask_info = NULL) {
       # Basic input validation
       stopifnot(is.list(initial_stash))
       stopifnot(is.list(initial_meta))
@@ -58,6 +60,7 @@ DataHandle <- R6::R6Class("DataHandle",
       self$subset <- subset
       self$run_ids <- run_ids
       self$current_run_id <- current_run_id
+      self$mask_info <- mask_info
     },
 
     #' @description

@@ -78,3 +78,20 @@ test_that("unnamed list input generates run names accessible to forward_step", {
   expect_equal(res$handle$run_ids, c("run-01", "run-02"))
   expect_equal(res$handle$current_run_id, "run-01")
 })
+
+test_that("mask is validated and stored", {
+  arr <- array(1, dim = c(2,2,2,3))
+  msk <- array(TRUE, dim = c(2,2,2))
+  res <- core_write(x = arr, transforms = "tA", mask = msk)
+  expect_equal(res$handle$mask_info$active_voxels, sum(msk))
+  expect_true(all(res$handle$meta$mask == msk))
+})
+
+test_that("mask voxel mismatch triggers error", {
+  arr <- array(1, dim = c(2,2,2,1))
+  bad <- array(c(rep(TRUE,7), FALSE), dim = c(2,2,2))
+  expect_error(
+    core_write(x = arr, transforms = "tA", mask = bad),
+    class = "lna_error_validation"
+  )
+})

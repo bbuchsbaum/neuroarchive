@@ -7,17 +7,19 @@
 #' @param file Path to output `.h5` file. If `NULL`, a temporary file is used.
 #' @param transforms Character vector of transform types.
 #' @param transform_params Named list of transform parameters.
+#' @param mask Optional mask passed to `core_write`.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
 #'   `header` with class `"lna_write_result"`.
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
-                      transform_params = list()) {
+                      transform_params = list(), mask = NULL) {
   if (is.null(file)) {
     file <- tempfile(fileext = ".h5")
   }
 
   result <- core_write(x = x, transforms = transforms,
-                       transform_params = transform_params)
+                       transform_params = transform_params,
+                       mask = mask)
 
   h5 <- hdf5r::H5File$new(file, mode = "w")
   materialise_plan(h5, result$plan)
