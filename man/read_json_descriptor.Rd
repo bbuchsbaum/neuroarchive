@@ -20,6 +20,8 @@ Provides internal functions for reading and writing transform
 }
 \details{
 Assumes the dataset stores a single UTF-8 string (potentially variable length).
+Numeric values are coerced with \code{as.numeric()} so that whole-number
+values are returned as base numeric rather than integers.
 }
 \keyword{HDF5}
 \keyword{JSON}

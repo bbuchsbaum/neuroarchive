@@ -76,6 +76,19 @@ test_that("write_json_descriptor is idempotent", {
   expect_equal(read_list, list2) # Should contain the second list
 })
 
+test_that("plugin descriptor numeric values survive round-trip", {
+  tmp <- withr::local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  write_json_descriptor(h5[["/"]], "plugin.json", list(a = 1))
+  h5$close_all()
+
+  h5r <- H5File$new(tmp, mode = "r")
+  res <- read_json_descriptor(h5r[["/"]], "plugin.json")
+  h5r$close_all()
+
+  expect_identical(res, list(a = 1))
+})
+
 test_that("read_json_descriptor error handling works", {
   temp_h5_file <- withr::local_tempfile(fileext = ".h5")
 
