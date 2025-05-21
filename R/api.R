@@ -15,6 +15,10 @@
 #' @param header Optional named list of header attributes.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
 #'   `header` with class `"lna_write_result"`.
+#' @details For parallel workflows use a unique temporary file and
+#'   `file.rename()` it to the final path once writing succeeds.
+#'   The underlying HDF5 handle is opened with mode `"w"` which
+#'   truncates any existing file at `file`.
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
