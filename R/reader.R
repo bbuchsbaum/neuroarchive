@@ -28,6 +28,8 @@ lna_reader <- R6::R6Class("lna_reader",
     core_args = NULL,
     #' @field run_ids Selected run identifiers
     run_ids = NULL,
+    #' @field allow_plugins Stored allow_plugins behaviour from `read_lna`
+    allow_plugins = "installed",
     #' @field current_run_id Run identifier currently used
     current_run_id = NULL,
     #' @field subset_params Stored subsetting parameters
@@ -45,6 +47,7 @@ lna_reader <- R6::R6Class("lna_reader",
       stopifnot(is.character(file), length(file) == 1)
       self$file <- file
       self$core_args <- core_read_args
+      self$allow_plugins <- core_read_args$allow_plugins %||% "installed"
       subset_params <- list()
       if (!is.null(core_read_args$roi_mask)) {
         roi <- core_read_args$roi_mask
@@ -128,6 +131,30 @@ lna_reader <- R6::R6Class("lna_reader",
       )
       tf_group <- h5[["transforms"]]
       transforms <- discover_transforms(tf_group)
+      allow_plugins <- self$allow_plugins
+      if (identical(allow_plugins, "prompt") && !rlang::is_interactive()) {
+        allow_plugins <- "installed"
+      }
+      if (nrow(transforms) > 0) {
+        missing_methods <- transforms$type[
+          vapply(
+            transforms$type,
+            function(t) is.null(getS3method("invert_step", t, optional = TRUE)),
+            logical(1)
+          )
+        ]
+        if (length(missing_methods) > 0) {
+          msg <- paste0(
+            "Missing invert_step implementation for transform(s): ",
+            paste(unique(missing_methods), collapse = ", ")
+          )
+          if (identical(allow_plugins, "none")) {
+            abort_lna(msg, .subclass = "lna_error_no_method")
+          } else {
+            warning(msg)
+          }
+        }
+      }
       if (nrow(transforms) > 0) {
         for (i in rev(seq_len(nrow(transforms)))) {
           name <- transforms$name[[i]]
@@ -146,6 +173,7 @@ lna_reader <- R6::R6Class("lna_reader",
         )
       }
       handle$meta$output_dtype <- output_dtype
+      handle$meta$allow_plugins <- allow_plugins
 
       self$data_cache <- handle
       self$cache_params <- params
