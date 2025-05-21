@@ -62,7 +62,9 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
                                 plugins = NULL) {
       captured$mat <- list(is_h5 = inherits(h5, "H5File"), plan = plan,
                            header = header, plugins = plugins)
-    }, {
+    },
+    .package = "neuroarchive",
+    {
       write_lna(x = 42, file = tempfile(fileext = ".h5"),
                 transforms = c("tA"),
                 transform_params = list(tA = list(foo = "bar")),
@@ -92,7 +94,9 @@ test_that("read_lna forwards arguments to core_read", {
                             validate = validate, output_dtype = output_dtype,
                             lazy = lazy)
       DataHandle$new()
-    }, {
+    },
+    .package = "neuroarchive",
+    {
       read_lna("somefile.h5", run_id = "run-*", allow_plugins = "prompt", validate = TRUE,
                output_dtype = "float64", lazy = FALSE)
     }
