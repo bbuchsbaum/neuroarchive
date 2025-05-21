@@ -54,6 +54,20 @@ required_param_cache_clear <- function() {
     }
   }
 
+  if (is.list(node$items)) {
+    if (is.null(names(node$items))) {
+      item_vals <- lapply(node$items, .extract_schema_defaults)
+      if (any(vapply(item_vals, Negate(is.null), logical(1)))) {
+        defaults$items <- item_vals
+      }
+    } else {
+      val <- .extract_schema_defaults(node$items)
+      if (!is.null(val)) {
+        defaults$items <- val
+      }
+    }
+  }
+
   if (length(defaults) > 0) defaults else NULL
 }
 
