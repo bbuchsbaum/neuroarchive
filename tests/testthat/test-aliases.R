@@ -6,6 +6,7 @@ test_that("compress_fmri forwards to write_lna", {
   captured <- NULL
   with_mocked_bindings(
     write_lna = function(...) { captured <<- list(...); "res" },
+    .package = "neuroarchive",
     {
       out <- compress_fmri(x = 1, file = "foo.h5")
     }

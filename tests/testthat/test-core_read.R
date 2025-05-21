@@ -39,6 +39,7 @@ test_that("core_read closes file if invert_step errors", {
       captured_h5 <<- handle$h5
       stop("mock error")
     },
+    .package = "neuroarchive",
     expect_error(core_read(tmp), "mock error")
   )
   expect_true(inherits(captured_h5, "H5File"))
@@ -73,6 +74,7 @@ test_that("core_read allows float16 when support present", {
 
   with_mocked_bindings(
     has_float16_support = function() TRUE,
+    .package = "neuroarchive",
     {
       h <- core_read(tmp, output_dtype = "float16")
       expect_equal(h$meta$output_dtype, "float16")
@@ -96,6 +98,7 @@ test_that("core_read validate=TRUE calls validate_lna", {
   called <- FALSE
   with_mocked_bindings(
     validate_lna = function(file) { called <<- TRUE },
+    .package = "neuroarchive",
     { core_read(tmp, validate = TRUE) }
   )
   expect_true(called)
@@ -190,7 +193,9 @@ test_that("core_read run_id globbing returns handles", {
       root <- handle$h5[["/"]]
       val <- h5_read(root, path)
       handle$update_stash(keys = character(), new_values = list(input = val))
-    }, {
+    },
+    .package = "neuroarchive",
+    {
       res <- core_read(tmp, run_id = "run-0*")
     }
   )
@@ -218,7 +223,9 @@ test_that("core_read run_id globbing lazy returns first", {
       root <- handle$h5[["/"]]
       val <- h5_read(root, path)
       handle$update_stash(keys = character(), new_values = list(input = val))
-    }, {
+    },
+    .package = "neuroarchive",
+    {
       expect_warning(h <- core_read(tmp, run_id = "run-*", lazy = TRUE), "first match")
     }
   )
@@ -239,6 +246,7 @@ test_that("core_read validate=TRUE checks dataset existence", {
 
   with_mocked_bindings(
     invert_step.dummy = function(type, desc, handle) handle,
+    .package = "neuroarchive",
     {
       expect_error(core_read(tmp, validate = TRUE),
                    class = "lna_error_missing_path")

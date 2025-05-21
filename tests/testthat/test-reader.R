@@ -38,6 +38,7 @@ test_that("lna_reader initialize closes file on failure", {
         captured_h5 <<- orig_open_h5(file, mode)
         captured_h5
       },
+      .package = "neuroarchive",
       read_lna(tmp, run_id = "run-01", lazy = TRUE)
     ),
     class = "lna_error_run_id"
@@ -129,6 +130,7 @@ test_that("lna_reader$data allow_plugins='prompt' falls back when non-interactiv
   reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "prompt")
   with_mocked_bindings(
     rlang::is_interactive = function() FALSE,
+    .package = "rlang",
     { expect_warning(reader$data(), "Missing invert_step") }
   )
   reader$close()
@@ -141,6 +143,7 @@ test_that("lna_reader$data allow_plugins='prompt' interactive respects choice", 
   with_mocked_bindings(
     rlang::is_interactive = function() TRUE,
     readline = function(prompt = "") "n",
+    .package = "rlang",
     { expect_error(reader$data(), class = "lna_error_no_method") }
   )
   reader$close()
@@ -149,6 +152,7 @@ test_that("lna_reader$data allow_plugins='prompt' interactive respects choice", 
   with_mocked_bindings(
     rlang::is_interactive = function() TRUE,
     readline = function(prompt = "") "y",
+    .package = "rlang",
     { expect_warning(reader$data(), "Missing invert_step") }
   )
   reader$close()
