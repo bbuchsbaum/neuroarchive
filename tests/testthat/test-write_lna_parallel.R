@@ -8,7 +8,7 @@ test_that("write_lna temp file can be atomically renamed", {
   final <- file.path(dir, "dest.lna.h5")
   tmp <- tempfile(tmpdir = dir, fileext = ".h5")
 
-  res <- write_lna(x = 1, file = tmp, transforms = character(0))
+  res <- write_lna(x = array(1, dim = c(1, 1, 1)), file = tmp, transforms = character(0))
   expect_true(file.exists(tmp))
   expect_true(file.rename(tmp, final))
   expect_false(file.exists(tmp))
