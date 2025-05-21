@@ -7,13 +7,35 @@
 #' @keywords internal
 .default_param_cache <- new.env(parent = emptyenv())
 
+#' Null-coalescing helper
+#' @keywords internal
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
 default_params <- function(type) {
   stopifnot(is.character(type), length(type) == 1)
-  if (exists(type, envir = .default_param_cache, inherits = FALSE)) {
-    return(.default_param_cache[[type]])
+
+  cache <- .default_param_cache
+  if (exists(type, envir = cache, inherits = FALSE)) {
+    return(cache[[type]])
   }
-  .default_param_cache[[type]] <- list()
-  .default_param_cache[[type]]
+
+  schema_file <- system.file("schemas", paste0(type, ".schema.json"),
+                             package = "neuroarchive")
+  defaults <- list()
+  if (nzchar(schema_file) && file.exists(schema_file)) {
+    schema <- jsonlite::read_json(schema_file, simplifyVector = TRUE)
+    if (is.list(schema$properties)) {
+      for (nm in names(schema$properties)) {
+        prop <- schema$properties[[nm]]
+        if (!is.null(prop$default)) {
+          defaults[[nm]] <- prop$default
+        }
+      }
+    }
+  }
+
+  cache[[type]] <- defaults
+  defaults
 }
 
 #' Resolve Transform Parameters
@@ -69,4 +91,12 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
   }
 
   merged
+}
+
+#' Default parameters for the 'quant' transform
+#'
+#' Convenience wrapper around `default_params("quant")`.
+#' @export
+lna_default.quant <- function() {
+  default_params("quant")
 }

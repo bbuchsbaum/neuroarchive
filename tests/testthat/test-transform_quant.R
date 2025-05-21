@@ -1,0 +1,28 @@
+library(testthat)
+library(neuroarchive)
+library(hdf5r)
+library(withr)
+
+
+test_that("default_params for quant loads schema", {
+  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
+  rm(list = ls(envir = cache_env), envir = cache_env)
+  p <- neuroarchive:::default_params("quant")
+  expect_equal(p$bits, 8)
+  expect_equal(p$method, "range")
+  expect_true(p$center)
+})
+
+
+test_that("quant transform forward and inverse roundtrip", {
+  arr <- array(runif(12), dim = c(3,4))
+  tmp <- local_tempfile(fileext = ".h5")
+
+  res <- write_lna(arr, file = tmp, transforms = "quant")
+  expect_equal(nrow(res$plan$datasets), 3)
+
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(dim(out), dim(arr))
+  expect_lt(mean(abs(out - arr)), 1)
+})
