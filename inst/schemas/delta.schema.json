@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for 'delta' transform",
+  "type": "object",
+  "properties": {
+    "order": {"type": "integer", "default": 1, "minimum": 1, "maximum": 1},
+    "axis": {"type": "integer", "default": -1},
+    "reference_value_storage": {
+      "type": "string",
+      "enum": ["first_value_verbatim", "reconstruct_from_deltas"],
+      "default": "first_value_verbatim"
+    },
+    "delta_quantization_bits": {"type": "integer", "minimum": 1},
+    "coding_method": {"type": "string", "enum": ["none", "rle", "range_coded"], "default": "none"}
+  },
+  "additionalProperties": false
+}
