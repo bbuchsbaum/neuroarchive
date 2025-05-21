@@ -10,6 +10,7 @@
 #' @keywords internal
 .default_param_cache <- new.env(parent = emptyenv())
 
+
 # Recursively extract `default` values from a parsed JSON schema list
 .extract_schema_defaults <- function(node) {
   if (!is.list(node)) {
@@ -33,10 +34,32 @@
   if (length(defaults) > 0) defaults else NULL
 }
 
+#' Null-coalescing helper
+#' @keywords internal
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+
 default_params <- function(type) {
   stopifnot(is.character(type), length(type) == 1)
-  if (exists(type, envir = .default_param_cache, inherits = FALSE)) {
-    return(.default_param_cache[[type]])
+
+  cache <- .default_param_cache
+  if (exists(type, envir = cache, inherits = FALSE)) {
+    return(cache[[type]])
+  }
+
+  schema_file <- system.file("schemas", paste0(type, ".schema.json"),
+                             package = "neuroarchive")
+  defaults <- list()
+  if (nzchar(schema_file) && file.exists(schema_file)) {
+    schema <- jsonlite::read_json(schema_file, simplifyVector = TRUE)
+    if (is.list(schema$properties)) {
+      for (nm in names(schema$properties)) {
+        prop <- schema$properties[[nm]]
+        if (!is.null(prop$default)) {
+          defaults[[nm]] <- prop$default
+        }
+      }
+    }
   }
 
   schema_path <- system.file("schemas", paste0(type, ".schema.json"),
@@ -52,6 +75,8 @@ default_params <- function(type) {
   }
 
   assign(type, defaults, envir = .default_param_cache)
+
+  cache[[type]] <- defaults
   defaults
 }
 
@@ -108,4 +133,12 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
   }
 
   merged
+}
+
+#' Default parameters for the 'quant' transform
+#'
+#' Convenience wrapper around `default_params("quant")`.
+#' @export
+lna_default.quant <- function() {
+  default_params("quant")
 }
