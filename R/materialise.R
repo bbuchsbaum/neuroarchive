@@ -40,41 +40,14 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 
   # Create core groups
   if (h5$exists("transforms")) {
-    tf_group <- h5[["transforms"]]
-    if (!inherits(tf_group, "H5Group")) {
+    obj <- h5[["transforms"]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
       abort_lna(
         "'/transforms' already exists and is not a group",
         .subclass = "lna_error_validation",
         location = "materialise_plan:transforms"
       )
-    }
-  } else {
-    tf_group <- h5$create_group("transforms")
-  }
-  if (h5$exists("basis")) {
-    if (!inherits(h5[["basis"]], "H5Group")) {
-      abort_lna(
-        "'/basis' already exists and is not a group",
-        .subclass = "lna_error_validation",
-        location = "materialise_plan:basis"
-      )
-    }
-  } else {
-    h5$create_group("basis")
-  }
-  if (h5$exists("scans")) {
-    if (!inherits(h5[["scans"]], "H5Group")) {
-      abort_lna(
-        "'/scans' already exists and is not a group",
-        .subclass = "lna_error_validation",
-        location = "materialise_plan:scans"
-      )
-    }
-
-    obj <- h5[["transforms"]]
-    if (!inherits(obj, "H5Group")) {
-      obj$close()
-      stop("'/transforms' exists but is not a group", call. = FALSE)
     }
     tf_group <- obj
   } else {
@@ -85,7 +58,11 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     obj <- h5[["basis"]]
     if (!inherits(obj, "H5Group")) {
       obj$close()
-      stop("'/basis' exists but is not a group", call. = FALSE)
+      abort_lna(
+        "'/basis' already exists and is not a group",
+        .subclass = "lna_error_validation",
+        location = "materialise_plan:basis"
+      )
     }
     obj$close()
   } else {
@@ -96,10 +73,13 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     obj <- h5[["scans"]]
     if (!inherits(obj, "H5Group")) {
       obj$close()
-      stop("'/scans' exists but is not a group", call. = FALSE)
+      abort_lna(
+        "'/scans' already exists and is not a group",
+        .subclass = "lna_error_validation",
+        location = "materialise_plan:scans"
+      )
     }
     obj$close()
-
   } else {
     h5$create_group("scans")
   }
@@ -149,11 +129,8 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       dtype_size <- 4L
     } else if (is.double(data)) {
       dtype_size <- 8L
-    } else {
-      t <- guess_h5_type(data)
-      dtype_size <- t$get_size()
-      if (inherits(t, "H5T")) t$close()
     }
+    if (inherits(dtype, "H5T")) dtype$close()
     cdims <- if (is.null(chunk_dims)) guess_chunk_dims(dim(data), dtype_size) else as.integer(chunk_dims)
 
     if (inherits(res, "error")) {
