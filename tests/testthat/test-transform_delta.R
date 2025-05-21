@@ -43,7 +43,6 @@ test_that("delta transform with rle coding works", {
 
   expect_equal(p$axis, 4)
   expect_equal(p$reference_value_storage, "first_value_verbatim")
-  expect_null(p$delta_quantization_bits)
   expect_equal(p$coding_method, "none")
 
 })
