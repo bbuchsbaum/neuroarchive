@@ -156,8 +156,9 @@ lna_reader <- R6::R6Class("lna_reader",
         for (i in rev(seq_len(nrow(transforms)))) {
           name <- transforms$name[[i]]
           type <- transforms$type[[i]]
+          step_idx <- transforms$index[[i]]
           desc <- read_json_descriptor(tf_group, name)
-          handle <- invert_step(type, desc, handle)
+          handle <- run_transform_step("invert", type, desc, handle, step_idx)
         }
       }
 

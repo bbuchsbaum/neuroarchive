@@ -110,6 +110,7 @@ core_read <- function(file, run_id = NULL,
 
           h <- run_transform_step("invert", type, desc, h, step_idx)
           if (validate) runtime_validate_step(type, desc, h5)
+
         }
         h
       }
