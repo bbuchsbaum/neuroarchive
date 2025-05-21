@@ -8,6 +8,14 @@ create_empty_lna <- function(path) {
   neuroarchive:::close_h5_safely(h5)
 }
 
+# Helper to create lna with one dummy descriptor
+create_dummy_lna <- function(path) {
+  h5 <- neuroarchive:::open_h5(path, mode = "w")
+  tf <- h5$create_group("transforms")
+  write_json_descriptor(tf, "00_dummy.json", list(type = "dummy"))
+  neuroarchive:::close_h5_safely(h5)
+}
+
 
 test_that("read_lna(lazy=TRUE) returns lna_reader", {
   tmp <- local_tempfile(fileext = ".h5")
@@ -60,5 +68,24 @@ test_that("read_lna lazy passes subset params", {
   reader <- read_lna(tmp, lazy = TRUE, roi_mask = msk, time_idx = 2)
   expect_identical(reader$subset_params$roi_mask, msk)
   expect_identical(reader$subset_params$time_idx, 2L)
+  reader$close()
+})
+
+test_that("lna_reader$data allow_plugins='none' errors on unknown transform", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_dummy_lna(tmp)
+  reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "none")
+  expect_error(reader$data(), class = "lna_error_no_method")
+  reader$close()
+})
+
+test_that("lna_reader$data allow_plugins='prompt' falls back when non-interactive", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_dummy_lna(tmp)
+  reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "prompt")
+  with_mocked_bindings(
+    rlang::is_interactive = function() FALSE,
+    { expect_warning(reader$data(), "Missing invert_step") }
+  )
   reader$close()
 })
