@@ -82,11 +82,14 @@ core_read <- function(file, run_id = NULL,
       logical(1)
     )
   ]
-  handle_missing_methods(
+  skip_types <- handle_missing_methods(
     missing_methods,
     allow_plugins,
     location = sprintf("core_read:%s", file)
   )
+  if (length(skip_types) > 0) {
+    transforms <- transforms[!transforms$type %in% skip_types, , drop = FALSE]
+  }
 
   process_run <- function(rid) {
     handle <- DataHandle$new(h5 = h5, run_ids = runs, current_run_id = rid)
