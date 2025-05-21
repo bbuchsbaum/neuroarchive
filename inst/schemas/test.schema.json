@@ -1,0 +1,14 @@
+{
+  "title": "Test Schema",
+  "type": "object",
+  "properties": {
+    "a": {"type": "integer", "default": 1},
+    "b": {"type": "string", "default": "x"},
+    "nested": {
+      "type": "object",
+      "properties": {
+        "c": {"type": "number", "default": 0.5}
+      }
+    }
+  }
+}
