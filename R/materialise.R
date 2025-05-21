@@ -9,7 +9,8 @@
 #' @return Invisibly returns the modified `plan`.
 #' @import hdf5r
 #' @keywords internal
-materialise_plan <- function(h5, plan) {
+materialise_plan <- function(h5, plan, checksum = c("none", "sha256")) {
+  checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
   stopifnot(inherits(plan, "Plan"))
 
@@ -78,6 +79,20 @@ materialise_plan <- function(h5, plan) {
 
       plan$datasets$write_mode_effective[i] <- "eager"
       plan$mark_payload_written(key)
+    }
+  }
+
+  if (checksum == "sha256") {
+    file_path <- h5$filename
+    h5$close_all()
+    if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
+      hash_val <- digest::digest(file = file_path, algo = "sha256")
+      h5_tmp <- hdf5r::H5File$new(file_path, mode = "r+")
+      root_tmp <- h5_tmp[["/"]]
+      h5_attr_write(root_tmp, "lna_checksum", hash_val)
+      h5_tmp$close_all()
+    } else {
+      warning("Checksum requested but file path unavailable; skipping")
     }
   }
 
