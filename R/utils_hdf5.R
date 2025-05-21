@@ -213,6 +213,9 @@ h5_write_dataset <- function(h5_group, path, data,
 #' @param mode File mode passed to `H5File$new`.
 #' @param ... Additional arguments forwarded to `H5File$new`.
 #' @return An `H5File` object.
+#' @details When `mode` is `"w"` the file is truncated if it already
+#'   exists. Use a unique temporary file and `file.rename()` when
+#'   writing in parallel.
 #' @keywords internal
 open_h5 <- function(path, mode = "r", ...) {
   stopifnot(is.character(path), length(path) == 1)
