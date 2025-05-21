@@ -37,10 +37,16 @@ forward_step.embed <- function(type, desc, handle) {
   if (!is.null(mean_vec)) X <- sweep(X, 2, mean_vec, "-")
   if (!is.null(scale_vec)) X <- sweep(X, 2, scale_vec, "/")
 
-  if (ncol(basis) == ncol(X)) {
+  if (nrow(basis) == ncol(X)) {
     coeff <- X %*% basis
-  } else {
+  } else if (ncol(basis) == ncol(X)) {
     coeff <- X %*% t(basis)
+  } else {
+    abort_lna(
+      "basis matrix dimensions incompatible with input",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed"
+    )
   }
 
   run_id <- handle$current_run_id %||% "run-01"
@@ -49,6 +55,7 @@ forward_step.embed <- function(type, desc, handle) {
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
   step_index <- plan$next_index
   params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  desc$params <- p
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
@@ -106,6 +113,8 @@ invert_step.embed <- function(type, desc, handle) {
     } else if (ncol(basis) == ncol(coeff)) {
       basis <- basis[vox_idx, , drop = FALSE]
     }
+    if (!is.null(mean_vec))  mean_vec <- mean_vec[vox_idx]
+    if (!is.null(scale_vec)) scale_vec <- scale_vec[vox_idx]
   }
   time_idx <- subset$time_idx %||% subset$time
   if (!is.null(time_idx)) {
@@ -113,7 +122,7 @@ invert_step.embed <- function(type, desc, handle) {
   }
 
   if (nrow(basis) == ncol(coeff)) {
-    dense <- tcrossprod(coeff, basis)
+    dense <- coeff %*% basis
   } else if (ncol(basis) == ncol(coeff)) {
     dense <- coeff %*% t(basis)
   } else {
