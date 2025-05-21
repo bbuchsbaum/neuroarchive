@@ -165,6 +165,8 @@ test_that("DataHandle update_stash provides immutability", {
 
   # 1a. Check h2 is new object
   expect_false(identical(h1, h2))
+  # 1a2. Field names should be identical
+  expect_true(identical(names(h1), names(h2)))
 
   # 1b. Check h2 stash is correct
   expected_h2_stash <- list(a = 99, c = 3, d = 4) # Order might vary, use setequal/sort
