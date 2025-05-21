@@ -13,8 +13,10 @@ test_that("scaffold_transform creates template files", {
   expect_true(file.exists(paths$test))
 
   r_lines <- readLines(paths$r_file)
+  pkg <- utils::packageName(environment(scaffold_transform))
+  ns_call <- sprintf("%s:::default_params('mycustom')", pkg)
   expect_true(any(grepl("forward_step.mycustom", r_lines, fixed = TRUE)))
-  expect_true(any(grepl("default_params('mycustom')", r_lines, fixed = TRUE)))
+  expect_true(any(grepl(ns_call, r_lines, fixed = TRUE)))
 })
 
 test_that("scaffold_transform warns on namespace collisions", {
