@@ -60,3 +60,14 @@ test_that("default_params loads defaults from schema and caches", {
   d2 <- neuroarchive:::default_params("test")
   expect_identical(d1, d2)
 })
+
+test_that("defaults are extracted from array items", {
+  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
+  schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
+  rm(list = ls(envir = cache_env), envir = cache_env)
+  rm(list = ls(envir = schema_env), envir = schema_env)
+
+  d <- neuroarchive:::default_params("test_array")
+  expect_equal(d$numArray$items, 2)
+  expect_equal(d$objArray$items, list(flag = TRUE))
+})
