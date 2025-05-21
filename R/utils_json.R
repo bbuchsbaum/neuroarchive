@@ -18,10 +18,8 @@ read_json_descriptor <- function(h5_group, name) {
   stopifnot(inherits(h5_group, "H5Group")) # Basic type check
   stopifnot(is.character(name), length(name) == 1)
 
-  
-  if (!h5_group$exists(name)) {
-    stop(paste("JSON descriptor dataset '", name, "' not found in HDF5 group.", sep = ""))
-  }
+
+  assert_h5_path(h5_group, name)
 
   json_string <- NULL
   parsed_list <- NULL

@@ -203,6 +203,87 @@ h5_write_dataset <- function(h5_group, path, data,
   invisible(dset)
 }
 
+
+#' Assert that an HDF5 path exists
+#'
+#' Convenience helper to verify that a dataset or group is present
+#' at the given path relative to `h5`. Throws an `lna_error_missing_path`
+#' error if the path does not exist.
+#'
+#' @param h5 An `H5File` or `H5Group` object.
+#' @param path Character path to check.
+#' @return Invisibly returns `NULL` when the path exists.
+#' @keywords internal
+assert_h5_path <- function(h5, path) {
+  stopifnot(inherits(h5, c("H5File", "H5Group")))
+  stopifnot(is.character(path), length(path) == 1)
+
+  if (!h5$exists(path)) {
+    abort_lna(
+      sprintf("HDF5 path '%s' not found", path),
+      .subclass = "lna_error_missing_path"
+    )
+  }
+  invisible(NULL)
+}
+
+#' Map a datatype name to an HDF5 type
+#'
+#' Provides a small lookup used when creating datasets. The mapping is
+#' intentionally simple but can be extended to support NIfTI conversions.
+#'
+#' @param dtype Character scalar naming the datatype.
+#' @return An `H5T` object.
+#' @keywords internal
+map_dtype <- function(dtype) {
+  if (inherits(dtype, "H5T")) {
+    return(dtype)
+  }
+
+  stopifnot(is.character(dtype), length(dtype) == 1)
+
+  switch(dtype,
+    float32 = hdf5r::h5types$H5T_IEEE_F32LE,
+    float64 = hdf5r::h5types$H5T_IEEE_F64LE,
+    int8    = hdf5r::h5types$H5T_STD_I8LE,
+    uint8   = hdf5r::h5types$H5T_STD_U8LE,
+    int16   = hdf5r::h5types$H5T_STD_I16LE,
+    uint16  = hdf5r::h5types$H5T_STD_U16LE,
+    int32   = hdf5r::h5types$H5T_STD_I32LE,
+    uint32  = hdf5r::h5types$H5T_STD_U32LE,
+    int64   = hdf5r::h5types$H5T_STD_I64LE,
+    uint64  = hdf5r::h5types$H5T_STD_U64LE,
+    abort_lna(
+      sprintf("Unknown dtype '%s'", dtype),
+      .subclass = "lna_error_validation"
+    )
+  )
+}
+
+#' Guess an HDF5 datatype for an R object
+#'
+#' @param x R object to inspect.
+#' @return An `H5T` datatype object.
+#' @keywords internal
+guess_h5_type <- function(x) {
+  if (is.integer(x)) {
+    return(map_dtype("int32"))
+  } else if (is.double(x)) {
+    return(map_dtype("float64"))
+  } else if (is.logical(x) || is.raw(x)) {
+    return(map_dtype("uint8"))
+  } else if (is.character(x)) {
+    t <- hdf5r::H5T_STRING$new(size = Inf)
+    t$set_cset("UTF-8")
+    return(t)
+  }
+
+  abort_lna(
+    "Unsupported object type for HDF5 storage",
+    .subclass = "lna_error_validation"
+  )
+}
+
 #' Read a dataset from an HDF5 group
 #'
 #' @param h5_group An `H5Group` object used as the starting location for `path`.
