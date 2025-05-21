@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for 'temporal' transform",
+  "type": "object",
+  "properties": {
+    "kind": {"type": "string", "enum": ["dct", "bspline"], "default": "dct"},
+    "n_basis": {"type": "integer", "minimum": 1, "default": 5},
+    "order": {"type": "integer", "minimum": 1, "default": 4},
+    "knot_vector_path": {"type": "string", "default": ""},
+    "knot_spacing_method": {"type": "string", "default": "uniform"},
+    "scope": {"type": "string", "enum": ["global", "voxelwise"], "default": "global"}
+  },
+  "additionalProperties": false
+}
