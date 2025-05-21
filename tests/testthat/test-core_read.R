@@ -89,3 +89,21 @@ test_that("core_read works with progress handlers", {
   expect_silent(progressr::with_progress(core_read(tmp)))
   progressr::handlers(NULL)
 })
+
+test_that("core_read validate=TRUE calls validate_lna", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  called <- FALSE
+  with_mocked_bindings(
+    validate_lna = function(file) { called <<- TRUE },
+    { core_read(tmp, validate = TRUE) }
+  )
+  expect_true(called)
+})
+
+test_that("core_read allow_plugins='off' errors on unknown transform", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_dummy_lna(tmp)
+  expect_error(core_read(tmp, allow_plugins = "off"),
+               class = "lna_error_no_method")
+})

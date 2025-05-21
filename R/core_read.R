@@ -5,9 +5,13 @@
 #'   minimal skeleton used during early development.
 #'
 #' @param file Path to an LNA file on disk.
-#' @param allow_plugins Placeholder argument for plugin policy.
+#' @param allow_plugins Character. How to handle transforms requiring
+#'   external packages. One of "warn" (default), "off", or "on". When
+#'   "off", an error is raised if a transform lacks an implementation.
+#'   "warn" issues a warning and proceeds. "on" behaves like "warn" for
+#'   now as plugin loading is not yet implemented.
 #' @param validate Logical flag indicating if validation should be
-#'   performed. Currently ignored.
+#'   performed via `validate_lna()` before reading.
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.
 #' @param lazy Logical. If `TRUE`, the HDF5 file handle remains open
@@ -26,12 +30,33 @@ core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = F
     on.exit(close_h5_safely(h5))
   }
 
+  if (validate) {
+    validate_lna(file)
+  }
+
   handle <- DataHandle$new(h5 = h5)
   tf_group <- h5[["transforms"]]
 
   transforms <- discover_transforms(tf_group)
 
-  # TODO: make use of allow_plugins and validate
+  missing_methods <- transforms$type[
+    vapply(
+      transforms$type,
+      function(t) is.null(getS3method("invert_step", t, optional = TRUE)),
+      logical(1)
+    )
+  ]
+  if (length(missing_methods) > 0) {
+    msg <- paste0(
+      "Missing invert_step implementation for transform(s): ",
+      paste(unique(missing_methods), collapse = ", ")
+    )
+    if (identical(allow_plugins, "off")) {
+      abort_lna(msg, .subclass = "lna_error_no_method")
+    } else {
+      warning(msg)
+    }
+  }
 
   if (nrow(transforms) > 0) {
     progress_enabled <- !progressr::handlers_is_empty()
@@ -60,6 +85,7 @@ core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = F
     )
   }
   handle$meta$output_dtype <- output_dtype
+  handle$meta$allow_plugins <- allow_plugins
 
   return(handle)
 }
