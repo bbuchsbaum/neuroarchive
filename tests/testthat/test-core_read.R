@@ -44,3 +44,37 @@ test_that("core_read closes file if invert_step errors", {
   expect_true(inherits(captured_h5, "H5File"))
   expect_false(captured_h5$is_valid())
 })
+
+test_that("core_read lazy=TRUE keeps file open", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+
+  handle <- core_read(tmp, lazy = TRUE)
+  expect_true(handle$h5$is_valid())
+  handle$h5$close_all()
+})
+
+test_that("core_read output_dtype stored and float16 check", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+
+  h <- core_read(tmp, output_dtype = "float64")
+  expect_equal(h$meta$output_dtype, "float64")
+  expect_error(core_read(tmp, output_dtype = "float16"),
+               class = "lna_error_float16_unsupported")
+})
+
+test_that("core_read allows float16 when support present", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+
+  with_mocked_bindings(
+    has_float16_support = function() TRUE,
+    {
+      h <- core_read(tmp, output_dtype = "float16")
+      expect_equal(h$meta$output_dtype, "float16")
+      expect_true(h$h5$is_valid())
+      h$h5$close_all()
+    }
+  )
+})

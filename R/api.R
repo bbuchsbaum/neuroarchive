@@ -38,10 +38,17 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #' @param file Path to an LNA file on disk.
 #' @param allow_plugins Forwarded to `core_read`.
 #' @param validate Logical flag for validation; forwarded to `core_read`.
+#' @param output_dtype Desired output data type. One of
+#'   `"float32"`, `"float64"`, or `"float16"`.
+#' @param lazy Logical. If `TRUE`, the HDF5 file remains open and the
+#'   returned handle can be used for lazy reading (Phase 1 stub).
 #' @return A `DataHandle` object from `core_read`.
 #' @export
 read_lna <- function(file, allow_plugins = c("warn", "off", "on"),
-                     validate = FALSE) {
+                     validate = FALSE,
+                     output_dtype = c("float32", "float64", "float16"),
+                     lazy = FALSE) {
   core_read(file = file, allow_plugins = allow_plugins,
-            validate = validate)
+            validate = validate, output_dtype = output_dtype,
+            lazy = lazy)
 }
