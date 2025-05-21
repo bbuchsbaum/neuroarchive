@@ -149,6 +149,9 @@ test_that("Plan add_descriptor and get_next_filename work correctly", {
   expect_error(plan$add_descriptor(123, list()))
   expect_error(plan$add_descriptor("name", "not_a_list"))
   expect_error(plan$get_next_filename(123))
+  expect_error(plan$get_next_filename("../bad"))
+  expect_error(plan$get_next_filename("bad/type"))
+  expect_error(plan$get_next_filename("bad\\\\type"))
 })
 
 test_that("Plan mark_payload_written works correctly", {
