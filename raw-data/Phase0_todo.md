@@ -18,6 +18,7 @@
 | M0-11 | **Public API Wrappers**       | [ ]         | Not present. Implement `write_lna`, `read_lna`.                                            |
 | M0-12 | **Error Classes & Utilities** | [ ]         | Partial: Some error handling present, but no centralized error classes or `abort_lna` helper. |
 | M0-13 | **CI & Code Style**           | [ ]         | Unknown: Not assessable from current files. Ensure CI and linting are set up.              |
+
 | M0-14 | **Options & Defaults Stubs**  | [ ]         | Not present. Implement `lna_options()` and `default_params()`.                             |
 | M0-15 | **Schema Cache Stub**         | [x]         | Not present. Implement `schema_cache_clear()`.                                             |
 
