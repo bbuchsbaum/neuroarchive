@@ -99,6 +99,22 @@ core_write <- function(x, transforms, transform_params = list(),
     loop()
   }
 
+  # When no transforms are specified, store the input array(s) directly.
+  if (length(transforms) == 0) {
+    if (is.list(x)) {
+      runs <- if (is.null(names(x)) || any(names(x) == "")) {
+        sprintf("run-%02d", seq_along(x))
+      } else {
+        names(x)
+      }
+      for (i in seq_along(x)) {
+        plan$import_from_array(x[[i]], run_id = runs[i])
+      }
+    } else {
+      plan$import_from_array(x, run_id = run_ids[1])
+    }
+  }
+
   list(handle = handle, plan = plan)
 }
 

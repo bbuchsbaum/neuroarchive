@@ -32,17 +32,17 @@ test_that("lna_reader initialize closes file on failure", {
   create_empty_lna(tmp)
   orig_open_h5 <- getFromNamespace("open_h5", "neuroarchive")
   captured_h5 <- NULL
-  expect_error(
-    with_mocked_bindings(
+  expect_error({
+    local_mocked_bindings(
       open_h5 = function(file, mode = "r") {
         captured_h5 <<- orig_open_h5(file, mode)
         captured_h5
       },
-      .package = "neuroarchive",
-      read_lna(tmp, run_id = "run-01", lazy = TRUE)
-    ),
-    class = "lna_error_run_id"
-  )
+      .env = asNamespace("neuroarchive")
+    )
+    read_lna(tmp, run_id = "run-01", lazy = TRUE)
+  },
+  class = "lna_error_run_id")
   expect_true(inherits(captured_h5, "H5File"))
   expect_false(captured_h5$is_valid())
 })
@@ -128,11 +128,11 @@ test_that("lna_reader$data allow_plugins='prompt' falls back when non-interactiv
   tmp <- local_tempfile(fileext = ".h5")
   create_dummy_lna(tmp)
   reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "prompt")
-  with_mocked_bindings(
+  local_mocked_bindings(
     rlang::is_interactive = function() FALSE,
-    .package = "rlang",
-    { expect_warning(reader$data(), "Missing invert_step") }
+    .env = asNamespace("rlang")
   )
+  expect_warning(reader$data(), "Missing invert_step")
   reader$close()
 })
 
@@ -140,21 +140,21 @@ test_that("lna_reader$data allow_plugins='prompt' interactive respects choice", 
   tmp <- local_tempfile(fileext = ".h5")
   create_dummy_lna(tmp)
   reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "prompt")
-  with_mocked_bindings(
+  local_mocked_bindings(
     rlang::is_interactive = function() TRUE,
     readline = function(prompt = "") "n",
-    .package = "rlang",
-    { expect_error(reader$data(), class = "lna_error_no_method") }
+    .env = asNamespace("rlang")
   )
+  expect_error(reader$data(), class = "lna_error_no_method")
   reader$close()
 
   reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "prompt")
-  with_mocked_bindings(
+  local_mocked_bindings(
     rlang::is_interactive = function() TRUE,
     readline = function(prompt = "") "y",
-    .package = "rlang",
-    { expect_warning(reader$data(), "Missing invert_step") }
+    .env = asNamespace("rlang")
   )
+  expect_warning(reader$data(), "Missing invert_step")
   reader$close()
 })
 
