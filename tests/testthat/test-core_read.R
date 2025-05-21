@@ -117,3 +117,13 @@ test_that("core_read allow_plugins='prompt' falls back when non-interactive", {
                     "Missing invert_step") }
   )
 })
+
+test_that("core_read stores subset parameters", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  roi <- array(TRUE, dim = c(1,1,1))
+  h <- core_read(tmp, roi_mask = roi, time_idx = 1:2)
+  expect_identical(h$subset$roi_mask, roi)
+  expect_identical(h$subset$time_idx, 1:2)
+  expect_false(h$h5$is_valid())
+})

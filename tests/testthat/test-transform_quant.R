@@ -41,3 +41,13 @@ test_that("quant transform supports sd method and voxel scope", {
   expect_equal(dim(out), dim(arr))
   expect_lt(mean(abs(out - arr)), 1)
 })
+
+test_that("invert_step.quant applies roi_mask and time_idx", {
+  arr <- array(seq_len(40), dim = c(2,2,2,5))
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp, transforms = "quant")
+  roi <- array(c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE), dim = c(2,2,2))
+  h <- read_lna(tmp, roi_mask = roi, time_idx = c(2,5))
+  out <- h$stash$input
+  expect_equal(dim(out), c(sum(roi), 2))
+})

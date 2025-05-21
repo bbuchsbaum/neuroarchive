@@ -41,7 +41,16 @@ lna_reader <- R6::R6Class("lna_reader",
       stopifnot(is.character(file), length(file) == 1)
       self$file <- file
       self$core_args <- core_read_args
-      self$subset_params <- list()
+      subset_params <- list()
+      if (!is.null(core_read_args$roi_mask)) {
+        roi <- core_read_args$roi_mask
+        if (inherits(roi, "LogicalNeuroVol")) roi <- as.array(roi)
+        subset_params$roi_mask <- roi
+      }
+      if (!is.null(core_read_args$time_idx)) {
+        subset_params$time_idx <- as.integer(core_read_args$time_idx)
+      }
+      self$subset_params <- subset_params
       self$h5 <- open_h5(file, mode = "r")
     },
 
