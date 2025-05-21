@@ -34,6 +34,15 @@ test_that("write_lna plugins list is written to /plugins", {
   neuroarchive:::close_h5_safely(h5)
 })
 
+test_that("write_lna omits plugins group when list is empty", {
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(x = array(1, dim = c(1, 1, 1)), file = tmp,
+            transforms = character(0), plugins = list())
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r")
+  expect_false(h5$exists("plugins"))
+  neuroarchive:::close_h5_safely(h5)
+})
+
 # Parameter forwarding for write_lna
 
 test_that("write_lna forwards arguments to core_write and materialise_plan", {
