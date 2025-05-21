@@ -46,7 +46,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 
   # Helper to write a single payload dataset with retries
   write_payload <- function(path, data, step_index) {
-    comp_level <- lna_options("write.compression")[[1]]
+    comp_level <- lna_options("write.compression_level")[[1]]
     if (is.null(comp_level)) comp_level <- 0
     chunk_dims <- NULL
 
