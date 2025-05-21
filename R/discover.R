@@ -20,12 +20,12 @@
 #' @importFrom tibble tibble
 #' @keywords internal
 discover_transforms <- function(h5_group) {
-  print(paste("Input object class:", paste(class(h5_group), collapse=", ")))
   stopifnot(inherits(h5_group, "H5Group"))
 
   obj_names <- tryCatch({
     names(h5_group)
   }, error = function(e) {
+
     print("Error occurred during h5_group$names():")
     print(conditionMessage(e))
     abort_lna(
