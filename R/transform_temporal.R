@@ -29,10 +29,10 @@ forward_step.temporal <- function(type, desc, handle) {
   } else if (identical(kind, "bspline")) {
     basis <- .bspline_basis(n_time, n_basis, order)
   } else if (identical(kind, "dpss")) {
-    nw <- p$time_bandwidth_product %||% 3
+    NW <- p$time_bandwidth_product %||% 3
     n_tapers <- p$n_tapers %||% n_basis
     n_basis <- min(n_basis, n_tapers, n_time)
-    basis <- .dpss_basis(n_time, n_basis, nw)
+    basis <- .dpss_basis(n_time, n_basis, NW)
   } else if (identical(kind, "polynomial")) {
     basis <- .polynomial_basis(n_time, n_basis)
   } else if (identical(kind, "wavelet")) {
@@ -162,18 +162,23 @@ invert_step.temporal <- function(type, desc, handle) {
 
 #' Generate DPSS basis matrix
 #' @keywords internal
-.dpss_basis <- function(n_time, n_basis, nw) {
-  W <- nw / n_time
-  m <- seq_len(n_time) - 1
-  S <- outer(m, m, function(i, j) {
-    if (i == j) {
-      2 * W
-    } else {
-      sin(2 * pi * W * (i - j)) / (pi * (i - j))
-    }
-  })
+.dpss_basis <- function(n_time, n_basis, NW) {
+  stopifnot(NW > 0, NW < n_time / 2, n_basis <= 2 * NW)
+
+  W <- NW / n_time
+  m <- as.double(seq_len(n_time) - 1)
+  diff <- outer(m, m, "-")
+
+  S <- sin(2 * pi * W * diff) / (pi * diff)
+  diag(S) <- 2 * W
+
   eig <- eigen(S, symmetric = TRUE)
-  eig$vectors[, seq_len(n_basis), drop = FALSE]
+  V <- eig$vectors[, seq_len(n_basis), drop = FALSE]
+
+  V <- sweep(V, 2, sqrt(colSums(V^2)), "/")
+  for (j in seq_len(ncol(V))) if (V[1, j] < 0) V[, j] <- -V[, j]
+
+  V
 }
 
 #' Generate orthogonal polynomial basis matrix
