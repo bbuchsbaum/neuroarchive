@@ -1421,7 +1421,7 @@ core_write <- function(x, transforms, transform_params = list(),
   merged_params <- resolve_transform_params(transforms, transform_params)
 
   # --- Loop through transforms calling forward_step ---
-  progress_enabled <- !progressr::handlers_is_empty()
+  progress_enabled <- !progressr:::handlers_is_empty()
   loop <- function() {
     p <- if (progress_enabled) progressr::progressor(steps = length(transforms)) else NULL
     for (type in transforms) {
@@ -4984,7 +4984,7 @@ core_read <- function(file, run_id = NULL,
     )
 
     if (nrow(transforms) > 0) {
-      progress_enabled <- !progressr::handlers_is_empty()
+      progress_enabled <- !progressr:::handlers_is_empty()
       step_loop <- function(h) {
         p <- if (progress_enabled) progressr::progressor(steps = nrow(transforms)) else NULL
         for (i in rev(seq_len(nrow(transforms)))) {
@@ -5340,7 +5340,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     idx <- seq_len(nrow(plan$datasets))
     has_payload <- plan$datasets$payload_key != "" & !is.na(plan$datasets$payload_key)
     steps <- sum(has_payload)
-    progress_enabled <- steps > 1 && !progressr::handlers_is_empty()
+    progress_enabled <- steps > 1 && !progressr:::handlers_is_empty()
     loop <- function() {
       p <- if (progress_enabled) progressr::progressor(steps = steps) else NULL
       for (i in idx) {

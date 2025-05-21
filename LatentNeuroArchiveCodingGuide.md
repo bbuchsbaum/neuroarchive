@@ -163,7 +163,7 @@ lna_options <- function(...) { # Uses internal package environment }
     *   `lna::check_transform_implementation(type)`: Now also warns if `type` namespace collides with core transforms (`quant`, `basis`, `embed`, `temporal`, `delta`) or base R packages (stats, utils, etc.).
     *   `lna::scaffold_transform(type)`: Generates template files, including a stub using `lna:::default_params()`.
     *   `lna:::schema_cache_clear()`: Exposes cache clearing for tests.
-*   **Progress Reporting:** Check `!progressr::handlers_is_empty()` before invoking `progressr`.
+*   **Progress Reporting:** Check `!progressr:::handlers_is_empty()` before invoking `progressr`.
 
 **8. Package Structure**
 
