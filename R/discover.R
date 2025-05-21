@@ -12,9 +12,11 @@
 #'   * `index` (integer): The zero-based index extracted from the name (e.g., 0).
 #'   Returns an empty tibble if the group is empty.
 #'
-#' @details Raises an error (currently `stop`, planned `lna_error_sequence`)
-#'   if names don't match the pattern or if the indices are not contiguous
-#'   starting from 0.
+#' @details
+#'   Invalid descriptor names or indices trigger errors. Sequence validation
+#'   uses `abort_lna()` and signals the subclass `lna_error_sequence` when the
+#'   numeric indices are not contiguous starting from zero. Other malformed
+#'   names currently raise standard errors via `stop()`.
 #'
 #' @import hdf5r
 #' @importFrom tibble tibble
