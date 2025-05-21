@@ -93,12 +93,53 @@ h5_attr_delete <- function(h5_obj, name) {
   invisible(NULL)
 }
 
+#' Guess reasonable HDF5 chunk dimensions
+#'
+#' @description Heuristic used when `chunk_dims` is `NULL` in
+#'   `h5_write_dataset`. Chunks are targeted to ~1 MiB. For datasets
+#'   larger than 4 GiB, the first dimension is halved until the estimated
+#'   chunk size falls below 1 GiB. If the chunk would still exceed about
+#'   256 MiB, an additional reduction is applied with a warning.
+#' @param dims Integer vector of dataset dimensions.
+#' @param dtype_size Size in bytes of a single data element.
+#' @return Integer vector of chunk dimensions.
+guess_chunk_dims <- function(dims, dtype_size) {
+  target <- 1024^2  # 1 MiB
+  chunk <- hdf5r::guess_chunks(space_maxdims = dims,
+                               dtype_size = dtype_size,
+                               chunk_size = target)
+
+  data_bytes <- prod(dims) * dtype_size
+  chunk_bytes <- prod(chunk) * dtype_size
+
+  if (data_bytes > 4 * 1024^3 && chunk_bytes > 1024^3) {
+    while (chunk_bytes > 1024^3 && chunk[1] > 1) {
+      chunk[1] <- ceiling(chunk[1] / 2)
+      chunk_bytes <- prod(chunk) * dtype_size
+    }
+  }
+
+  if (chunk_bytes > 256 * 1024^2) {
+    warning("Auto-reducing chunk size to meet HDF5 limits")
+    while (chunk_bytes > 256 * 1024^2 && chunk[1] > 1) {
+      chunk[1] <- ceiling(chunk[1] / 2)
+      chunk_bytes <- prod(chunk) * dtype_size
+    }
+  }
+
+  chunk <- pmin(as.integer(chunk), dims)
+  return(chunk)
+}
+
 #' Write a dataset to an HDF5 group
 #'
 #' @description Creates or overwrites a dataset at `path`, optionally using
 #'   chunking and gzip compression. Intermediate groups in `path` are created as
-#'   needed. If `chunk_dims` is `NULL`, a basic heuristic limits chunk dimensions
-#'   to at most 128 along each axis.
+#'   needed. If `chunk_dims` is `NULL`, a heuristic attempts to keep chunks
+#'   around 1 MiB. For datasets larger than 4 GiB, the fastest changing axis is
+#'   halved until the estimated chunk size is below 1 GiB. If the resulting chunk
+#'   would still exceed roughly 256 MiB (HDF5 practical limit), an additional
+#'   reduction is performed with a warning.
 #'
 #' @param h5_group An `H5Group` object used as the starting location for `path`.
 #' @param path Character string giving the dataset path relative to `h5_group`.
@@ -133,7 +174,8 @@ h5_write_dataset <- function(h5_group, path, data,
   }
 
   if (is.null(chunk_dims)) {
-    chunk_dims <- pmin(dim(data), rep(128L, length(dim(data))))
+    element_size <- if (is.integer(data)) 4L else 8L
+    chunk_dims <- guess_chunk_dims(dim(data), element_size)
   } else {
     chunk_dims <- as.integer(chunk_dims)
   }
