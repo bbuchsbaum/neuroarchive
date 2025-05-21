@@ -160,3 +160,11 @@ lna_default.basis <- function() {
 lna_default.embed <- function() {
   default_params("embed")
 }
+
+#' Default parameters for the 'temporal' transform
+#'
+#' Convenience wrapper around `default_params("temporal")`.
+#' @export
+lna_default.temporal <- function() {
+  default_params("temporal")
+}
