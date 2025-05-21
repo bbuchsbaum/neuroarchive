@@ -9,9 +9,42 @@ forward_step.quant <- function(type, desc, handle) {
   center <- p$center %||% TRUE
   scope <- p$scale_scope %||% "global"
 
+
+  if (!(is.numeric(bits) && length(bits) == 1 &&
+        bits == as.integer(bits) && bits >= 1 && bits <= 16)) {
+    abort_lna(
+      "bits must be an integer between 1 and 16",
+      .subclass = "lna_error_validation",
+      location = "forward_step.quant:bits"
+    )
+  }
+  if (!(is.character(method) && length(method) == 1 &&
+        method %in% c("range", "sd"))) {
+    abort_lna(
+      sprintf("Invalid method '%s'", method),
+      .subclass = "lna_error_validation",
+      location = "forward_step.quant:method"
+    )
+  }
+  if (!(is.logical(center) && length(center) == 1)) {
+    abort_lna(
+      "center must be a single logical",
+      .subclass = "lna_error_validation",
+      location = "forward_step.quant:center"
+    )
+  }
+  if (!(is.character(scope) && length(scope) == 1 &&
+        scope %in% c("global", "voxel"))) {
+    abort_lna(
+      sprintf("Invalid scale_scope '%s'", scope),
+      .subclass = "lna_error_validation",
+      location = "forward_step.quant:scale_scope"
+    )
+
   if (!scope %in% c("global", "voxel")) {
     warning(sprintf("unknown scale_scope '%s'; falling back to 'global'", scope))
     scope <- "global"
+
   }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
