@@ -55,3 +55,14 @@ test_that("temporal transform bspline roundtrip", {
   expect_equal(dim(out), dim(X))
   expect_equal(out, X, tolerance = 1e-6)
 })
+
+
+test_that("temporal transform rejects unsupported kind", {
+  X <- matrix(rnorm(10), nrow = 5)
+  expect_error(
+    core_write(X, transforms = "temporal",
+               transform_params = list(temporal = list(kind = "dpss"))),
+    class = "lna_error_validation",
+    regexp = "temporal kind"
+  )
+})

@@ -3,7 +3,7 @@
   "title": "Parameters for 'temporal' transform",
   "type": "object",
   "properties": {
-    "kind": {"type": "string", "enum": ["dct", "bspline", "dpss", "polynomial"], "default": "dct"},
+    "kind": {"type": "string", "enum": ["dct", "bspline"], "default": "dct"},
     "n_basis": {"type": "integer", "minimum": 1, "default": 20},
     "order": {"type": "integer", "minimum": 1, "default": 3},
     "knot_vector_path": {"type": "string", "default": ""},
