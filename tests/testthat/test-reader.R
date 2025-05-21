@@ -85,6 +85,17 @@ test_that("read_lna lazy passes subset params", {
   reader$close()
 })
 
+test_that("lna_reader$subset validates parameters", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  reader <- read_lna(tmp, lazy = TRUE)
+
+  expect_error(reader$subset(bad = 1), class = "lna_error_validation")
+  expect_error(reader$subset(1), class = "lna_error_validation")
+
+  reader$close()
+})
+
 test_that("lna_reader$data allow_plugins='none' errors on unknown transform", {
   tmp <- local_tempfile(fileext = ".h5")
   create_dummy_lna(tmp)
