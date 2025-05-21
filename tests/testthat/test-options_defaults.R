@@ -1,5 +1,5 @@
 library(testthat)
-library(neuroarchive)
+#library(neuroarchive)
 
 # Helper to access internal env
 opts_env <- get(".lna_opts", envir = neuroarchive:::lna_options_env)

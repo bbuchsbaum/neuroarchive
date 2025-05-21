@@ -83,7 +83,7 @@ core_write <- function(x, transforms, transform_params = list(),
   merged_params <- resolve_transform_params(transforms, transform_params)
 
   # --- Loop through transforms calling forward_step ---
-  progress_enabled <- !progressr::handlers_is_empty()
+  progress_enabled <- is_progress_globally_enabled()
   loop <- function() {
     p <- if (progress_enabled) progressr::progressor(steps = length(transforms)) else NULL
     for (type in transforms) {

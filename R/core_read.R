@@ -113,7 +113,7 @@ core_read <- function(file, run_id = NULL,
     )
 
     if (nrow(transforms) > 0) {
-      progress_enabled <- !progressr::handlers_is_empty()
+      progress_enabled <- is_progress_globally_enabled()
       step_loop <- function(h) {
         p <- if (progress_enabled) progressr::progressor(steps = nrow(transforms)) else NULL
         for (i in rev(seq_len(nrow(transforms)))) {

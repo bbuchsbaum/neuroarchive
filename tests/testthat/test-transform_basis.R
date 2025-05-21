@@ -1,5 +1,5 @@
 library(testthat)
-library(neuroarchive)
+#library(neuroarchive)
 
 
 test_that("default_params for basis loads schema", {

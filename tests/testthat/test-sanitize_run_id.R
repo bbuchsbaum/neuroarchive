@@ -1,5 +1,5 @@
 library(testthat)
-library(neuroarchive)
+#library(neuroarchive)
 
 
 test_that("sanitize_run_id accepts valid id", {

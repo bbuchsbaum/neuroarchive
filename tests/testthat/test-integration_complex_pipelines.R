@@ -1,5 +1,5 @@
 library(testthat)
-library(neuroarchive)
+#library(neuroarchive)
 library(withr)
 
 # Simple aggregator plugin used for testing
