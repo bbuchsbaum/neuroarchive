@@ -66,13 +66,21 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
     for (nm in tf_names) {
       desc <- read_json_descriptor(tf_group, nm)
       if (is.list(desc) && !is.null(desc$type)) {
-        schema_path <- system.file(
-          "schemas",
-          paste0(desc$type, ".schema.json"),
-          package = utils::packageName()
-        )
+        pkgs <- unique(c("neuroarchive", loadedNamespaces()))
+        schema_path <- ""
+        for (pkg in pkgs) {
+          path <- system.file(
+            "schemas",
+            paste0(desc$type, ".schema.json"),
+            package = pkg
+          )
+          if (nzchar(path) && file.exists(path)) {
+            schema_path <- path
+            break
+          }
+        }
 
-        if (!nzchar(schema_path) || !file.exists(schema_path)) {
+        if (!nzchar(schema_path)) {
           fail(sprintf("Schema for transform '%s' not found", desc$type))
           next
         }
