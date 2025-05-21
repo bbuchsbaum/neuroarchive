@@ -63,3 +63,34 @@ handle_missing_methods <- function(missing_types, allow_plugins, location = NULL
 
   invisible(missing_types)
 }
+
+#' Execute a transform step with provenance
+#'
+#' Helper used by `core_write` and `core_read` to ensure that errors
+#' include the step index and transform name in their location field.
+#'
+#' @param direction Either "forward" or "invert".
+#' @param type Transform type.
+#' @param desc Descriptor list.
+#' @param handle DataHandle object.
+#' @param step_index Integer step index.
+#' @keywords internal
+run_transform_step <- function(direction, type, desc, handle, step_index) {
+  stopifnot(direction %in% c("forward", "invert"))
+  fun <- if (direction == "forward") forward_step else invert_step
+  tryCatch(
+    fun(structure(type, class = c(type, "character")), desc, handle),
+    error = function(e) {
+      prefix <- sprintf("%s_step.%s[%d]", direction, type, step_index)
+      loc <- if (!is.null(e$location)) paste0(prefix, ":", e$location) else prefix
+      abort_lna(
+        conditionMessage(e),
+        .subclass = class(e),
+        location = loc,
+        step_index = step_index,
+        transform = type,
+        parent = e
+      )
+    }
+  )
+}

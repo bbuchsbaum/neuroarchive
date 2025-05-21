@@ -93,7 +93,8 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
           path, step_index, conditionMessage(res)
         ),
         .subclass = "lna_error_hdf5_write",
-        location = sprintf("materialise_plan:%s", path)
+        location = sprintf("materialise_plan[%d]:%s", step_index, path),
+        parent = res
       )
     }
   }

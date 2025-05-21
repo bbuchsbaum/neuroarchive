@@ -122,8 +122,8 @@ core_write <- function(x, transforms, transform_params = list(),
     for (type in transforms) {
       if (!is.null(p)) p(message = type)
       desc <- list(type = type, params = merged_params[[type]])
-      cls <- structure(type, class = c(type, "character"))
-      handle <<- forward_step(cls, desc, handle)
+      step_idx <- handle$plan$next_index
+      handle <<- run_transform_step("forward", type, desc, handle, step_idx)
     }
   }
   if (progress_enabled) {

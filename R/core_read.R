@@ -102,8 +102,9 @@ core_read <- function(file, run_id = NULL,
           if (!is.null(p)) p(message = transforms$type[[i]])
           name <- transforms$name[[i]]
           type <- transforms$type[[i]]
+          step_idx <- transforms$index[[i]]
           desc <- read_json_descriptor(tf_group, name)
-          handle <<- invert_step(type, desc, handle)
+          handle <<- run_transform_step("invert", type, desc, handle, step_idx)
         }
       }
       if (progress_enabled) {
