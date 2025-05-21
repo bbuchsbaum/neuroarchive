@@ -2,23 +2,33 @@
 \alias{read_lna}
 \title{Read data from an LNA file}
 \usage{
-read_lna(file, allow_plugins = c("installed", "none", "prompt"),
+read_lna(file, run_id = NULL,
+         allow_plugins = c("installed", "none", "prompt"),
          validate = FALSE,
          output_dtype = c("float32", "float64", "float16"),
+         roi_mask = NULL, time_idx = NULL,
          lazy = FALSE)
 }
 \arguments{
   \item{file}{Path to an LNA file.}
+  \item{run_id}{Character vector of run identifiers or glob patterns.}
   \item{allow_plugins}{How to handle optional-package transforms.
   One of \code{"installed"} (default), \code{"none"}, or \code{"prompt"}.
   Non-interactive sessions treat \code{"prompt"} as \code{"installed"}.}
   \item{validate}{Logical flag for validation.}
   \item{output_dtype}{Desired output data type.}
+  \item{roi_mask}{Optional ROI mask for subsetting.}
+  \item{time_idx}{Optional integer vector of time indices.}
   \item{lazy}{If \code{TRUE}, returns an \code{lna_reader} for lazy access.}
 }
 \value{A \code{DataHandle} or \code{lna_reader}.}
 \description{Loads data from an LNA file. With \code{lazy = TRUE} the file
-remains open and data are reconstructed on demand.}
+remains open and data are reconstructed on demand. Run identifiers may
+be matched using glob patterns and subsetting via \code{roi_mask} and
+\code{time_idx} is supported.}
 \examples{
-read_lna("ex.h5", lazy = TRUE)
+r <- read_lna("ex.h5", run_id = "run-*", lazy = TRUE,
+              roi_mask = array(TRUE, dim = c(4,4,4)), time_idx = 1:2)
+r$data()
+r$close()
 }

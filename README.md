@@ -4,8 +4,9 @@ Tools for reading and writing Latent NeuroArchive (LNA) files.
 
 This package implements the core pieces of the LNA v2.0 format.  The
 `write_lna()` and `read_lna()` helpers allow compressing numerical
-arrays using a sequence of transforms.  The first available transform is
-`quant`, which performs simple integer quantisation.
+arrays using a sequence of transforms.  The simplest transform is
+`quant`, which performs integer quantisation, but Phase 2 adds
+`basis`/`embed` for PCA-style dimensionality reduction.
 
 ```r
 library(neuroarchive)
@@ -27,6 +28,29 @@ str(r$data())
 r$close()
 ```
 
+### PCA Compression Pipeline
+
+```r
+# Compress with basis -> embed -> quant
+pca_file <- "pca_example.h5"
+write_lna(
+  x,
+  pca_file,
+  transforms = c("basis", "embed", "quant"),
+  transform_params = list(basis = list(k = 5))
+)
+
+# Select coefficients using run_id globbing and read lazily
+r2 <- read_lna(pca_file, run_id = "run-*", lazy = TRUE)
+r2$subset(roi_mask = array(TRUE, dim = c(4,4,4)), time_idx = 1:2)
+str(r2$data())
+r2$close()
+```
+
+`read_lna()` supports glob patterns in `run_id` for selecting
+multiple runs, and both `roi_mask` and `time_idx` can be specified at
+read time or via the lazy reader.
+
 ### Parameter Merging
 
 `transform_params` are resolved in the following order:
@@ -37,6 +61,10 @@ r$close()
 3. parameters supplied in the `transform_params` argument.
 
 Later sources override earlier ones using a deep merge.
+
+`write_lna()` also accepts a `block_table` data frame describing spatial
+blocks to store under `/spatial/block_table` and an optional `plugins`
+list saved in `/plugins`.
 
 ### Parallel Writing
 
