@@ -1,8 +1,9 @@
 
-#' Materialise Plan to HDF5 (Stub)
+#' Materialise Plan to HDF5
 #'
-#' @description Minimal implementation that writes transform descriptors
-#'   and core groups to an open HDF5 file. Numeric datasets are not written.
+#' @description Writes transform descriptors and payload datasets to an open
+#'   HDF5 file according to the provided `plan`. Implements basic retry logic
+#'   for common HDF5 errors.
 #' @param h5 An open `H5File` object.
 #' @param plan A `Plan` R6 object produced by `core_write`.
 #' @return Invisibly returns the modified `plan`.
@@ -11,6 +12,7 @@
 materialise_plan <- function(h5, plan) {
   stopifnot(inherits(h5, "H5File"))
   stopifnot(inherits(plan, "Plan"))
+
   # Create core groups
   tf_group <- if (h5$exists("transforms")) h5[["transforms"]] else h5$create_group("transforms")
   if (!h5$exists("basis")) h5$create_group("basis")
@@ -28,9 +30,55 @@ materialise_plan <- function(h5, plan) {
     }
   }
 
-  # Mark datasets as eagerly written
+  # Helper to write a single payload dataset with retries
+  write_payload <- function(path, data, step_index) {
+    comp_level <- lna_options("write.compression")[[1]]
+    if (is.null(comp_level)) comp_level <- 0
+    chunk_dims <- NULL
+
+    attempt <- function(level, chunks) {
+      h5_write_dataset(root, path, data, chunk_dims = chunks,
+                       compression_level = level)
+    }
+
+    res <- tryCatch(attempt(comp_level, chunk_dims), error = function(e) e)
+    if (inherits(res, "error")) {
+      msg1 <- conditionMessage(res)
+      if (!is.null(comp_level) && comp_level > 0 &&
+          grepl("filter", msg1, ignore.case = TRUE)) {
+        warning(sprintf("Compression failed for %s; retrying without compression", path))
+        res <- tryCatch(attempt(0, chunk_dims), error = function(e) e)
+      }
+    }
+
+    if (inherits(res, "error")) {
+      warning(sprintf("Write failed for %s; retrying with smaller chunks", path))
+      cdims <- if (is.null(chunk_dims)) pmin(dim(data), rep(128L, length(dim(data)))) else chunk_dims
+      cdims[length(cdims)] <- pmax(1L, floor(cdims[length(cdims)] / 2))
+      res <- tryCatch(attempt(0, cdims), error = function(e) e)
+    }
+
+    if (inherits(res, "error")) {
+      abort_lna(sprintf("Failed to write dataset '%s' (step %d): %s",
+                        path, step_index, conditionMessage(res)),
+                .subclass = "lna_error_hdf5_write")
+    }
+  }
+
+  # Write payload datasets
   if (nrow(plan$datasets) > 0) {
-    plan$datasets$write_mode_effective[] <- "eager"
+    for (i in seq_len(nrow(plan$datasets))) {
+      row <- plan$datasets[i, ]
+      key <- row$payload_key
+      if (!nzchar(key)) next
+      payload <- plan$payloads[[key]]
+      if (is.null(payload)) next
+
+      write_payload(row$path, payload, row$step_index)
+
+      plan$datasets$write_mode_effective[i] <- "eager"
+      plan$mark_payload_written(key)
+    }
   }
 
   invisible(h5)
