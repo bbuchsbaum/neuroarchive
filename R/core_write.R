@@ -133,7 +133,7 @@ validate_mask <- function(mask) {
 #'
 #' @param lst List or `NULL`.
 #' @param field Field name used in error messages.
-#' @return The validated list or an empty list if `NULL`.
+#' @return The validated list or an empty list if `NULL` or empty.
 #' @keywords internal
 validate_named_list <- function(lst, field) {
   if (is.null(lst)) {
@@ -141,6 +141,11 @@ validate_named_list <- function(lst, field) {
   }
 
   stopifnot(is.list(lst))
+
+  if (length(lst) == 0) {
+    return(list())
+  }
+
   if (is.null(names(lst)) || any(names(lst) == "")) {
     abort_lna(
       sprintf("%s must be a named list", field),
