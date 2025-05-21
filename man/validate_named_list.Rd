@@ -12,7 +12,7 @@ validate_named_list(lst, field)
 \item{field}{Field name used in error messages.}
 }
 \value{
-The validated list or an empty list if `NULL`.
+The validated list or an empty list if `NULL` or empty.
 }
 \description{
 Used for the `header` and `plugins` arguments in `core_write`.
