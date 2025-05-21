@@ -133,7 +133,7 @@ Plan <- R6::R6Class("Plan",
     get_next_filename = function(type) {
       stopifnot(is.character(type), length(type) == 1)
 
-      if (grepl("\.\.", type) || grepl("/", type) || grepl("\\\\", type)) {
+      if (grepl("..", type, fixed = TRUE) || grepl("/", type, fixed = TRUE) || grepl("\\", type, fixed = TRUE)) {
         stop(sprintf(
           "Invalid characters found in type '%s'", type
         ), call. = FALSE)

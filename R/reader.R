@@ -91,12 +91,6 @@ lna_reader <- R6::R6Class("lna_reader",
     },
 
     #' @description
-    #' Finalizer called by GC
-    finalize = function() {
-      self$close()
-    },
-
-    #' @description
     #' Print summary of the reader
     print = function(...) {
       status <- if (!is.null(self$h5) && self$h5$is_valid()) "open" else "closed"
@@ -211,6 +205,14 @@ lna_reader <- R6::R6Class("lna_reader",
       self$data_cache <- handle
       self$cache_params <- params
       handle
+    }
+  ),
+  
+  private = list(
+    #' @description
+    #' Finalizer called by GC
+    finalize = function() {
+      self$close()
     }
   )
 )

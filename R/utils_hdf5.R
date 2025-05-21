@@ -273,7 +273,7 @@ close_h5_safely <- function(h5) {
     })
   }
   invisible(NULL)
-
+}
 
 #' Assert that an HDF5 path exists
 #'
