@@ -63,6 +63,13 @@ test_that("Plan add_payload works correctly", {
     "Payload key 'payload1' already exists in plan."
   )
 
+  # Overwrite existing payload
+  expect_silent(plan$add_payload("payload1", list(b = 2), overwrite = TRUE))
+  expect_identical(plan$payloads$payload1, list(b = 2))
+
+  # Check overwrite argument type
+  expect_error(plan$add_payload("x", 1, overwrite = "no"))
+
   # Check error on invalid key type
   expect_error(plan$add_payload(123, list()))
   expect_error(plan$add_payload(c("a", "b"), list()))
@@ -104,6 +111,20 @@ test_that("Plan add_dataset_def works correctly", {
   # Add another one
   plan$add_dataset_def("/basis/global", "basis", "pca", "global", 0L, '{"k": 50}', "pca_basis", "eager")
   expect_equal(nrow(plan$datasets), 2)
+
+  # step_index accepts numeric integer
+  plan$add_dataset_def("/data/extra", "extra", "dummy", "run-01", 1, "{}", "raw_data", "eager")
+  expect_equal(nrow(plan$datasets), 3)
+  expect_equal(plan$datasets$step_index[3], 1L)
+
+  # invalid step_index (non integer numeric)
+  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 1.5, "{}", "raw_data", "eager"))
+
+  # invalid write_mode
+  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 0L, "{}", "raw_data", "invalid"))
+
+  # invalid JSON
+  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 0L, "not json", "raw_data", "eager"))
 
   # Check some basic type errors handled by stopifnot
   expect_error(plan$add_dataset_def(path=123, role="", producer="", origin="", step_index=0L, params_json="", payload_key="", write_mode=""))

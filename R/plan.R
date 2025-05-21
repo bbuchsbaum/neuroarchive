@@ -5,6 +5,7 @@
 #'   and payload management.
 #' @importFrom R6 R6Class
 #' @import tibble
+#' @import jsonlite
 #' @keywords internal
 Plan <- R6::R6Class("Plan",
   public = list(
@@ -45,11 +46,13 @@ Plan <- R6::R6Class("Plan",
     #' Add a data payload to be written later.
     #' @param key Character string identifier (often HDF5 path).
     #' @param value The R object to be written.
-    add_payload = function(key, value) {
+    #' @param overwrite Logical flag; if `TRUE`, an existing payload with the
+    #'   same key will be replaced. Defaults to `FALSE` which raises an error on
+    #'   duplicates.
+    add_payload = function(key, value, overwrite = FALSE) {
       stopifnot(is.character(key), length(key) == 1)
-      if (key %in% names(self$payloads)) {
-        # TODO: Consider if overwriting should be allowed/warned?
-        # For now, strict check.
+      stopifnot(is.logical(overwrite), length(overwrite) == 1)
+      if (key %in% names(self$payloads) && !overwrite) {
         stop(paste("Payload key '", key, "' already exists in plan.", sep = ""))
       }
       self$payloads[[key]] <- value
@@ -67,17 +70,28 @@ Plan <- R6::R6Class("Plan",
     #' @param payload_key Character string, key linking to the entry in `self$payloads`.
     #' @param write_mode Character string, requested write mode ("eager"/"stream").
     add_dataset_def = function(path, role, producer, origin, step_index, params_json, payload_key, write_mode) {
-      # Basic type checks (can be more comprehensive)
+      # Basic type checks with additional validation
       stopifnot(
         is.character(path), length(path) == 1,
         is.character(role), length(role) == 1,
         is.character(producer), length(producer) == 1,
         is.character(origin), length(origin) == 1,
-        is.integer(step_index), length(step_index) == 1,
+        is.numeric(step_index), length(step_index) == 1, !is.na(step_index), step_index %% 1 == 0,
         is.character(params_json), length(params_json) == 1,
         is.character(payload_key), length(payload_key) == 1,
         is.character(write_mode), length(write_mode) == 1
       )
+
+      # Validate write_mode values
+      if (!write_mode %in% c("eager", "stream")) {
+        stop("write_mode must be either 'eager' or 'stream'")
+      }
+
+      # Validate JSON
+      valid_json <- jsonlite::validate(params_json)
+      if (!isTRUE(valid_json)) {
+        stop(paste("Invalid params_json:", valid_json))
+      }
 
       self$datasets <- tibble::add_row(
         self$datasets,
