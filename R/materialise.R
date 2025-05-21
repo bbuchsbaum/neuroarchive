@@ -1,4 +1,3 @@
-
 #' Materialise Plan to HDF5
 #'
 #' @description Writes transform descriptors and payload datasets to an open
@@ -19,7 +18,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
                              header = NULL, plugins = NULL) {
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
-  if (!h5$is_valid()) {
+  if (!h5$is_valid) {
 
     abort_lna(
       "Provided HDF5 handle is not open or valid",

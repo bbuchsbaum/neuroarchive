@@ -247,15 +247,51 @@ open_h5 <- function(path, mode = "r", ...) {
   stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.character(mode), length(mode) == 1)
 
-  tryCatch(
-    hdf5r::H5File$new(path, mode = mode, ...),
-    error = function(e) {
-      stop(
-        sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
-        call. = FALSE
+  dot_args <- list(...)
+
+  if (isTRUE(dot_args$driver == "core")) {
+    fapl <- hdf5r::H5P_FILE_ACCESS$new()
+    
+    # Default backing_store to TRUE if not explicitly passed, though the call that errors uses FALSE.
+    # H5Pset_fapl_core default for backing_store is TRUE.
+    core_backing_store <- if (!is.null(dot_args$backing_store)) dot_args$backing_store else TRUE
+    # Default increment for core driver, e.g., 1MB. This can be made configurable if needed.
+    core_increment <- if (!is.null(dot_args$increment)) dot_args$increment else (1024*1024)
+
+    fapl$set_fapl_core(increment = core_increment, backing_store = core_backing_store)
+    
+    h5_object <- tryCatch(
+        hdf5r::H5File$new(path, mode = mode, file_access_pl = fapl),
+        error = function(e) {
+          # Attempt to close FAPL if it was created and H5File$new failed early
+          # if (exists("fapl") && inherits(fapl, "H5P_FILE_ACCESS") && fapl$is_valid) try(fapl$close(), silent = TRUE)
+          stop(
+            sprintf("Failed to open HDF5 file '%s' (with core driver config): %s", path, conditionMessage(e)),
+            call. = FALSE
+          )
+        }
       )
-    }
-  )
+    # FAPL is an R6 object, will be garbage collected. H5File$new should manage the ID copy/transfer.
+    return(h5_object)
+
+  } else {
+    # Standard file opening: pass through other arguments from ...
+    # This was the previous behavior. If other combinations of ... cause "unused argument",
+    # they might need similar explicit FAPL handling for other drivers.
+    args_for_do_call <- c(list(path, mode = mode), dot_args)
+    
+    return(
+      tryCatch(
+        do.call(hdf5r::H5File$new, args_for_do_call),
+        error = function(e) {
+          stop(
+            sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
+            call. = FALSE
+          )
+        }
+      )
+    )
+  }
 }
 
 #' Close an HDF5 file handle if valid
@@ -267,7 +303,7 @@ open_h5 <- function(path, mode = "r", ...) {
 #' @return Invisible `NULL`.
 #' @keywords internal
 close_h5_safely <- function(h5) {
-  if (inherits(h5, "H5File") && h5$is_valid()) {
+  if (inherits(h5, "H5File") && h5$is_valid) {
     tryCatch(h5$close_all(), error = function(e) {
       warning(paste("Error closing HDF5 handle:", conditionMessage(e)))
     })

@@ -111,31 +111,56 @@ test_that("core_read allow_plugins='none' errors on unknown transform", {
 test_that("core_read allow_plugins='prompt' falls back when non-interactive", {
   tmp <- local_tempfile(fileext = ".h5")
   create_dummy_lna(tmp)
-  with_mocked_bindings(
-    rlang::is_interactive = function() FALSE,
-    { expect_warning(core_read(tmp, allow_plugins = "prompt"),
-                    "Missing invert_step") }
+  
+  # Mock non-interactive environment
+  local_mocked_bindings(
+    is_interactive = function() FALSE,
+    .package = "rlang"
+  )
+  
+  # Should warn about missing method but continue
+  expect_warning(
+    core_read(tmp, allow_plugins = "prompt"),
+    "Missing invert_step"
   )
 })
 
 test_that("core_read allow_plugins='prompt' interactive respects user choice", {
   tmp <- local_tempfile(fileext = ".h5")
   create_dummy_lna(tmp)
-  with_mocked_bindings(
-    rlang::is_interactive = function() TRUE,
-    readline = function(prompt = "") "n",
-    { expect_error(core_read(tmp, allow_plugins = "prompt"),
-                  class = "lna_error_no_method") }
+  
+  # Test with user answering "no"
+  local_mocked_bindings(
+    is_interactive = function() TRUE,
+    .package = "rlang"
   )
-
-  with_mocked_bindings(
-    rlang::is_interactive = function() TRUE,
-    readline = function(prompt = "") "y",
-    { expect_warning(core_read(tmp, allow_plugins = "prompt"),
-                    "Missing invert_step") }
+  
+  local_mocked_bindings(
+    readline = function(prompt) "n"
+  )
+  
+  # Should error since user declined
+  expect_error(
+    core_read(tmp, allow_plugins = "prompt"),
+    class = "lna_error_no_method"
+  )
+  
+  # Test with user answering "yes"
+  local_mocked_bindings(
+    is_interactive = function() TRUE,
+    .package = "rlang"
+  )
+  
+  local_mocked_bindings(
+    readline = function(prompt) "y"
+  )
+  
+  # Should warn about missing method but continue
+  expect_warning(
+    core_read(tmp, allow_plugins = "prompt"),
+    "Missing invert_step"
   )
 })
-
 
 test_that("core_read stores subset parameters", {
   tmp <- local_tempfile(fileext = ".h5")
