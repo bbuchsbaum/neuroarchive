@@ -16,3 +16,9 @@ test_that("scaffold_transform creates template files", {
   expect_true(any(grepl("forward_step.mycustom", r_lines, fixed = TRUE)))
   expect_true(any(grepl("default_params('mycustom')", r_lines, fixed = TRUE)))
 })
+
+test_that("scaffold_transform warns on namespace collisions", {
+  tmp <- local_tempdir()
+  withr::local_dir(tmp)
+  expect_warning(scaffold_transform("delta"), "namespace")
+})
