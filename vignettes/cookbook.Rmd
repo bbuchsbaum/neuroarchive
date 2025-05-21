@@ -56,6 +56,13 @@ roi_slice <- r$data()
 r$close()
 ```
 
+### Selecting Runs with Glob Patterns
+
+```r
+# Load multiple runs matching a pattern
+handles <- read_lna(pca_file, run_id = "run-*", lazy = FALSE)
+```
+
 ## Scaffolding a New Transform
 
 ```r
