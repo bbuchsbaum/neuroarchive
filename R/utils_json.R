@@ -18,39 +18,23 @@ read_json_descriptor <- function(h5_group, name) {
   stopifnot(inherits(h5_group, "H5Group")) # Basic type check
   stopifnot(is.character(name), length(name) == 1)
 
-  
-  if (!h5_group$exists(name)) {
-    # Or should this error? Returning NULL allows checking existence implicitly.
-    # Let's error for now, as descriptors are usually expected.
-    # TODO: Revisit error handling based on usage context.
-    stop(paste("JSON descriptor dataset '", name, "' not found in HDF5 group.", sep = ""))
-    # return(NULL)
-  }
 
+  assert_h5_path(h5_group, name)
 
-  dset <- NULL
   json_string <- NULL
   parsed_list <- NULL
 
   tryCatch({
-    dset <- h5_group[[name]]
-    # Simple read call
-    json_string <- dset$read()
+    json_string <- h5_read(h5_group, name)
 
     if (length(json_string) != 1 || !is.character(json_string)) {
-        stop(paste("Dataset '", name, "' did not contain a single string.", sep=""))
+      stop(paste("Dataset '", name, "' did not contain a single string.", sep=""))
     }
 
-    # Parse the JSON, simplifying vectors
     parsed_list <- jsonlite::fromJSON(json_string, simplifyVector = TRUE, simplifyDataFrame = FALSE, simplifyMatrix = FALSE)
-
-  # Restore robust error handler
   }, error = function(e) {
-      # Use conditionMessage for robustness
-      detailed_error <- tryCatch(conditionMessage(e), error = function(e2) paste("Failed to get message:", e2$message))
-      stop(paste("Error reading/parsing JSON descriptor '", name, "': ", detailed_error, sep = ""))
-  }, finally = {
-      if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+    detailed_error <- tryCatch(conditionMessage(e), error = function(e2) paste("Failed to get message:", e2$message))
+    stop(paste("Error reading/parsing JSON descriptor '", name, "': ", detailed_error, sep = ""))
   })
 
   return(parsed_list)
