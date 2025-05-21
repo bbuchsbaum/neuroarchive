@@ -257,15 +257,33 @@ open_h5 <- function(path, mode = "r", ...) {
 
     backing_store <- if (!is.null(dot_args$backing_store)) dot_args$backing_store else TRUE
 
-    h5_object <- tryCatch(
-      hdf5r::H5File$new(path, mode = mode, driver = "core", backing_store = backing_store),
-      error = function(e) {
-        stop(
-          sprintf("Failed to open HDF5 file '%s' (core driver): %s", path, conditionMessage(e)),
-          call. = FALSE
-        )
-      }
-    )
+    arg_names <- names(formals(hdf5r::H5File$new))
+    supports_params <- all(c("driver", "backing_store") %in% arg_names)
+
+    if (supports_params) {
+      h5_object <- tryCatch(
+        hdf5r::H5File$new(path, mode = mode, driver = "core", backing_store = backing_store),
+        error = function(e) {
+          stop(
+            sprintf("Failed to open HDF5 file '%s' (core driver): %s", path, conditionMessage(e)),
+            call. = FALSE
+          )
+        }
+      )
+    } else {
+      fapl <- hdf5r::H5P_FILE_ACCESS$new()
+      fapl$set_fapl_core(backing_store = backing_store)
+
+      h5_object <- tryCatch(
+        hdf5r::H5File$new(path, mode = mode, file_access_pl = fapl),
+        error = function(e) {
+          stop(
+            sprintf("Failed to open HDF5 file '%s' (core driver via FAPL): %s", path, conditionMessage(e)),
+            call. = FALSE
+          )
+        }
+      )
+    }
     return(h5_object)
 
   } else {
