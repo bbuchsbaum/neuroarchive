@@ -125,6 +125,7 @@ read_lna <- function(file, run_id = NULL,
                      allow_plugins = c("installed", "none", "prompt"),
                      validate = FALSE,
                      output_dtype = c("float32", "float64", "float16"),
+                     roi_mask = NULL, time_idx = NULL,
                      lazy = FALSE) {
   output_dtype <- match.arg(output_dtype)
   allow_plugins <- match.arg(allow_plugins)
@@ -136,7 +137,9 @@ read_lna <- function(file, run_id = NULL,
         run_id = run_id,
         allow_plugins = allow_plugins,
         validate = validate,
-        output_dtype = output_dtype
+        output_dtype = output_dtype,
+        roi_mask = roi_mask,
+        time_idx = time_idx
       )
     )
   } else {
@@ -146,6 +149,8 @@ read_lna <- function(file, run_id = NULL,
       allow_plugins = allow_plugins,
       validate = validate,
       output_dtype = output_dtype,
+      roi_mask = roi_mask,
+      time_idx = time_idx,
       lazy = FALSE
     )
   }

@@ -28,6 +28,7 @@
 core_read <- function(file, run_id = NULL,
                       allow_plugins = c("installed", "none", "prompt"), validate = FALSE,
                       output_dtype = c("float32", "float64", "float16"),
+                      roi_mask = NULL, time_idx = NULL,
                       lazy = FALSE) {
   allow_plugins <- match.arg(allow_plugins)
   if (identical(allow_plugins, "prompt") && !rlang::is_interactive()) {
@@ -52,6 +53,20 @@ core_read <- function(file, run_id = NULL,
   if (validate) {
     validate_lna(file)
   }
+
+
+  subset_params <- list()
+  if (!is.null(roi_mask)) {
+    if (inherits(roi_mask, "LogicalNeuroVol")) {
+      roi_mask <- as.array(roi_mask)
+    }
+    subset_params$roi_mask <- roi_mask
+  }
+  if (!is.null(time_idx)) {
+    subset_params$time_idx <- as.integer(time_idx)
+  }
+
+  handle <- DataHandle$new(h5 = h5, subset = subset_params)
 
   tf_group <- h5[["transforms"]]
 

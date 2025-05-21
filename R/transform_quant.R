@@ -75,6 +75,27 @@ invert_step.quant <- function(type, desc, handle) {
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset
 
+  subset <- handle$subset
+  if (!is.null(subset$roi_mask)) {
+    roi <- as.logical(subset$roi_mask)
+    if (length(dim(x)) == 4 && length(dim(subset$roi_mask)) == 3 &&
+        all(dim(subset$roi_mask) == dim(x)[1:3])) {
+      vox_idx <- which(roi)
+      mat <- matrix(as.numeric(x), prod(dim(x)[1:3]), dim(x)[4])
+      x <- mat[vox_idx, , drop = FALSE]
+    }
+  }
+  if (!is.null(subset$time_idx)) {
+    idx <- as.integer(subset$time_idx)
+    if (is.matrix(x)) {
+      x <- x[, idx, drop = FALSE]
+    } else if (length(dim(x)) == 4) {
+      x <- x[,,, idx, drop = FALSE]
+    } else {
+      x <- x[idx]
+    }
+  }
+
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   handle$update_stash(keys = character(), new_values = setNames(list(x), input_key))
 }

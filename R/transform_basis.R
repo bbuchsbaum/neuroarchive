@@ -32,6 +32,19 @@ invert_step.basis <- function(type, desc, handle) {
 
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 
+  subset <- handle$subset
+  if (!is.null(subset$roi_mask)) {
+    vox_idx <- which(as.logical(subset$roi_mask))
+    if (identical(storage_order, "component_x_voxel")) {
+      basis <- basis[, vox_idx, drop = FALSE]
+    } else {
+      basis <- basis[vox_idx, , drop = FALSE]
+    }
+  }
+  if (!is.null(subset$time_idx)) {
+    coeff <- coeff[subset$time_idx, , drop = FALSE]
+  }
+
   if (identical(storage_order, "voxel_x_component")) {
     basis <- t(basis)
   }
