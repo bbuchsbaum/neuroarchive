@@ -16,10 +16,10 @@ test_that("write_lna writes header attributes to file", {
   result <- write_lna(x = 1, file = tmp, transforms = character(0),
                       header = list(foo = 2L))
   expect_true(file.exists(tmp))
-  h5 <- H5File$new(tmp, mode = "r")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r")
   grp <- h5[["header/global"]]
   expect_identical(h5_attr_read(grp, "foo"), 2L)
-  h5$close_all()
+  neuroarchive:::close_h5_safely(h5)
 })
 
 # Parameter forwarding for write_lna
@@ -83,5 +83,5 @@ test_that("read_lna lazy=TRUE keeps file open", {
   result <- write_lna(x = 1, file = NULL, transforms = character(0))
   handle <- read_lna(result$file, lazy = TRUE)
   expect_true(handle$h5$is_valid())
-  handle$h5$close_all()
+  neuroarchive:::close_h5_safely(handle$h5)
 })

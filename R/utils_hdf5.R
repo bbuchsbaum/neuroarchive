@@ -204,6 +204,48 @@ h5_write_dataset <- function(h5_group, path, data,
 }
 
 
+#' Open an HDF5 file with basic error handling
+#'
+#' Wrapper around `hdf5r::H5File$new` that throws a clearer error message on
+#' failure.
+#'
+#' @param path Path to the HDF5 file.
+#' @param mode File mode passed to `H5File$new`.
+#' @param ... Additional arguments forwarded to `H5File$new`.
+#' @return An `H5File` object.
+#' @keywords internal
+open_h5 <- function(path, mode = "r", ...) {
+  stopifnot(is.character(path), length(path) == 1)
+  stopifnot(is.character(mode), length(mode) == 1)
+
+  tryCatch(
+    hdf5r::H5File$new(path, mode = mode, ...),
+    error = function(e) {
+      stop(
+        sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
+        call. = FALSE
+      )
+    }
+  )
+}
+
+#' Close an HDF5 file handle if valid
+#'
+#' Silently attempts to close an `H5File` handle, ignoring objects that are not
+#' valid file handles.
+#'
+#' @param h5 Object returned by `open_h5`.
+#' @return Invisible `NULL`.
+#' @keywords internal
+close_h5_safely <- function(h5) {
+  if (inherits(h5, "H5File") && h5$is_valid()) {
+    tryCatch(h5$close_all(), error = function(e) {
+      warning(paste("Error closing HDF5 handle:", conditionMessage(e)))
+    })
+  }
+  invisible(NULL)
+
+
 #' Assert that an HDF5 path exists
 #'
 #' Convenience helper to verify that a dataset or group is present
@@ -340,4 +382,5 @@ h5_read_subset <- function(h5_group, path, index) {
   })
 
   result
+
 }
