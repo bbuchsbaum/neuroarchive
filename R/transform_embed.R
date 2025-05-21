@@ -48,45 +48,6 @@ forward_step.embed <- function(type, desc, handle) {
   base_name <- tools::file_path_sans_ext(fname)
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
   step_index <- plan$next_index
-
-  center_path <- p$center_data_with
-  scale_path <- p$scale_data_with
-
-  input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "dense_mat"
-  X <- handle$get_inputs(input_key)[[1]]
-
-  root <- handle$h5[["/"]]
-  basis <- h5_read(root, basis_path)
-  if (!is.null(center_path)) {
-    mvec <- as.numeric(h5_read(root, center_path))
-    X <- sweep(X, 2, mvec, FUN = "-")
-  }
-  if (!is.null(scale_path)) {
-    svec <- as.numeric(h5_read(root, scale_path))
-    X <- sweep(X, 2, svec, FUN = "/")
-  }
-
-  if (nrow(basis) == ncol(X)) {
-    coeff <- X %*% t(basis)
-  } else if (ncol(basis) == ncol(X)) {
-    coeff <- X %*% basis
-  } else {
-    abort_lna(
-      "basis matrix dimensions incompatible with input data",
-      .subclass = "lna_error_validation",
-      location = "forward_step.embed"
-    )
-  }
-
-  run_id <- handle$current_run_id %||% "run-01"
-
-  plan <- handle$plan
-  step_index <- plan$next_index
-  fname <- plan$get_next_filename(type)
-  base_name <- tools::file_path_sans_ext(fname)
-  coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
-
-
   params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
 
   desc$version <- "1.0"
