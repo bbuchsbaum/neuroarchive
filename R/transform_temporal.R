@@ -24,17 +24,7 @@ forward_step.temporal <- function(type, desc, handle) {
   if (is.null(n_basis)) n_basis <- n_time
   n_basis <- min(n_basis, n_time)
 
-  if (identical(kind, "dct")) {
-    basis <- .dct_basis(n_time, n_basis)
-  } else if (identical(kind, "bspline")) {
-    basis <- .bspline_basis(n_time, n_basis, order)
-  } else {
-    abort_lna(
-      sprintf("Unsupported temporal kind '%s'", kind),
-      .subclass = "lna_error_validation",
-      location = "forward_step.temporal:kind"
-    )
-  }
+  basis <- temporal_basis(kind, n_time, n_basis, order = order)
 
   coeff <- crossprod(basis, X)
 
@@ -143,4 +133,40 @@ invert_step.temporal <- function(type, desc, handle) {
 .bspline_basis <- function(n_time, n_basis, order) {
   x <- seq_len(n_time)
   splines::bs(x, df = n_basis, degree = order, intercept = TRUE)
+}
+
+#' Generate temporal basis matrix
+#'
+#' Dispatches on \code{kind} to create a temporal basis. Package authors can
+#' extend this generic by defining methods named \code{temporal_basis.<kind>}.
+#'
+#' @param kind Character scalar identifying the basis type.
+#' @param n_time Integer number of time points.
+#' @param n_basis Integer number of basis functions.
+#' @param ... Additional arguments passed to methods.
+#' @return A basis matrix with dimensions \code{n_time x n_basis}.
+#' @export
+temporal_basis <- function(kind, n_time, n_basis, ...) {
+  stopifnot(is.character(kind), length(kind) == 1)
+  obj <- structure(kind, class = c(kind, "character"))
+  UseMethod("temporal_basis", obj)
+}
+
+#' @export
+temporal_basis.dct <- function(kind, n_time, n_basis, ...) {
+  .dct_basis(n_time, n_basis)
+}
+
+#' @export
+temporal_basis.bspline <- function(kind, n_time, n_basis, order = 3, ...) {
+  .bspline_basis(n_time, n_basis, order)
+}
+
+#' @export
+temporal_basis.default <- function(kind, n_time, n_basis, ...) {
+  abort_lna(
+    sprintf("Unsupported temporal kind '%s'", kind),
+    .subclass = "lna_error_validation",
+    location = "temporal_basis:kind"
+  )
 }
