@@ -33,3 +33,17 @@ test_that("materialise_plan creates structure and updates plan", {
   expect_true(h5$is_valid())
   h5$close_all()
 })
+
+test_that("materialise_plan writes header attributes", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  plan <- Plan$new()
+
+  materialise_plan(h5, plan, header = list(vox = 1L, note = "hi"))
+
+  expect_true(h5$exists("header/global"))
+  grp <- h5[["header/global"]]
+  expect_identical(h5_attr_read(grp, "vox"), 1L)
+  expect_identical(h5_attr_read(grp, "note"), "hi")
+  h5$close_all()
+})

@@ -4,15 +4,22 @@ library(withr)
 
 # Basic functionality test using actual file
 
-test_that("write_lna with file=NULL writes stub structure and read_lna works", {
+test_that("write_lna with file=NULL uses in-memory HDF5", {
   result <- write_lna(x = 1, file = NULL, transforms = character(0))
   expect_s3_class(result, "lna_write_result")
-  expect_true(file.exists(result$file))
+  expect_null(result$file)
   expect_true(inherits(result$plan, "Plan"))
+})
 
-  handle <- read_lna(result$file)
-  expect_true(inherits(handle, "DataHandle"))
-  expect_false(handle$h5$is_valid())
+test_that("write_lna writes header attributes to file", {
+  tmp <- local_tempfile(fileext = ".h5")
+  result <- write_lna(x = 1, file = tmp, transforms = character(0),
+                      header = list(foo = 2L))
+  expect_true(file.exists(tmp))
+  h5 <- H5File$new(tmp, mode = "r")
+  grp <- h5[["header/global"]]
+  expect_identical(h5_attr_read(grp, "foo"), 2L)
+  h5$close_all()
 })
 
 # Parameter forwarding for write_lna
@@ -23,17 +30,20 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
   fake_handle <- DataHandle$new()
 
   with_mocked_bindings(
-    core_write = function(x, transforms, transform_params) {
+    core_write = function(x, transforms, transform_params, mask = NULL, header = NULL) {
       captured$core <- list(x = x, transforms = transforms,
-                            transform_params = transform_params)
+                            transform_params = transform_params,
+                            header = header)
       list(handle = fake_handle, plan = fake_plan)
     },
-    materialise_plan = function(h5, plan) {
-      captured$mat <- list(is_h5 = inherits(h5, "H5File"), plan = plan)
+    materialise_plan = function(h5, plan, checksum = "none", header = NULL) {
+      captured$mat <- list(is_h5 = inherits(h5, "H5File"), plan = plan,
+                           header = header)
     }, {
       write_lna(x = 42, file = tempfile(fileext = ".h5"),
                 transforms = c("tA"),
-                transform_params = list(tA = list(foo = "bar")))
+                transform_params = list(tA = list(foo = "bar")),
+                header = list(a = 1))
     }
   )
 
@@ -42,6 +52,8 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
   expect_equal(captured$core$transform_params, list(tA = list(foo = "bar")))
   expect_true(captured$mat$is_h5)
   expect_identical(captured$mat$plan, fake_plan)
+  expect_equal(captured$core$header, list(a = 1))
+  expect_equal(captured$mat$header, list(a = 1))
 })
 
 # Parameter forwarding for read_lna
