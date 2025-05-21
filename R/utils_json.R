@@ -121,7 +121,7 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
   dset <- h5_group$create_dataset(name,
                                   dtype = str_type,
                                   space = space,
-                                  chunk_dim = NULL)
+                                  chunk_dims = NULL)
 
   # Write data using slice assignment
   dset[] <- json_string
