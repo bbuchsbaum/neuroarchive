@@ -85,8 +85,8 @@ test_that("discover_transforms errors on non-contiguous sequence", {
 
   expect_error(
     discover_transforms(transforms_group),
-    "Transform descriptor indices are not contiguous starting from 0. Found indices: 0, 2"
-     class = "lna_error_sequence"
+    "Transform descriptor indices are not contiguous starting from 0. Found indices: 0, 2",
+    class = "lna_error_sequence"
   )
 
   h5_file$close_all()
@@ -101,7 +101,7 @@ test_that("discover_transforms errors if sequence doesn't start at 0", {
 
   expect_error(
     discover_transforms(transforms_group),
-    "Transform descriptor indices are not contiguous starting from 0. Found indices: 1, 2"
+    "Transform descriptor indices are not contiguous starting from 0. Found indices: 1, 2",
     class = "lna_error_sequence"
   )
 
