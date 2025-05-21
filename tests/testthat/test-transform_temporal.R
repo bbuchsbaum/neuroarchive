@@ -55,3 +55,44 @@ test_that("temporal transform bspline roundtrip", {
   expect_equal(dim(out), dim(X))
   expect_equal(out, X, tolerance = 1e-6)
 })
+
+test_that("temporal transform dpss roundtrip", {
+  set.seed(1)
+  X <- matrix(rnorm(64), nrow = 16, ncol = 4)
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(X, file = tmp, transforms = "temporal",
+            transform_params = list(temporal = list(kind = "dpss",
+                                                    n_basis = 4,
+                                                    time_bandwidth_product = 3,
+                                                    n_tapers = 4)))
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(dim(out), dim(X))
+  expect_equal(out, X, tolerance = 1e-6)
+})
+
+test_that("temporal transform polynomial roundtrip", {
+  set.seed(1)
+  X <- matrix(rnorm(48), nrow = 12, ncol = 4)
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(X, file = tmp, transforms = "temporal",
+            transform_params = list(temporal = list(kind = "polynomial",
+                                                    n_basis = 5)))
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(dim(out), dim(X))
+  expect_equal(out, X, tolerance = 1e-6)
+})
+
+test_that("temporal transform wavelet roundtrip", {
+  set.seed(1)
+  X <- matrix(rnorm(64), nrow = 16, ncol = 4)
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(X, file = tmp, transforms = "temporal",
+            transform_params = list(temporal = list(kind = "wavelet",
+                                                    wavelet = "db4")))
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(dim(out), dim(X))
+  expect_equal(out, X, tolerance = 1e-6)
+})
