@@ -85,7 +85,7 @@ test_that("read_lna forwards arguments to core_read", {
       DataHandle$new()
     }, {
       read_lna("somefile.h5", run_id = "run-*", allow_plugins = "prompt", validate = TRUE,
-               output_dtype = "float64", lazy = TRUE)
+               output_dtype = "float64", lazy = FALSE)
     }
   )
 
@@ -94,7 +94,7 @@ test_that("read_lna forwards arguments to core_read", {
   expect_equal(captured$core$allow_plugins, "prompt")
   expect_true(captured$core$validate)
   expect_equal(captured$core$output_dtype, "float64")
-  expect_true(captured$core$lazy)
+  expect_false(captured$core$lazy)
 })
 
 test_that("read_lna lazy=TRUE keeps file open", {
