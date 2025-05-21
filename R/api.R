@@ -87,7 +87,7 @@ write_lna <- function(x, file = NULL, transforms = character(),
     h5 <- open_h5(file, mode = "w")
   }
 
-  on.exit(close_h5_safely(h5))
+  on.exit(neuroarchive:::close_h5_safely(h5))
 
   materialise_plan(h5, result$plan,
                    header = result$handle$meta$header,
@@ -98,7 +98,7 @@ write_lna <- function(x, file = NULL, transforms = character(),
     h5_write_dataset(h5[["/"]], "spatial/block_table", as.matrix(block_table))
   }
 
-  close_h5_safely(h5)
+  neuroarchive:::close_h5_safely(h5)
 
   out_file <- if (in_memory) NULL else file
   out <- list(file = out_file, plan = result$plan,

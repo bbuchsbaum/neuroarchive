@@ -21,7 +21,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
   stopifnot(is.character(file), length(file) == 1)
 
   h5 <- open_h5(file, mode = "r")
-  on.exit(close_h5_safely(h5))
+  on.exit(neuroarchive:::close_h5_safely(h5))
   root <- h5[["/"]]
 
   issues <- character()
