@@ -207,7 +207,7 @@ h5_write_dataset <- function(h5_group, path, data,
 
   create_fun <- function(level) {
     grp$create_dataset(ds_name,
-                       data = data,
+                       robj = data,
                        chunk_dims = chunk_dims,
                        gzip_level = level)
   }
