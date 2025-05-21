@@ -9,8 +9,14 @@
 #' @param .subclass Character string giving the LNA error subclass.
 #' @return No return value. This function always throws an error.
 #' @keywords internal
-abort_lna <- function(message, ..., .subclass, location = NULL) {
+abort_lna <- function(message, ..., .subclass, location = NULL, parent = NULL) {
   stopifnot(is.character(message), length(message) == 1)
-  stopifnot(is.character(.subclass), length(.subclass) == 1)
-  rlang::abort(message, ..., .subclass = .subclass, location = location)
+  stopifnot(is.character(.subclass))
+  rlang::abort(
+    message,
+    ...,
+    .subclass = .subclass,
+    location = location,
+    parent = parent
+  )
 }
