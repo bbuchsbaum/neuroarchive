@@ -81,6 +81,8 @@ write_lna <- function(x, file = NULL, transforms = character(),
     h5 <- open_h5(file, mode = "w")
   }
 
+  on.exit(close_h5_safely(h5))
+
   materialise_plan(h5, result$plan,
                    header = result$handle$meta$header,
                    plugins = result$handle$meta$plugins)
