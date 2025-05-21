@@ -98,12 +98,31 @@ lna_reader <- R6::R6Class("lna_reader",
 
     #' @description
     #' Store subsetting parameters for later `$data()` calls.
+    #' Only `roi_mask` and `time_idx` are accepted.
     #' @param ... Named parameters such as `roi_mask`, `time_idx`
     subset = function(...) {
+      allowed <- c("roi_mask", "time_idx")
       args <- list(...)
       if (length(args) > 0) {
-        self$subset_params <- utils::modifyList(self$subset_params, args,
-                                                keep.null = TRUE)
+        if (is.null(names(args)) || any(names(args) == "")) {
+          abort_lna(
+            "subset parameters must be named",
+            .subclass = "lna_error_validation",
+            location = "lna_reader:subset"
+          )
+        }
+        unknown <- setdiff(names(args), allowed)
+        if (length(unknown) > 0) {
+          abort_lna(
+            paste0("Unknown subset parameter(s): ",
+                   paste(unknown, collapse = ", ")),
+            .subclass = "lna_error_validation",
+            location = "lna_reader:subset"
+          )
+        }
+        self$subset_params <- utils::modifyList(
+          self$subset_params, args, keep.null = TRUE
+        )
       }
       invisible(self)
     },
