@@ -52,3 +52,13 @@ test_that("lna_reader data caches result and respects subset", {
 
   reader$close()
 })
+
+test_that("read_lna lazy passes subset params", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+  msk <- array(TRUE, dim = c(1,1,1))
+  reader <- read_lna(tmp, lazy = TRUE, roi_mask = msk, time_idx = 2)
+  expect_identical(reader$subset_params$roi_mask, msk)
+  expect_identical(reader$subset_params$time_idx, 2L)
+  reader$close()
+})

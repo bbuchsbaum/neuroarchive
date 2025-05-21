@@ -26,6 +26,10 @@ lna_reader <- R6::R6Class("lna_reader",
     h5 = NULL,
     #' @field core_args List of arguments forwarded to `core_read`
     core_args = NULL,
+    #' @field run_ids Selected run identifiers
+    run_ids = NULL,
+    #' @field current_run_id Run identifier currently used
+    current_run_id = NULL,
     #' @field subset_params Stored subsetting parameters
     subset_params = NULL,
     #' @field data_cache Cached DataHandle from `$data()`
@@ -41,8 +45,28 @@ lna_reader <- R6::R6Class("lna_reader",
       stopifnot(is.character(file), length(file) == 1)
       self$file <- file
       self$core_args <- core_read_args
-      self$subset_params <- list()
+      subset_params <- list()
+      if (!is.null(core_read_args$roi_mask)) {
+        roi <- core_read_args$roi_mask
+        if (inherits(roi, "LogicalNeuroVol")) roi <- as.array(roi)
+        subset_params$roi_mask <- roi
+      }
+      if (!is.null(core_read_args$time_idx)) {
+        subset_params$time_idx <- as.integer(core_read_args$time_idx)
+      }
+      self$subset_params <- subset_params
       self$h5 <- open_h5(file, mode = "r")
+      runs_avail <- discover_run_ids(self$h5)
+      runs <- resolve_run_ids(core_read_args$run_id, runs_avail)
+      if (length(runs) == 0) {
+        abort_lna("run_id did not match any runs", .subclass = "lna_error_run_id")
+      }
+      if (length(runs) > 1) {
+        warning("Multiple runs matched; using first match for lazy reader")
+        runs <- runs[1]
+      }
+      self$run_ids <- runs
+      self$current_run_id <- runs[1]
     },
 
     #' @description
@@ -65,7 +89,7 @@ lna_reader <- R6::R6Class("lna_reader",
     #' Print summary of the reader
     print = function(...) {
       status <- if (!is.null(self$h5) && self$h5$is_valid()) "open" else "closed"
-      cat("<lna_reader>", self$file, "[", status, "]\n")
+      cat("<lna_reader>", self$file, "[", status, "] runs:", paste(self$run_ids, collapse = ","), "\n")
       invisible(self)
     },
 
@@ -96,7 +120,12 @@ lna_reader <- R6::R6Class("lna_reader",
       }
 
       h5 <- self$h5
-      handle <- DataHandle$new(h5 = h5, subset = params)
+      handle <- DataHandle$new(
+        h5 = h5,
+        subset = params,
+        run_ids = self$run_ids,
+        current_run_id = self$current_run_id
+      )
       tf_group <- h5[["transforms"]]
       transforms <- discover_transforms(tf_group)
       if (nrow(transforms) > 0) {

@@ -8,11 +8,13 @@
 #' @param transform_params Named list of user supplied parameters for transforms.
 #' @param mask Optional mask object passed through to transforms.
 #' @param header Optional named list of header attributes.
+#' @param plugins Optional named list of plugin metadata to store under
+#'   `/plugins`.
 #'
 #' @return A list with `handle` and `plan` objects.
 #' @keywords internal
 core_write <- function(x, transforms, transform_params = list(),
-                       mask = NULL, header = NULL) {
+                       mask = NULL, header = NULL, plugins = NULL) {
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
 
@@ -45,6 +47,20 @@ core_write <- function(x, transforms, transform_params = list(),
     header_list <- header
   } else {
     header_list <- list()
+  }
+
+  if (!is.null(plugins)) {
+    stopifnot(is.list(plugins))
+    if (is.null(names(plugins)) || any(names(plugins) == "")) {
+      abort_lna(
+        "plugins must be a named list",
+        .subclass = "lna_error_validation",
+        location = "core_write:plugins"
+      )
+    }
+    plugin_list <- plugins
+  } else {
+    plugin_list <- list()
   }
 
   # --- Determine run identifiers ---
@@ -87,7 +103,8 @@ core_write <- function(x, transforms, transform_params = list(),
   plan <- Plan$new()
   handle <- DataHandle$new(
     initial_stash = list(input = x),
-    initial_meta = list(mask = mask_array, header = header_list),
+    initial_meta = list(mask = mask_array, header = header_list,
+                        plugins = plugin_list),
     plan = plan,
     run_ids = run_ids,
     current_run_id = run_ids[1],

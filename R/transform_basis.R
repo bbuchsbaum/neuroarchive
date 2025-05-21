@@ -32,6 +32,19 @@ invert_step.basis <- function(type, desc, handle) {
 
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 
+  subset <- handle$subset
+  if (!is.null(subset$roi_mask)) {
+    vox_idx <- which(as.logical(subset$roi_mask))
+    if (identical(storage_order, "component_x_voxel")) {
+      basis <- basis[, vox_idx, drop = FALSE]
+    } else {
+      basis <- basis[vox_idx, , drop = FALSE]
+    }
+  }
+  if (!is.null(subset$time_idx)) {
+    coeff <- coeff[subset$time_idx, , drop = FALSE]
+  }
+
   if (identical(storage_order, "voxel_x_component")) {
     basis <- t(basis)
   }
@@ -53,6 +66,18 @@ forward_step.basis <- function(type, desc, handle) {
   center <- p$center %||% TRUE
   scale <- p$scale %||% FALSE
   storage_order <- p$storage_order %||% "component_x_voxel"
+  allowed_orders <- c("component_x_voxel", "voxel_x_component")
+  if (!storage_order %in% allowed_orders) {
+    abort_lna(
+      sprintf(
+        "Invalid storage_order '%s'. Allowed values: %s",
+        storage_order,
+        paste(allowed_orders, collapse = ", ")
+      ),
+      .subclass = "lna_error_validation",
+      location = "forward_step.basis:storage_order"
+    )
+  }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   X <- handle$get_inputs(input_key)[[1]]
@@ -83,7 +108,17 @@ forward_step.basis <- function(type, desc, handle) {
   } else {
     fit <- stats::prcomp(X, rank. = k, center = center, scale. = scale)
   }
-  rotation <- fit$rotation[, seq_len(k), drop = FALSE]
+
+  k_effective <- ncol(fit$rotation)
+  if (k_effective < k) {
+    warning(sprintf(
+      "Requested k=%d but fit returned %d components; truncating",
+      k, k_effective
+    ), call. = FALSE)
+  }
+  k_effective <- min(k, k_effective)
+  rotation <- fit$rotation[, seq_len(k_effective), drop = FALSE]
+  p$k <- k_effective
   mean_vec <- if (isTRUE(center)) fit$center else NULL
   scale_vec <- if (isTRUE(scale)) fit$scale else NULL
 
@@ -98,6 +133,7 @@ forward_step.basis <- function(type, desc, handle) {
   center_path <- paste0("/basis/", base_name, "/center")
   scale_path <- paste0("/basis/", base_name, "/scale")
   params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  desc$params <- p
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
