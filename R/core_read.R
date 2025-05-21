@@ -8,16 +8,25 @@
 #' @param allow_plugins Placeholder argument for plugin policy.
 #' @param validate Logical flag indicating if validation should be
 #'   performed. Currently ignored.
+#' @param output_dtype Desired output data type. One of
+#'   `"float32"`, `"float64"`, or `"float16"`.
+#' @param lazy Logical. If `TRUE`, the HDF5 file handle remains open
+#'   after return (for lazy reading).
 #'
 #' @return A `DataHandle` object representing the loaded data.
 #' @import hdf5r
 #' @keywords internal
-core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = FALSE) {
+core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = FALSE,
+                      output_dtype = c("float32", "float64", "float16"),
+                      lazy = FALSE) {
   allow_plugins <- match.arg(allow_plugins)
+  output_dtype <- match.arg(output_dtype)
   h5 <- H5File$new(file, mode = "r")
-  on.exit({
-    if (inherits(h5, "H5File") && h5$is_valid()) h5$close_all()
-  })
+  if (!lazy) {
+    on.exit({
+      if (inherits(h5, "H5File") && h5$is_valid()) h5$close_all()
+    })
+  }
 
   handle <- DataHandle$new(h5 = h5)
   tf_group <- h5[["transforms"]]
@@ -34,6 +43,12 @@ core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = F
       handle <- invert_step(type, desc, handle)
     }
   }
+
+  if (identical(output_dtype, "float16") && !has_float16_support()) {
+    abort_lna("float16 output not supported",
+              .subclass = "lna_error_float16_unsupported")
+  }
+  handle$meta$output_dtype <- output_dtype
 
   return(handle)
 }
