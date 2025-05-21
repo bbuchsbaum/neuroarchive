@@ -8,7 +8,7 @@
 #' @keywords internal
 DataHandle <- R6::R6Class("DataHandle",
   public = list(
-    #' @field stash A list environment holding temporary data objects during transform chain.
+    #' @field stash A list holding temporary data objects during transform chain.
     stash = NULL,
     #' @field meta A list holding metadata associated with the data.
     meta = NULL,
