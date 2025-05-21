@@ -25,15 +25,22 @@ core_write <- function(x, transforms, transform_params = list(),
     } else if (is.array(mask) && length(dim(mask)) == 3 && is.logical(mask)) {
       mask_array <- mask
     } else {
-      abort_lna("mask must be LogicalNeuroVol or 3D logical array",
-                .subclass = "lna_error_validation")
+      abort_lna(
+        "mask must be LogicalNeuroVol or 3D logical array",
+        .subclass = "lna_error_validation",
+        location = "core_write:mask"
+      )
     }
     active_voxels <- sum(mask_array)
   }
   if (!is.null(header)) {
     stopifnot(is.list(header))
     if (is.null(names(header)) || any(names(header) == "")) {
-      abort_lna("header must be a named list", .subclass = "lna_error_validation")
+      abort_lna(
+        "header must be a named list",
+        .subclass = "lna_error_validation",
+        location = "core_write:header"
+      )
     }
     header_list <- header
   } else {
@@ -54,12 +61,19 @@ core_write <- function(x, transforms, transform_params = list(),
     check_mask <- function(obj) {
       dims <- dim(obj)
       if (is.null(dims) || length(dims) < 3) {
-        abort_lna("input data must have at least 3 dimensions for mask check",
-                  .subclass = "lna_error_validation")
+        abort_lna(
+          "input data must have at least 3 dimensions for mask check",
+          .subclass = "lna_error_validation",
+          location = "core_write:mask_check"
+        )
       }
       voxel_count <- prod(dims[1:3])
       if (active_voxels != voxel_count) {
-        abort_lna("mask voxel count mismatch", .subclass = "lna_error_validation")
+        abort_lna(
+          "mask voxel count mismatch",
+          .subclass = "lna_error_validation",
+          location = "core_write:mask_check"
+        )
       }
     }
     if (is.list(x)) {

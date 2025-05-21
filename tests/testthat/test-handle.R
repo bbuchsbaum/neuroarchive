@@ -108,6 +108,7 @@ test_that("DataHandle get_inputs works correctly", {
   # Check the custom data attached to the condition
   expect_true(!is.null(err$missing_keys))
   expect_equal(sort(err$missing_keys), c("d", "e"))
+  expect_true(grepl("DataHandle$get_inputs", err$location))
 
   # Error on invalid key type
   expect_error(h$get_inputs(123))

@@ -110,8 +110,11 @@ lna_reader <- R6::R6Class("lna_reader",
 
       output_dtype <- self$core_args$output_dtype
       if (identical(output_dtype, "float16") && !has_float16_support()) {
-        abort_lna("float16 output not supported",
-                  .subclass = "lna_error_float16_unsupported")
+        abort_lna(
+          "float16 output not supported",
+          .subclass = "lna_error_float16_unsupported",
+          location = sprintf("lna_reader:data:%s", self$file)
+        )
       }
       handle$meta$output_dtype <- output_dtype
 

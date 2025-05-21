@@ -53,8 +53,11 @@ core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = F
   }
 
   if (identical(output_dtype, "float16") && !has_float16_support()) {
-    abort_lna("float16 output not supported",
-              .subclass = "lna_error_float16_unsupported")
+    abort_lna(
+      "float16 output not supported",
+      .subclass = "lna_error_float16_unsupported",
+      location = sprintf("core_read:%s", file)
+    )
   }
   handle$meta$output_dtype <- output_dtype
 

@@ -60,8 +60,11 @@ test_that("core_read output_dtype stored and float16 check", {
 
   h <- core_read(tmp, output_dtype = "float64")
   expect_equal(h$meta$output_dtype, "float64")
-  expect_error(core_read(tmp, output_dtype = "float16"),
-               class = "lna_error_float16_unsupported")
+  err <- expect_error(
+    core_read(tmp, output_dtype = "float16"),
+    class = "lna_error_float16_unsupported"
+  )
+  expect_true(grepl("core_read", err$location))
 })
 
 test_that("core_read allows float16 when support present", {

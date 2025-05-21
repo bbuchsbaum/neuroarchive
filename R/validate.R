@@ -25,7 +25,11 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
 
   fail <- function(msg) {
     if (strict) {
-      abort_lna(msg, .subclass = "lna_error_validation")
+      abort_lna(
+        msg,
+        .subclass = "lna_error_validation",
+        location = sprintf("validate_lna:%s", file)
+      )
     } else {
       warning(msg)
       return(FALSE)
