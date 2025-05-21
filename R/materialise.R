@@ -9,13 +9,18 @@
 #' @param checksum Character string indicating checksum mode.
 #' @param header Optional named list of header attributes.
 #' @param plugins Optional named list of plugin metadata.
-#' @return Invisibly returns the modified `plan`.
+#' @return Invisibly returns the `H5File` handle. When `checksum = "sha256"` the
+#'   handle is closed as part of digest computation and the returned object will
+#'   no longer be valid.
 #' @import hdf5r
 #' @keywords internal
 materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
                              header = NULL, plugins = NULL) {
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
+  if (!h5$is_valid()) {
+    stop("`h5` handle is not valid", call. = FALSE)
+  }
   stopifnot(inherits(plan, "Plan"))
   if (!is.null(header)) {
     stopifnot(is.list(header))
@@ -28,9 +33,38 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   }
 
   # Create core groups
-  tf_group <- if (h5$exists("transforms")) h5[["transforms"]] else h5$create_group("transforms")
-  if (!h5$exists("basis")) h5$create_group("basis")
-  if (!h5$exists("scans")) h5$create_group("scans")
+  if (h5$exists("transforms")) {
+    obj <- h5[["transforms"]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
+      stop("'/transforms' exists but is not a group", call. = FALSE)
+    }
+    tf_group <- obj
+  } else {
+    tf_group <- h5$create_group("transforms")
+  }
+
+  if (h5$exists("basis")) {
+    obj <- h5[["basis"]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
+      stop("'/basis' exists but is not a group", call. = FALSE)
+    }
+    obj$close()
+  } else {
+    h5$create_group("basis")
+  }
+
+  if (h5$exists("scans")) {
+    obj <- h5[["scans"]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
+      stop("'/scans' exists but is not a group", call. = FALSE)
+    }
+    obj$close()
+  } else {
+    h5$create_group("scans")
+  }
 
   root <- h5[["/"]]
   h5_attr_write(root, "lna_spec", "LNA R v2.0")
@@ -51,8 +85,10 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     chunk_dims <- NULL
 
     attempt <- function(level, chunks) {
-      h5_write_dataset(root, path, data, chunk_dims = chunks,
-                       compression_level = level)
+      ds <- h5_write_dataset(root, path, data, chunk_dims = chunks,
+                             compression_level = level)
+      if (inherits(ds, "H5D")) ds$close()
+      NULL
     }
 
     res <- tryCatch(attempt(comp_level, chunk_dims), error = function(e) e)
@@ -65,7 +101,15 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       }
     }
 
-    dtype_size <- if (is.integer(data)) 4L else 8L
+    if (is.integer(data)) {
+      dtype_size <- 4L
+    } else if (is.double(data)) {
+      dtype_size <- 8L
+    } else {
+      t <- guess_h5_type(data)
+      dtype_size <- t$get_size()
+      if (inherits(t, "H5T")) t$close()
+    }
     cdims <- if (is.null(chunk_dims)) guess_chunk_dims(dim(data), dtype_size) else as.integer(chunk_dims)
 
     if (inherits(res, "error")) {
@@ -112,7 +156,10 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         key <- row$payload_key
         if (!nzchar(key)) next
         payload <- plan$payloads[[key]]
-        if (is.null(payload)) next
+        if (is.null(payload)) {
+          warning(sprintf("Payload '%s' missing for dataset '%s'", key, row$path))
+          next
+        }
         if (!is.null(p)) p(message = row$path)
         write_payload(row$path, payload, row$step_index)
         plan$datasets$write_mode_effective[i] <- "eager"
@@ -137,6 +184,9 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   if (!is.null(plugins) && length(plugins) > 0) {
     pl_grp <- if (!h5$exists("plugins")) h5$create_group("plugins") else h5[["plugins"]]
     for (nm in names(plugins)) {
+      if (grepl("/", nm, fixed = TRUE)) {
+        stop(sprintf("Invalid plugin name '%s'", nm), call. = FALSE)
+      }
       write_json_descriptor(pl_grp, paste0(nm, ".json"), plugins[[nm]])
     }
   }
