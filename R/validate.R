@@ -101,3 +101,45 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
   TRUE
 }
 
+#' Runtime validation for a transform step
+#'
+#' Checks dataset paths referenced in a descriptor and verifies that all
+#' required parameters are present before a transform is executed.
+#'
+#' @param type Transform type name.
+#' @param desc Descriptor list parsed from JSON.
+#' @param h5 An open `H5File` object.
+#' @return Invisibly `TRUE` or throws an error on validation failure.
+#' @keywords internal
+runtime_validate_step <- function(type, desc, h5) {
+  stopifnot(is.character(type), length(type) == 1)
+  stopifnot(is.list(desc))
+  stopifnot(inherits(h5, "H5File"))
+
+  root <- h5[["/"]]
+  if (!is.null(desc$datasets)) {
+    for (ds in desc$datasets) {
+      if (!is.null(ds$path)) {
+        assert_h5_path(root, ds$path)
+      }
+    }
+  }
+
+  req <- required_params(type)
+  params <- desc$params %||% list()
+  missing <- setdiff(req, names(params))
+  if (length(missing) > 0) {
+    abort_lna(
+      paste0(
+        "Descriptor for transform '", type,
+        "' missing required parameter(s): ",
+        paste(missing, collapse = ", ")
+      ),
+      .subclass = "lna_error_descriptor",
+      location = sprintf("runtime_validate_step:%s", type)
+    )
+  }
+
+  invisible(TRUE)
+}
+

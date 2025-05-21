@@ -9,6 +9,7 @@
 #'   list if none are defined or the schema is missing.
 #' @keywords internal
 .default_param_cache <- new.env(parent = emptyenv())
+.required_param_cache <- new.env(parent = emptyenv())
 
 
 # Recursively extract `default` values from a parsed JSON schema list
@@ -68,6 +69,45 @@ default_params <- function(type) {
 
   assign(type, defaults, envir = cache)
   defaults
+}
+
+#' Required parameters for a transform
+#'
+#' Retrieves the `required` fields from a transform's JSON schema. Results
+#' are cached for efficiency.
+#'
+#' @param type Character scalar transform type.
+#' @return Character vector of required parameter names (may be empty).
+#' @keywords internal
+required_params <- function(type) {
+  stopifnot(is.character(type), length(type) == 1)
+
+  cache <- .required_param_cache
+  if (exists(type, envir = cache, inherits = FALSE)) {
+    return(cache[[type]])
+  }
+
+  pkgs <- unique(c("neuroarchive", loadedNamespaces()))
+  schema_path <- ""
+  for (pkg in pkgs) {
+    path <- system.file("schemas", paste0(type, ".schema.json"), package = pkg)
+    if (nzchar(path) && file.exists(path)) {
+      schema_path <- path
+      break
+    }
+  }
+
+  if (!nzchar(schema_path)) {
+    warning(sprintf("Schema for transform '%s' not found", type), call. = FALSE)
+    req <- character()
+  } else {
+    schema <- jsonlite::read_json(schema_path, simplifyVector = FALSE)
+    assign(type, schema, envir = .schema_cache)
+    req <- schema$required %||% character()
+  }
+
+  assign(type, req, envir = cache)
+  req
 }
 
 #' Resolve Transform Parameters
