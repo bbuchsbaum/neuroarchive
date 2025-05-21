@@ -144,3 +144,11 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
 lna_default.quant <- function() {
   default_params("quant")
 }
+
+#' Default parameters for the 'basis' transform
+#'
+#' Convenience wrapper around `default_params("basis")`.
+#' @export
+lna_default.basis <- function() {
+  default_params("basis")
+}
