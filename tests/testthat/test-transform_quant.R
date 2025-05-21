@@ -51,3 +51,43 @@ test_that("invert_step.quant applies roi_mask and time_idx", {
   out <- h$stash$input
   expect_equal(dim(out), c(sum(roi), 2))
 })
+
+test_that("forward_step.quant validates parameters", {
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = array(1:8, dim = c(2,4))),
+                      plan = plan)
+
+  desc <- list(type = "quant", params = list(bits = 0L), inputs = c("input"))
+  expect_error(
+    neuroarchive:::forward_step.quant("quant", desc, h),
+    class = "lna_error_validation",
+    regexp = "bits"
+  )
+
+  desc$params$bits <- 17L
+  expect_error(
+    neuroarchive:::forward_step.quant("quant", desc, h),
+    class = "lna_error_validation"
+  )
+
+  desc$params <- list(method = "bad")
+  expect_error(
+    neuroarchive:::forward_step.quant("quant", desc, h),
+    class = "lna_error_validation",
+    regexp = "method"
+  )
+
+  desc$params <- list(center = c(TRUE, FALSE))
+  expect_error(
+    neuroarchive:::forward_step.quant("quant", desc, h),
+    class = "lna_error_validation",
+    regexp = "center"
+  )
+
+  desc$params <- list(scale_scope = "nonsense")
+  expect_error(
+    neuroarchive:::forward_step.quant("quant", desc, h),
+    class = "lna_error_validation",
+    regexp = "scale_scope"
+  )
+})
