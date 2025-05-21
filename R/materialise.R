@@ -164,7 +164,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     idx <- seq_len(nrow(plan$datasets))
     has_payload <- plan$datasets$payload_key != "" & !is.na(plan$datasets$payload_key)
     steps <- sum(has_payload)
-    progress_enabled <- steps > 1 && !progressr::handlers_is_empty()
+    progress_enabled <- steps > 1 && !progressr:::handlers_is_empty()
     loop <- function() {
       p <- if (progress_enabled) progressr::progressor(steps = steps) else NULL
       for (i in idx) {
