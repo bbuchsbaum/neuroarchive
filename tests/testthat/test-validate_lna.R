@@ -70,3 +70,29 @@ test_that("validate_lna fails on invalid descriptor", {
   materialise_plan(h5, plan, checksum = "none")
   expect_error(validate_lna(tmp), class = "lna_error_validation")
 })
+
+test_that("validate_lna strict=FALSE collects multiple issues", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  root <- h5[["/"]]
+  h5_attr_write(root, "lna_spec", "wrong")
+  h5_attr_write(root, "lna_checksum", "bogus")
+  neuroarchive:::close_h5_safely(h5)
+
+  res <- validate_lna(tmp, strict = FALSE)
+  expect_type(res, "character")
+  expect_length(res, 2)
+})
+
+test_that("validate_lna strict=TRUE errors on first issue", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  root <- h5[["/"]]
+  h5_attr_write(root, "lna_spec", "wrong")
+  h5_attr_write(root, "lna_checksum", "bogus")
+  neuroarchive:::close_h5_safely(h5)
+
+  expect_error(validate_lna(tmp, strict = TRUE), class = "lna_error_validation")
+})

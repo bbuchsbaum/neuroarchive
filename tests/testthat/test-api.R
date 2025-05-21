@@ -102,3 +102,28 @@ test_that("read_lna lazy=TRUE keeps file open", {
   expect_true(handle$h5$is_valid())
   neuroarchive:::close_h5_safely(handle$h5)
 })
+
+test_that("write_lna writes block_table dataset", {
+  tmp <- local_tempfile(fileext = ".h5")
+  arr <- array(1, dim = c(1, 1, 1))
+  msk <- array(TRUE, dim = c(1, 1, 1))
+  bt <- data.frame(start = 1L, end = 1L)
+  write_lna(x = arr, file = tmp, transforms = character(0), mask = msk,
+            block_table = bt)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r")
+  expect_true(h5$exists("spatial/block_table"))
+  val <- h5[["spatial/block_table"]]$read()
+  expect_equal(val, as.matrix(bt))
+  neuroarchive:::close_h5_safely(h5)
+})
+
+test_that("write_lna validates block_table ranges", {
+  arr <- array(1, dim = c(1, 1, 1))
+  msk <- array(TRUE, dim = c(1, 1, 1))
+  bt_bad <- data.frame(idx = 2L)
+  expect_error(
+    write_lna(x = arr, file = tempfile(fileext = ".h5"),
+              transforms = character(0), mask = msk, block_table = bt_bad),
+    class = "lna_error_validation"
+  )
+})
