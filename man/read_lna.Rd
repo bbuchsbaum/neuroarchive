@@ -19,8 +19,10 @@ read_lna(file, run_id = NULL,
   \code{allow_plugins = "none"}.}
   \item{validate}{Logical flag for validation.}
   \item{output_dtype}{Desired output data type.}
-  \item{roi_mask}{Optional ROI mask for subsetting.}
-  \item{time_idx}{Optional integer vector of time indices.}
+  \item{roi_mask}{Optional ROI mask used to subset voxels before applying
+  transforms.}
+  \item{time_idx}{Optional vector of time indices for subsetting volumes
+  prior to transformation.}
   \item{lazy}{If \code{TRUE}, returns an \code{lna_reader} for lazy access.}
 }
 \value{A \code{DataHandle} or \code{lna_reader}.}
