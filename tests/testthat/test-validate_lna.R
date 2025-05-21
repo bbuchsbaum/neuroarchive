@@ -126,3 +126,14 @@ test_that("validate_lna detects dimension mismatch hints", {
   neuroarchive:::close_h5_safely(h5)
   expect_error(validate_lna(tmp), class = "lna_error_validation")
 })
+
+test_that("validate_lna errors when dataset cannot be read", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_valid_lna(tmp)
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
+  h5$link_delete("scans/run-01/data")
+  h5$create_group("scans/run-01/data")
+  neuroarchive:::close_h5_safely(h5)
+
+  expect_error(validate_lna(tmp), class = "lna_error_validation")
+})
