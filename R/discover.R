@@ -25,9 +25,14 @@ discover_transforms <- function(h5_group) {
   obj_names <- tryCatch({
     names(h5_group)
   }, error = function(e) {
-    stop(
-      paste0("Failed to list names in HDF5 group: ", conditionMessage(e)),
-      call. = FALSE
+
+    print("Error occurred during h5_group$names():")
+    print(conditionMessage(e))
+    abort_lna(
+      "Failed to list names in HDF5 group.",
+      .subclass = "lna_error_io",
+      location = "discover_transforms",
+      parent = e
     )
   })
 
@@ -47,11 +52,15 @@ discover_transforms <- function(h5_group) {
       # Consider warning or error? Spec says ensure NN_ is contiguous,
       # implies non-matching names might be an error or ignored.
       # Let's error for now if non-matching names are found.
-      stop(paste0(
-        "Invalid object name found in /transforms: ",
-        obj_names[i],
-        ". Expected format NN_type.json."
-      ), call. = FALSE)
+      abort_lna(
+        paste0(
+          "Invalid object name found in /transforms: ",
+          obj_names[i],
+          ". Expected format NN_type.json."
+        ),
+        .subclass = "lna_error_descriptor",
+        location = "discover_transforms"
+      )
       # return(NULL) # Alternative: ignore non-matching files
     }
     full_name <- obj_names[i]
@@ -61,10 +70,14 @@ discover_transforms <- function(h5_group) {
     # Convert index, handle potential non-integer strings caught by regex (though unlikely)
     index_int <- suppressWarnings(as.integer(index_str))
     if (is.na(index_int)) {
-      stop(paste0(
-        "Invalid numeric index found in transform name: ",
-        full_name
-      ), call. = FALSE)
+      abort_lna(
+        paste0(
+          "Invalid numeric index found in transform name: ",
+          full_name
+        ),
+        .subclass = "lna_error_descriptor",
+        location = "discover_transforms"
+      )
     }
 
     list(name = full_name, type = type_str, index = index_int)
@@ -77,7 +90,11 @@ discover_transforms <- function(h5_group) {
       # This case occurs if obj_names was not empty but nothing matched the pattern
       # and we chose to ignore non-matching names. Should probably error if we expect
       # all names to match.
-       stop("No valid transform descriptors (NN_type.json) found in non-empty /transforms group.", call. = FALSE)
+       abort_lna(
+         "No valid transform descriptors (NN_type.json) found in non-empty /transforms group.",
+         .subclass = "lna_error_descriptor",
+         location = "discover_transforms"
+       )
       # return(tibble::tibble(name = character(), type = character(), index = integer()))
   }
 
