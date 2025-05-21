@@ -13,6 +13,7 @@
 #' @param transform_params Named list of transform parameters.
 #' @param mask Optional mask passed to `core_write`.
 #' @param header Optional named list of header attributes.
+#' @param plugins Optional named list saved under `/plugins/`.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
 #'   `header` with class `"lna_write_result"`.
 #' @details For parallel workflows use a unique temporary file and
@@ -22,7 +23,7 @@
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
-                      header = NULL) {
+                      header = NULL, plugins = NULL) {
   in_memory <- FALSE
   if (is.null(file)) {
     tmp <- tempfile(fileext = ".h5")
@@ -32,14 +33,16 @@ write_lna <- function(x, file = NULL, transforms = character(),
 
   result <- core_write(x = x, transforms = transforms,
                        transform_params = transform_params,
-                       mask = mask, header = header)
+                       mask = mask, header = header, plugins = plugins)
 
   if (in_memory) {
     h5 <- open_h5(file, mode = "w", driver = "core", backing_store = FALSE)
   } else {
     h5 <- open_h5(file, mode = "w")
   }
-  materialise_plan(h5, result$plan, header = result$handle$meta$header)
+  materialise_plan(h5, result$plan,
+                   header = result$handle$meta$header,
+                   plugins = result$handle$meta$plugins)
   close_h5_safely(h5)
 
   out_file <- if (in_memory) NULL else file

@@ -22,6 +22,18 @@ test_that("write_lna writes header attributes to file", {
   neuroarchive:::close_h5_safely(h5)
 })
 
+test_that("write_lna plugins list is written to /plugins", {
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(x = 1, file = tmp, transforms = character(0),
+            plugins = list(myplugin = list(a = 1)))
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r")
+  expect_true(h5$exists("plugins/myplugin.json"))
+  grp <- h5[["plugins"]]
+  desc <- read_json_descriptor(grp, "myplugin.json")
+  expect_identical(desc, list(a = 1))
+  neuroarchive:::close_h5_safely(h5)
+})
+
 # Parameter forwarding for write_lna
 
 test_that("write_lna forwards arguments to core_write and materialise_plan", {
@@ -30,20 +42,23 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
   fake_handle <- DataHandle$new()
 
   with_mocked_bindings(
-    core_write = function(x, transforms, transform_params, mask = NULL, header = NULL) {
+    core_write = function(x, transforms, transform_params, mask = NULL,
+                          header = NULL, plugins = NULL) {
       captured$core <- list(x = x, transforms = transforms,
                             transform_params = transform_params,
-                            header = header)
+                            header = header, plugins = plugins)
       list(handle = fake_handle, plan = fake_plan)
     },
-    materialise_plan = function(h5, plan, checksum = "none", header = NULL) {
+    materialise_plan = function(h5, plan, checksum = "none", header = NULL,
+                                plugins = NULL) {
       captured$mat <- list(is_h5 = inherits(h5, "H5File"), plan = plan,
-                           header = header)
+                           header = header, plugins = plugins)
     }, {
       write_lna(x = 42, file = tempfile(fileext = ".h5"),
                 transforms = c("tA"),
                 transform_params = list(tA = list(foo = "bar")),
-                header = list(a = 1))
+                header = list(a = 1),
+                plugins = list(p = list(val = 2)))
     }
   )
 
@@ -54,6 +69,8 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
   expect_identical(captured$mat$plan, fake_plan)
   expect_equal(captured$core$header, list(a = 1))
   expect_equal(captured$mat$header, list(a = 1))
+  expect_equal(captured$core$plugins, list(p = list(val = 2)))
+  expect_equal(captured$mat$plugins, list(p = list(val = 2)))
 })
 
 # Parameter forwarding for read_lna
