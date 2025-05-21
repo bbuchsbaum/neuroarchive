@@ -149,6 +149,13 @@ read_lna <- function(file, run_id = NULL,
                      output_dtype = c("float32", "float64", "float16"),
                      roi_mask = NULL, time_idx = NULL,
                      lazy = FALSE) {
+  if (!(is.character(file) && length(file) == 1)) {
+    abort_lna(
+      "file must be a path",
+      .subclass = "lna_error_validation",
+      location = "read_lna:file"
+    )
+  }
   output_dtype <- match.arg(output_dtype)
   allow_plugins <- match.arg(allow_plugins)
 
