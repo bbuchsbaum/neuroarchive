@@ -1,0 +1,39 @@
+---
+title: "LNA Cookbook"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{LNA Cookbook}
+  %\VignetteEngine{rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette demonstrates common workflows using the `neuroarchive`
+package.
+
+```r
+library(neuroarchive)
+```
+
+## Quantisation and Lazy Reading
+
+```r
+# Create some example data
+x <- array(rnorm(128), dim = c(4, 4, 4, 2))
+
+# Write with quant transform
+write_lna(x, "cookbook.h5", transforms = "quant")
+
+# Open lazily and read a subset
+r <- read_lna("cookbook.h5", lazy = TRUE)
+r$subset(time_idx = 1)
+subset_data <- r$data()
+```
+
+## Scaffolding a New Transform
+
+```r
+scaffold_transform("mycustom")
+```
+
+This creates template files in `R/`, `inst/schemas/`, and `tests/` for a
+new transform implementation.
