@@ -73,7 +73,7 @@ Plan <- R6::R6Class("Plan",
         is.character(role), length(role) == 1,
         is.character(producer), length(producer) == 1,
         is.character(origin), length(origin) == 1,
-        is.numeric(step_index), length(step_index) == 1,
+        is.integer(step_index), length(step_index) == 1,
         is.character(params_json), length(params_json) == 1,
         is.character(payload_key), length(payload_key) == 1,
         is.character(write_mode), length(write_mode) == 1
