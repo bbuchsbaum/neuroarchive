@@ -244,37 +244,32 @@ h5_write_dataset <- function(h5_group, path, data,
 #'   writing in parallel.
 #' @keywords internal
 open_h5 <- function(path, mode = "r", ...) {
-  stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.character(mode), length(mode) == 1)
 
   dot_args <- list(...)
 
   if (isTRUE(dot_args$driver == "core")) {
-    fapl <- hdf5r::H5P_FILE_ACCESS$new()
-    
-    # Default backing_store to TRUE if not explicitly passed, though the call that errors uses FALSE.
-    # H5Pset_fapl_core default for backing_store is TRUE.
-    core_backing_store <- if (!is.null(dot_args$backing_store)) dot_args$backing_store else TRUE
-    # Default increment for core driver, e.g., 1MB. This can be made configurable if needed.
-    core_increment <- if (!is.null(dot_args$increment)) dot_args$increment else (1024*1024)
+    if (is.null(path)) {
+      path <- tempfile(fileext = ".h5")
+    } else {
+      stopifnot(is.character(path), length(path) == 1)
+    }
 
-    fapl$set_fapl_core(increment = core_increment, backing_store = core_backing_store)
-    
+    backing_store <- if (!is.null(dot_args$backing_store)) dot_args$backing_store else TRUE
+
     h5_object <- tryCatch(
-        hdf5r::H5File$new(path, mode = mode, file_access_pl = fapl),
-        error = function(e) {
-          # Attempt to close FAPL if it was created and H5File$new failed early
-          # if (exists("fapl") && inherits(fapl, "H5P_FILE_ACCESS") && fapl$is_valid) try(fapl$close(), silent = TRUE)
-          stop(
-            sprintf("Failed to open HDF5 file '%s' (with core driver config): %s", path, conditionMessage(e)),
-            call. = FALSE
-          )
-        }
-      )
-    # FAPL is an R6 object, will be garbage collected. H5File$new should manage the ID copy/transfer.
+      hdf5r::H5File$new(path, mode = mode, driver = "core", backing_store = backing_store),
+      error = function(e) {
+        stop(
+          sprintf("Failed to open HDF5 file '%s' (core driver): %s", path, conditionMessage(e)),
+          call. = FALSE
+        )
+      }
+    )
     return(h5_object)
 
   } else {
+    stopifnot(is.character(path), length(path) == 1)
     # Standard file opening: pass through other arguments from ...
     # This was the previous behavior. If other combinations of ... cause "unused argument",
     # they might need similar explicit FAPL handling for other drivers.
