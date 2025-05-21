@@ -8,7 +8,9 @@ write_lna(x, file = NULL, transforms = character(),
 }
 \arguments{
   \item{x}{Input object passed to \code{core_write}.}
-  \item{file}{Path to output file. If \code{NULL}, writing occurs in memory.}
+  \item{file}{Path to output \code{.h5} file. If \code{NULL}, writing is
+    performed in memory using the HDF5 core driver and no file is created.
+    The returned list then contains \code{file = NULL}.}
   \item{transforms}{Character vector of transform types.}
   \item{transform_params}{Named list of transform parameters.}
   \item{mask}{Optional mask passed to \code{core_write}.}

@@ -8,7 +8,8 @@
 #'
 #' @param x Input object passed to `core_write`.
 #' @param file Path to output `.h5` file. If `NULL`, writing is performed
-#'   in memory and the file is returned as a raw vector.
+#'   in memory using the HDF5 core driver and no file is created. The
+#'   returned list then has `file = NULL`.
 #' @param transforms Character vector of transform types.
 #' @param transform_params Named list of transform parameters.
 #' @param mask Optional mask passed to `core_write`.
