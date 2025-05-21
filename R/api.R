@@ -1,10 +1,14 @@
 #' Write data to an LNA file
 #'
-#' A minimal public wrapper around `core_write` used during early
-#' development. Creates the basic HDF5 structure via `materialise_plan`.
+#' Compresses and stores a neuroimaging object using the specified
+#' transform pipeline.  Parameter values are resolved by merging
+#' transform schema defaults, package options set via
+#' `lna_options()`, and the user supplied `transform_params`
+#' (later values override earlier ones).
 #'
 #' @param x Input object passed to `core_write`.
-#' @param file Path to output `.h5` file. If `NULL`, a temporary file is used.
+#' @param file Path to output `.h5` file. If `NULL`, writing is performed
+#'   in memory and the file is returned as a raw vector.
 #' @param transforms Character vector of transform types.
 #' @param transform_params Named list of transform parameters.
 #' @param mask Optional mask passed to `core_write`.
@@ -43,7 +47,9 @@ write_lna <- function(x, file = NULL, transforms = character(),
 
 #' Read data from an LNA file
 #'
-#' Thin wrapper around `core_read`.
+#' Loads data from an `.lna.h5` file using `core_read`.  When
+#' `lazy = TRUE` the function returns an `lna_reader` object that keeps
+#' the HDF5 handle open for on-demand reconstruction of the data.
 #'
 #' @param file Path to an LNA file on disk.
 #' @param allow_plugins Forwarded to `core_read`.
@@ -51,7 +57,7 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.
 #' @param lazy Logical. If `TRUE`, the HDF5 file remains open and the
-#'   returned handle can be used for lazy reading (Phase 1 stub).
+#'   returned `lna_reader` can load data lazily.
 #' @return A `DataHandle` object from `core_read`.
 #' @export
 read_lna <- function(file, allow_plugins = c("warn", "off", "on"),

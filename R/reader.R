@@ -4,6 +4,19 @@
 #'   reader keeps an HDF5 file handle open and runs the inverse
 #'   transform pipeline on demand via `$data()`. Subsetting parameters
 #'   can be stored with `$subset()`.
+#'
+#' @details
+#' Create an instance via `read_lna(file, lazy = TRUE)` or directly
+#' using `lna_reader$new()`.  Call `$subset()` to store ROI or time
+#' indices and `$data()` to materialise the data.  Always call
+#' `$close()` when finished.
+#'
+#' @examples
+#' r <- read_lna("example.lna.h5", lazy = TRUE)
+#' r$subset(time_idx = 1:10)
+#' dat <- r$data()
+#' r$close()
+#'
 #' @keywords internal
 lna_reader <- R6::R6Class("lna_reader",
   public = list(

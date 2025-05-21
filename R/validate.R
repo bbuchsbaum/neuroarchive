@@ -13,6 +13,8 @@
 #'
 #' @return `TRUE` if validation succeeds. If `strict = FALSE` and a problem is
 #'   detected the function returns `FALSE`.
+#' @examples
+#' validate_lna("example.lna.h5")
 #' @export
 validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
   stopifnot(is.character(file), length(file) == 1)
