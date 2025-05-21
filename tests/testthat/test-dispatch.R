@@ -17,7 +17,7 @@ test_that("forward_step generic dispatches to default and errors", {
   expect_error(
     forward_step(dummy_type, dummy_desc, dummy_handle),
     regexp = paste("No forward_step method implemented for transform type:", dummy_type)
-    # TODO: Update error class check when lna_error_no_method is defined
+     class = "lna_error_no_method"
   )
 })
 
@@ -33,6 +33,6 @@ test_that("invert_step generic dispatches to default and errors", {
   expect_error(
     invert_step(dummy_type, dummy_desc, dummy_handle),
     regexp = paste("No invert_step method implemented for transform type:", dummy_type)
-    # TODO: Update error class check when lna_error_no_method is defined
+     class = "lna_error_no_method"
   )
 }) 

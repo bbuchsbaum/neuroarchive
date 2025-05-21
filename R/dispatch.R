@@ -26,14 +26,12 @@ forward_step <- function(type, desc, handle) {
 #' @export
 #' @keywords internal
 forward_step.default <- function(type, desc, handle) {
-  # TODO: Replace stop() with lna:::abort_lna(..., .subclass="lna_error_no_method")
-  #       when error handling (M0-12) is implemented.
-  stop(
+  abort_lna(
     sprintf(
       "No forward_step method implemented for transform type: %s",
       type
     ),
-    call. = FALSE
+    .subclass = "lna_error_no_method"
   )
 }
 
@@ -58,13 +56,11 @@ invert_step <- function(type, desc, handle) {
 #' @export
 #' @keywords internal
 invert_step.default <- function(type, desc, handle) {
-  # TODO: Replace stop() with lna:::abort_lna(..., .subclass="lna_error_no_method")
-  #       when error handling (M0-12) is implemented.
-  stop(
+  abort_lna(
     sprintf(
       "No invert_step method implemented for transform type: %s",
       type
     ),
-    call. = FALSE
+    .subclass = "lna_error_no_method"
   )
-} 
+}
