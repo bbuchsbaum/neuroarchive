@@ -13,7 +13,9 @@
 #' @param h5_group An H5Group object from hdf5r.
 #' @param name The name of the HDF5 dataset containing the JSON string.
 #' @return A list object parsed from the JSON string.
-#' @details Assumes the dataset stores a single UTF-8 string (potentially variable length).
+#' @details Assumes the dataset stores a single UTF-8 string (potentially variable length). Numeric
+#'   values in the JSON are coerced with `as.numeric()` so that whole-number values are not
+#'   returned as integers.
 read_json_descriptor <- function(h5_group, name) {
   stopifnot(inherits(h5_group, "H5Group")) # Basic type check
   stopifnot(is.character(name), length(name) == 1)
@@ -43,6 +45,22 @@ read_json_descriptor <- function(h5_group, name) {
       simplifyDataFrame = FALSE,
       simplifyMatrix = FALSE
     )
+
+    # Convert any integer values to base numeric to avoid integer
+    # coercion when numbers appear as whole values in the JSON
+    convert_numeric <- function(x) {
+      if (is.list(x)) {
+        lapply(x, convert_numeric)
+      } else if (is.integer(x)) {
+        as.numeric(x)
+      } else if (is.numeric(x) && all(!is.na(x) & x == floor(x))) {
+        as.numeric(x)
+      } else {
+        x
+      }
+    }
+
+    parsed_list <- convert_numeric(parsed_list)
   }, error = function(e) {
     detailed_error <- tryCatch(
       conditionMessage(e),
