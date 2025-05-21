@@ -163,6 +163,15 @@ test_that("DataHandle with method provides immutability", {
 
 })
 
+test_that("DataHandle $with works without class in search path", {
+  local_class <- DataHandle
+  h1 <- local_class$new(initial_stash = list(a = 1))
+  rm(DataHandle, envir = environment())
+  on.exit(assign("DataHandle", local_class, envir = environment()))
+  h2 <- h1$with(stash = list(b = 2))
+  expect_identical(h2$stash, list(b = 2))
+})
+
 test_that("DataHandle update_stash provides immutability", {
   # Initial object
   h1_stash <- list(a = 1, b = 2, c = 3)
