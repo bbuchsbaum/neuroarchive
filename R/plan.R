@@ -152,6 +152,52 @@ Plan <- R6::R6Class("Plan",
     },
 
     #' @description
+    #' Return the first run identifier appearing in the plan. If no dataset
+    #' definitions exist, fall back to `origin_label` when it matches the run
+    #' pattern. Returns `NULL` when no run information is available.
+    first_run_id = function() {
+      if (nrow(self$datasets) > 0) {
+        ids <- self$datasets$origin
+        run_like <- grep("^run-[0-9]+$", ids, value = TRUE)
+        if (length(run_like) > 0) return(run_like[1])
+      }
+      if (grepl("^run-[0-9]+$", self$origin_label)) {
+        return(self$origin_label)
+      }
+      NULL
+    },
+
+    #' @description
+    #' Convenience helper to add an array as the initial payload for a run.
+    #' This is used by `core_write` when no transforms are specified.
+    #' @param x Array to add.
+    #' @param run_id Optional run identifier. Defaults to "run-01" when neither
+    #'   `run_id` nor `origin_label` specifies a run pattern.
+    import_from_array = function(x, run_id = NULL) {
+      stopifnot(is.array(x))
+      rid <- if (!is.null(run_id)) {
+        run_id
+      } else if (grepl("^run-[0-9]+$", self$origin_label)) {
+        self$origin_label
+      } else {
+        "run-01"
+      }
+      key <- paste0(rid, "_initial")
+      self$add_payload(key, x, overwrite = TRUE)
+      self$add_dataset_def(
+        path = file.path("/scans", rid, "data", "values"),
+        role = "raw_data",
+        producer = "core_write_initial_input",
+        origin = rid,
+        step_index = 0L,
+        params_json = "{}",
+        payload_key = key,
+        write_mode = "eager"
+      )
+      invisible(self)
+    },
+
+    #' @description
     #' Mark a payload as written (e.g., by setting its value to NULL).
     #' @param key Character string, the key of the payload to mark.
     mark_payload_written = function(key) {

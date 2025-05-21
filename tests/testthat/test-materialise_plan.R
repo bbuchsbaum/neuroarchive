@@ -34,6 +34,18 @@ test_that("materialise_plan creates structure and updates plan", {
   neuroarchive:::close_h5_safely(h5)
 })
 
+test_that("materialise_plan works with Plan$import_from_array", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
+  plan <- Plan$new()
+  plan$import_from_array(array(1, dim = c(1,1,1)))
+  materialise_plan(h5, plan)
+  expect_true(h5$exists("scans/run-01/data/values"))
+  val <- h5[["scans/run-01/data/values"]]$read()
+  expect_equal(val, array(1, dim = c(1,1,1)))
+  neuroarchive:::close_h5_safely(h5)
+})
+
 test_that("materialise_plan writes header attributes", {
   tmp <- local_tempfile(fileext = ".h5")
   h5 <- neuroarchive:::open_h5(tmp, mode = "w")

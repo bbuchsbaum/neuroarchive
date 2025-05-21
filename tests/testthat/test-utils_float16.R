@@ -9,11 +9,9 @@ test_that("has_float16_support returns logical scalar", {
 })
 
 test_that("has_float16_support detects packages", {
-  with_mocked_bindings(
+  local_mocked_bindings(
     requireNamespace = function(pkg, quietly = TRUE) TRUE,
-    .package = "neuroarchive",
-    {
-      expect_true(has_float16_support())
-    }
+    .env = asNamespace("neuroarchive")
   )
+  expect_true(has_float16_support())
 })

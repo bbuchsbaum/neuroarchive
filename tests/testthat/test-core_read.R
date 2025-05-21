@@ -34,14 +34,14 @@ test_that("core_read closes file if invert_step errors", {
   create_dummy_lna(tmp)
 
   captured_h5 <- NULL
-  with_mocked_bindings(
+  local_mocked_bindings(
     invert_step.default = function(type, desc, handle) {
       captured_h5 <<- handle$h5
       stop("mock error")
     },
-    .package = "neuroarchive",
-    expect_error(core_read(tmp), "mock error")
+    .env = asNamespace("neuroarchive")
   )
+  expect_error(core_read(tmp), "mock error")
   expect_true(inherits(captured_h5, "H5File"))
   expect_false(captured_h5$is_valid())
 })
@@ -72,16 +72,14 @@ test_that("core_read allows float16 when support present", {
   tmp <- local_tempfile(fileext = ".h5")
   create_empty_lna(tmp)
 
-  with_mocked_bindings(
+  local_mocked_bindings(
     has_float16_support = function() TRUE,
-    .package = "neuroarchive",
-    {
-      h <- core_read(tmp, output_dtype = "float16")
-      expect_equal(h$meta$output_dtype, "float16")
-      expect_true(h$h5$is_valid())
-      neuroarchive:::close_h5_safely(h$h5)
-    }
+    .env = asNamespace("neuroarchive")
   )
+  h <- core_read(tmp, output_dtype = "float16")
+  expect_equal(h$meta$output_dtype, "float16")
+  expect_true(h$h5$is_valid())
+  neuroarchive:::close_h5_safely(h$h5)
 })
 
 test_that("core_read works with progress handlers", {
@@ -96,11 +94,11 @@ test_that("core_read validate=TRUE calls validate_lna", {
   tmp <- local_tempfile(fileext = ".h5")
   create_empty_lna(tmp)
   called <- FALSE
-  with_mocked_bindings(
+  local_mocked_bindings(
     validate_lna = function(file) { called <<- TRUE },
-    .package = "neuroarchive",
-    { core_read(tmp, validate = TRUE) }
+    .env = asNamespace("neuroarchive")
   )
+  core_read(tmp, validate = TRUE)
   expect_true(called)
 })
 
@@ -187,18 +185,16 @@ test_that("core_read run_id globbing returns handles", {
   materialise_plan(h5, plan)
   neuroarchive:::close_h5_safely(h5)
 
-  with_mocked_bindings(
+  local_mocked_bindings(
     invert_step.dummy = function(type, desc, handle) {
       path <- paste0("/scans/", handle$current_run_id, "/data")
       root <- handle$h5[["/"]]
       val <- h5_read(root, path)
       handle$update_stash(keys = character(), new_values = list(input = val))
     },
-    .package = "neuroarchive",
-    {
-      res <- core_read(tmp, run_id = "run-0*")
-    }
+    .env = asNamespace("neuroarchive")
   )
+  res <- core_read(tmp, run_id = "run-0*")
   expect_true(is.list(res))
   expect_equal(names(res), c("run-01", "run-02"))
   expect_equal(res[["run-01"]]$stash$input, 1)
@@ -217,18 +213,16 @@ test_that("core_read run_id globbing lazy returns first", {
   materialise_plan(h5, plan)
   neuroarchive:::close_h5_safely(h5)
 
-  with_mocked_bindings(
+  local_mocked_bindings(
     invert_step.dummy = function(type, desc, handle) {
       path <- paste0("/scans/", handle$current_run_id, "/data")
       root <- handle$h5[["/"]]
       val <- h5_read(root, path)
       handle$update_stash(keys = character(), new_values = list(input = val))
     },
-    .package = "neuroarchive",
-    {
-      expect_warning(h <- core_read(tmp, run_id = "run-*", lazy = TRUE), "first match")
-    }
+    .env = asNamespace("neuroarchive")
   )
+  expect_warning(h <- core_read(tmp, run_id = "run-*", lazy = TRUE), "first match")
   expect_s3_class(h, "DataHandle")
   expect_equal(h$current_run_id, "run-01")
   neuroarchive:::close_h5_safely(h$h5)
@@ -244,15 +238,13 @@ test_that("core_read validate=TRUE checks dataset existence", {
   write_json_descriptor(tf, "00_dummy.json", desc)
   neuroarchive:::close_h5_safely(h5)
 
-  with_mocked_bindings(
+  local_mocked_bindings(
     invert_step.dummy = function(type, desc, handle) handle,
-    .package = "neuroarchive",
-    {
-      expect_error(core_read(tmp, validate = TRUE),
-                   class = "lna_error_missing_path")
-      expect_silent(core_read(tmp, validate = FALSE))
-    }
+    .env = asNamespace("neuroarchive")
   )
+  expect_error(core_read(tmp, validate = TRUE),
+               class = "lna_error_missing_path")
+  expect_silent(core_read(tmp, validate = FALSE))
 })
 
 test_that("core_read validate=TRUE checks required params", {

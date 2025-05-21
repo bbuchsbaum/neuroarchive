@@ -50,7 +50,7 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
   fake_plan <- Plan$new()
   fake_handle <- DataHandle$new()
 
-  with_mocked_bindings(
+  local_mocked_bindings(
     core_write = function(x, transforms, transform_params, mask = NULL,
                           header = NULL, plugins = NULL) {
       captured$core <- list(x = x, transforms = transforms,
@@ -63,15 +63,13 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
       captured$mat <- list(is_h5 = inherits(h5, "H5File"), plan = plan,
                            header = header, plugins = plugins)
     },
-    .package = "neuroarchive",
-    {
-      write_lna(x = 42, file = tempfile(fileext = ".h5"),
-                transforms = c("tA"),
-                transform_params = list(tA = list(foo = "bar")),
-                header = list(a = 1),
-                plugins = list(p = list(val = 2)))
-    }
+    .env = asNamespace("neuroarchive")
   )
+  write_lna(x = array(42, dim = c(1,1,1)), file = tempfile(fileext = ".h5"),
+            transforms = c("tA"),
+            transform_params = list(tA = list(foo = "bar")),
+            header = list(a = 1),
+            plugins = list(p = list(val = 2)))
 
   expect_equal(captured$core$x, 42)
   expect_equal(captured$core$transforms, c("tA"))
@@ -88,19 +86,17 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
 
 test_that("read_lna forwards arguments to core_read", {
   captured <- list()
-  with_mocked_bindings(
+  local_mocked_bindings(
     core_read = function(file, run_id, allow_plugins, validate, output_dtype, lazy) {
       captured$core <- list(file = file, run_id = run_id, allow_plugins = allow_plugins,
                             validate = validate, output_dtype = output_dtype,
                             lazy = lazy)
       DataHandle$new()
     },
-    .package = "neuroarchive",
-    {
-      read_lna("somefile.h5", run_id = "run-*", allow_plugins = "prompt", validate = TRUE,
-               output_dtype = "float64", lazy = FALSE)
-    }
+    .env = asNamespace("neuroarchive")
   )
+  read_lna("somefile.h5", run_id = "run-*", allow_plugins = "prompt", validate = TRUE,
+           output_dtype = "float64", lazy = FALSE)
 
   expect_equal(captured$core$file, "somefile.h5")
   expect_equal(captured$core$run_id, "run-*")

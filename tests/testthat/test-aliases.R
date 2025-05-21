@@ -4,13 +4,11 @@ library(testthat)
 
 test_that("compress_fmri forwards to write_lna", {
   captured <- NULL
-  with_mocked_bindings(
+  local_mocked_bindings(
     write_lna = function(...) { captured <<- list(...); "res" },
-    .package = "neuroarchive",
-    {
-      out <- compress_fmri(x = 1, file = "foo.h5")
-    }
+    .env = asNamespace("neuroarchive")
   )
+  out <- compress_fmri(x = 1, file = "foo.h5")
   expect_identical(captured$x, 1)
   expect_identical(captured$file, "foo.h5")
   expect_identical(out, "res")
