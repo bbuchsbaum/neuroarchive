@@ -40,6 +40,20 @@ test_that("lna_reader close is idempotent", {
 })
 
 
+test_that("lna_reader close clears caches", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+
+  reader <- read_lna(tmp, lazy = TRUE)
+  reader$data()
+  expect_false(is.null(reader$data_cache))
+  expect_false(is.null(reader$cache_params))
+  reader$close()
+  expect_null(reader$data_cache)
+  expect_null(reader$cache_params)
+})
+
+
 test_that("lna_reader data caches result and respects subset", {
   tmp <- local_tempfile(fileext = ".h5")
   create_empty_lna(tmp)

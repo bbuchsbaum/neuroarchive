@@ -79,6 +79,8 @@ lna_reader <- R6::R6Class("lna_reader",
         close_h5_safely(self$h5)
         self$h5 <- NULL
       }
+      self$data_cache <- NULL
+      self$cache_params <- NULL
       invisible(NULL)
     },
 
