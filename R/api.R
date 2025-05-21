@@ -56,6 +56,8 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #' the HDF5 handle open for on-demand reconstruction of the data.
 #'
 #' @param file Path to an LNA file on disk.
+#' @param run_id Character vector of run identifiers or glob patterns. Passed to
+#'   `core_read` for selection of specific runs.
 #' @param allow_plugins Character string specifying how to handle
 #'   transforms that require optional packages. One of
 #'   \code{"installed"} (default), \code{"none"}, or \code{"prompt"}.
@@ -66,9 +68,11 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #'   `"float32"`, `"float64"`, or `"float16"`.
 #' @param lazy Logical. If `TRUE`, the HDF5 file remains open and the
 #'   returned `lna_reader` can load data lazily.
-#' @return A `DataHandle` object from `core_read`.
+#' @return The result of `core_read`: a `DataHandle` for a single run or a list
+#'   of `DataHandle` objects when multiple runs are loaded.
 #' @export
-read_lna <- function(file, allow_plugins = c("installed", "none", "prompt"),
+read_lna <- function(file, run_id = NULL,
+                     allow_plugins = c("installed", "none", "prompt"),
                      validate = FALSE,
                      output_dtype = c("float32", "float64", "float16"),
                      lazy = FALSE) {
@@ -79,6 +83,7 @@ read_lna <- function(file, allow_plugins = c("installed", "none", "prompt"),
     lna_reader$new(
       file = file,
       core_read_args = list(
+        run_id = run_id,
         allow_plugins = allow_plugins,
         validate = validate,
         output_dtype = output_dtype
@@ -87,6 +92,7 @@ read_lna <- function(file, allow_plugins = c("installed", "none", "prompt"),
   } else {
     core_read(
       file = file,
+      run_id = run_id,
       allow_plugins = allow_plugins,
       validate = validate,
       output_dtype = output_dtype,

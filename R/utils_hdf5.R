@@ -413,3 +413,44 @@ h5_read_subset <- function(h5_group, path, index) {
   result
 
 }
+
+#' Discover run identifiers in an LNA file
+#'
+#' Lists available run groups under `/scans` that match the `run-XX` pattern.
+#'
+#' @param h5 An open `H5File` object.
+#' @return Character vector of run identifiers sorted alphabetically.
+#' @keywords internal
+discover_run_ids <- function(h5) {
+  stopifnot(inherits(h5, "H5File"))
+  if (!h5$exists("scans")) {
+    return(character())
+  }
+  grp <- h5[["scans"]]
+  nms <- grp$ls()$name
+  runs <- grep("^run-", nms, value = TRUE)
+  sort(runs)
+}
+
+#' Resolve run_id patterns against available runs
+#'
+#' @param patterns Character vector of run_id patterns or names. `NULL` selects the first available run.
+#' @param available Character vector of available run identifiers.
+#' @return Character vector of matched run identifiers.
+#' @keywords internal
+resolve_run_ids <- function(patterns, available) {
+  if (is.null(patterns)) {
+    return(if (length(available) > 0) available[1] else character())
+  }
+  patterns <- as.character(patterns)
+  out <- character()
+  for (p in patterns) {
+    if (grepl("[*?]", p)) {
+      rx <- utils::glob2rx(p)
+      out <- union(out, available[grepl(rx, available)])
+    } else {
+      out <- union(out, intersect(available, p))
+    }
+  }
+  unique(out)
+}
