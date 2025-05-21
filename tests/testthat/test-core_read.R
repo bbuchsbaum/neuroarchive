@@ -118,6 +118,24 @@ test_that("core_read allow_plugins='prompt' falls back when non-interactive", {
   )
 })
 
+test_that("core_read allow_plugins='prompt' interactive respects user choice", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_dummy_lna(tmp)
+  with_mocked_bindings(
+    rlang::is_interactive = function() TRUE,
+    readline = function(prompt = "") "n",
+    { expect_error(core_read(tmp, allow_plugins = "prompt"),
+                  class = "lna_error_no_method") }
+  )
+
+  with_mocked_bindings(
+    rlang::is_interactive = function() TRUE,
+    readline = function(prompt = "") "y",
+    { expect_warning(core_read(tmp, allow_plugins = "prompt"),
+                    "Missing invert_step") }
+  )
+})
+
 
 test_that("core_read stores subset parameters", {
   tmp <- local_tempfile(fileext = ".h5")

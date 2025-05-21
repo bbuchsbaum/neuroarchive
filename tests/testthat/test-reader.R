@@ -89,3 +89,23 @@ test_that("lna_reader$data allow_plugins='prompt' falls back when non-interactiv
   )
   reader$close()
 })
+
+test_that("lna_reader$data allow_plugins='prompt' interactive respects choice", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_dummy_lna(tmp)
+  reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "prompt")
+  with_mocked_bindings(
+    rlang::is_interactive = function() TRUE,
+    readline = function(prompt = "") "n",
+    { expect_error(reader$data(), class = "lna_error_no_method") }
+  )
+  reader$close()
+
+  reader <- read_lna(tmp, lazy = TRUE, allow_plugins = "prompt")
+  with_mocked_bindings(
+    rlang::is_interactive = function() TRUE,
+    readline = function(prompt = "") "y",
+    { expect_warning(reader$data(), "Missing invert_step") }
+  )
+  reader$close()
+})
