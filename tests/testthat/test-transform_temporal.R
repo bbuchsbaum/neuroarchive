@@ -30,3 +30,14 @@ test_that("invert_step.temporal applies time_idx subset", {
   expect_equal(dim(out), c(3, ncol(X)))
   expect_equal(out, X[c(1,5,10), ])
 })
+
+
+test_that("default_params for temporal loads schema", {
+  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
+  rm(list = ls(envir = cache_env), envir = cache_env)
+  p <- neuroarchive:::default_params("temporal")
+  expect_equal(p$kind, "dct")
+  expect_equal(p$scope, "global")
+  expect_true(is.numeric(p$n_basis))
+
+})
