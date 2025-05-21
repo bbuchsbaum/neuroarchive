@@ -7,7 +7,7 @@ library(digest)
 
 test_that("materialise_plan writes sha256 checksum attribute", {
   tmp <- local_tempfile(fileext = ".h5")
-  h5 <- H5File$new(tmp, mode = "w")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
   plan <- Plan$new()
   plan$add_descriptor("00_dummy.json", list(type = "dummy"))
   plan$add_payload("payload", matrix(1:4, nrow = 2))
@@ -16,10 +16,10 @@ test_that("materialise_plan writes sha256 checksum attribute", {
   materialise_plan(h5, plan, checksum = "sha256")
 
   expect_false(h5$is_valid())
-  h5r <- H5File$new(tmp, mode = "r")
+  h5r <- neuroarchive:::open_h5(tmp, mode = "r")
   root <- h5r[["/"]]
   expect_true(h5_attr_exists(root, "lna_checksum"))
   expected <- digest(file = tmp, algo = "sha256")
   expect_identical(h5_attr_read(root, "lna_checksum"), expected)
-  h5r$close_all()
+  neuroarchive:::close_h5_safely(h5r)
 })

@@ -21,11 +21,9 @@ core_read <- function(file, allow_plugins = c("warn", "off", "on"), validate = F
                       lazy = FALSE) {
   allow_plugins <- match.arg(allow_plugins)
   output_dtype <- match.arg(output_dtype)
-  h5 <- H5File$new(file, mode = "r")
+  h5 <- open_h5(file, mode = "r")
   if (!lazy) {
-    on.exit({
-      if (inherits(h5, "H5File") && h5$is_valid()) h5$close_all()
-    })
+    on.exit(close_h5_safely(h5))
   }
 
   handle <- DataHandle$new(h5 = h5)

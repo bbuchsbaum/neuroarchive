@@ -27,13 +27,12 @@ write_lna <- function(x, file = NULL, transforms = character(),
                        mask = mask, header = header)
 
   if (in_memory) {
-    h5 <- hdf5r::H5File$new(file, mode = "w", driver = "core",
-                            backing_store = FALSE)
+    h5 <- open_h5(file, mode = "w", driver = "core", backing_store = FALSE)
   } else {
-    h5 <- hdf5r::H5File$new(file, mode = "w")
+    h5 <- open_h5(file, mode = "w")
   }
   materialise_plan(h5, result$plan, header = result$handle$meta$header)
-  h5$close_all()
+  close_h5_safely(h5)
 
   out_file <- if (in_memory) NULL else file
   out <- list(file = out_file, plan = result$plan,

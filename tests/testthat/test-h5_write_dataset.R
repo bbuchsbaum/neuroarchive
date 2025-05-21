@@ -6,7 +6,7 @@ library(withr)
 
 test_that("h5_write_dataset writes dataset with compression", {
   tmp <- local_tempfile(fileext = ".h5")
-  h5 <- H5File$new(tmp, mode = "w")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
   root <- h5[["/"]]
 
   mat <- matrix(1:9, nrow = 3)
@@ -24,5 +24,5 @@ test_that("h5_write_dataset writes dataset with compression", {
 
   dcpl$close()
   dset$close()
-  h5$close_all()
+  neuroarchive:::close_h5_safely(h5)
 })

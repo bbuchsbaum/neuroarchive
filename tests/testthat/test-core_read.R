@@ -7,17 +7,17 @@ library(withr)
 
 # Helper to create empty transforms group
 create_empty_lna <- function(path) {
-  h5 <- H5File$new(path, mode = "w")
+  h5 <- neuroarchive:::open_h5(path, mode = "w")
   h5$create_group("transforms")
-  h5$close_all()
+  neuroarchive:::close_h5_safely(h5)
 }
 
 # Helper to create lna with one dummy descriptor
 create_dummy_lna <- function(path) {
-  h5 <- H5File$new(path, mode = "w")
+  h5 <- neuroarchive:::open_h5(path, mode = "w")
   tf <- h5$create_group("transforms")
   write_json_descriptor(tf, "00_dummy.json", list(type = "dummy"))
-  h5$close_all()
+  neuroarchive:::close_h5_safely(h5)
 }
 
 test_that("core_read handles empty /transforms group", {
@@ -51,7 +51,7 @@ test_that("core_read lazy=TRUE keeps file open", {
 
   handle <- core_read(tmp, lazy = TRUE)
   expect_true(handle$h5$is_valid())
-  handle$h5$close_all()
+  neuroarchive:::close_h5_safely(handle$h5)
 })
 
 test_that("core_read output_dtype stored and float16 check", {
@@ -74,7 +74,7 @@ test_that("core_read allows float16 when support present", {
       h <- core_read(tmp, output_dtype = "float16")
       expect_equal(h$meta$output_dtype, "float16")
       expect_true(h$h5$is_valid())
-      h$h5$close_all()
+      neuroarchive:::close_h5_safely(h$h5)
     }
   )
 })

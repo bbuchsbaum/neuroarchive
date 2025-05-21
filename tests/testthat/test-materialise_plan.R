@@ -6,7 +6,7 @@ library(withr)
 
 test_that("materialise_plan creates structure and updates plan", {
   tmp <- local_tempfile(fileext = ".h5")
-  h5 <- H5File$new(tmp, mode = "w")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
   plan <- Plan$new()
   plan$add_descriptor("00_dummy.json", list(type = "dummy"))
   plan$add_payload("payload", matrix(1:4, nrow = 2))
@@ -31,12 +31,12 @@ test_that("materialise_plan creates structure and updates plan", {
   expect_true(h5$exists("scans/run-01/data"))
   expect_equal(h5[["scans/run-01/data"]]$read(), matrix(1:4, nrow = 2))
   expect_true(h5$is_valid())
-  h5$close_all()
+  neuroarchive:::close_h5_safely(h5)
 })
 
 test_that("materialise_plan writes header attributes", {
   tmp <- local_tempfile(fileext = ".h5")
-  h5 <- H5File$new(tmp, mode = "w")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
   plan <- Plan$new()
 
   materialise_plan(h5, plan, header = list(vox = 1L, note = "hi"))
@@ -45,5 +45,5 @@ test_that("materialise_plan writes header attributes", {
   grp <- h5[["header/global"]]
   expect_identical(h5_attr_read(grp, "vox"), 1L)
   expect_identical(h5_attr_read(grp, "note"), "hi")
-  h5$close_all()
+  neuroarchive:::close_h5_safely(h5)
 })
