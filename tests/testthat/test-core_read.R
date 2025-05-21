@@ -117,3 +117,58 @@ test_that("core_read allow_plugins='prompt' falls back when non-interactive", {
                     "Missing invert_step") }
   )
 })
+
+test_that("core_read run_id globbing returns handles", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
+  plan <- Plan$new()
+  plan$add_descriptor("00_dummy.json", list(type = "dummy"))
+  plan$add_payload("p1", 1L)
+  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p1", "eager")
+  plan$add_payload("p2", 2L)
+  plan$add_dataset_def("/scans/run-02/data", "data", "dummy", "run-02", 0L, "{}", "p2", "eager")
+  materialise_plan(h5, plan)
+  neuroarchive:::close_h5_safely(h5)
+
+  with_mocked_bindings(
+    invert_step.dummy = function(type, desc, handle) {
+      path <- paste0("/scans/", handle$current_run_id, "/data")
+      root <- handle$h5[["/"]]
+      val <- h5_read(root, path)
+      handle$update_stash(keys = character(), new_values = list(input = val))
+    }, {
+      res <- core_read(tmp, run_id = "run-0*")
+    }
+  )
+  expect_true(is.list(res))
+  expect_equal(names(res), c("run-01", "run-02"))
+  expect_equal(res[["run-01"]]$stash$input, 1)
+  expect_equal(res[["run-02"]]$stash$input, 2)
+})
+
+test_that("core_read run_id globbing lazy returns first", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- neuroarchive:::open_h5(tmp, mode = "w")
+  plan <- Plan$new()
+  plan$add_descriptor("00_dummy.json", list(type = "dummy"))
+  plan$add_payload("p1", 1L)
+  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p1", "eager")
+  plan$add_payload("p2", 2L)
+  plan$add_dataset_def("/scans/run-02/data", "data", "dummy", "run-02", 0L, "{}", "p2", "eager")
+  materialise_plan(h5, plan)
+  neuroarchive:::close_h5_safely(h5)
+
+  with_mocked_bindings(
+    invert_step.dummy = function(type, desc, handle) {
+      path <- paste0("/scans/", handle$current_run_id, "/data")
+      root <- handle$h5[["/"]]
+      val <- h5_read(root, path)
+      handle$update_stash(keys = character(), new_values = list(input = val))
+    }, {
+      expect_warning(h <- core_read(tmp, run_id = "run-*", lazy = TRUE), "first match")
+    }
+  )
+  expect_s3_class(h, "DataHandle")
+  expect_equal(h$current_run_id, "run-01")
+  neuroarchive:::close_h5_safely(h$h5)
+})

@@ -5,6 +5,9 @@
 #'   minimal skeleton used during early development.
 #'
 #' @param file Path to an LNA file on disk.
+#' @param run_id Character vector of run identifiers or glob patterns. If
+#'   `NULL`, the first available run is used. Glob patterns are matched
+#'   against available run groups under `/scans`.
 #' @param allow_plugins Character. How to handle transforms requiring
 #'   external packages. One of "installed" (default), "none", or "prompt".
 #'   "none" errors on missing implementations. "installed" warns and
@@ -17,10 +20,13 @@
 #' @param lazy Logical. If `TRUE`, the HDF5 file handle remains open
 #'   after return (for lazy reading).
 #'
-#' @return A `DataHandle` object representing the loaded data.
+#' @return If a single run is selected, a `DataHandle` object. When
+#'   multiple runs match and `lazy = FALSE`, a named list of `DataHandle`
+#'   objects is returned.
 #' @import hdf5r
 #' @keywords internal
-core_read <- function(file, allow_plugins = c("installed", "none", "prompt"), validate = FALSE,
+core_read <- function(file, run_id = NULL,
+                      allow_plugins = c("installed", "none", "prompt"), validate = FALSE,
                       output_dtype = c("float32", "float64", "float16"),
                       lazy = FALSE) {
   allow_plugins <- match.arg(allow_plugins)
@@ -33,11 +39,20 @@ core_read <- function(file, allow_plugins = c("installed", "none", "prompt"), va
     on.exit(close_h5_safely(h5))
   }
 
+  available_runs <- discover_run_ids(h5)
+  runs <- resolve_run_ids(run_id, available_runs)
+  if (length(runs) == 0) {
+    abort_lna("run_id did not match any runs", .subclass = "lna_error_run_id")
+  }
+  if (lazy && length(runs) > 1) {
+    warning("Multiple runs matched; using first match in lazy mode")
+    runs <- runs[1]
+  }
+
   if (validate) {
     validate_lna(file)
   }
 
-  handle <- DataHandle$new(h5 = h5)
   tf_group <- h5[["transforms"]]
 
   transforms <- discover_transforms(tf_group)
@@ -61,34 +76,46 @@ core_read <- function(file, allow_plugins = c("installed", "none", "prompt"), va
     }
   }
 
-  if (nrow(transforms) > 0) {
-    progress_enabled <- !progressr::handlers_is_empty()
-    loop <- function() {
-      p <- if (progress_enabled) progressr::progressor(steps = nrow(transforms)) else NULL
-      for (i in rev(seq_len(nrow(transforms)))) {
-        if (!is.null(p)) p(message = transforms$type[[i]])
-        name <- transforms$name[[i]]
-        type <- transforms$type[[i]]
-        desc <- read_json_descriptor(tf_group, name)
-        handle <<- invert_step(type, desc, handle)
+  process_run <- function(rid) {
+    handle <- DataHandle$new(h5 = h5, run_ids = runs, current_run_id = rid)
+
+    if (nrow(transforms) > 0) {
+      progress_enabled <- !progressr::handlers_is_empty()
+      loop <- function() {
+        p <- if (progress_enabled) progressr::progressor(steps = nrow(transforms)) else NULL
+        for (i in rev(seq_len(nrow(transforms)))) {
+          if (!is.null(p)) p(message = transforms$type[[i]])
+          name <- transforms$name[[i]]
+          type <- transforms$type[[i]]
+          desc <- read_json_descriptor(tf_group, name)
+          handle <<- invert_step(type, desc, handle)
+        }
+      }
+      if (progress_enabled) {
+        progressr::with_progress(loop())
+      } else {
+        loop()
       }
     }
-    if (progress_enabled) {
-      progressr::with_progress(loop())
-    } else {
-      loop()
+
+    if (identical(output_dtype, "float16") && !has_float16_support()) {
+      abort_lna(
+        "float16 output not supported",
+        .subclass = "lna_error_float16_unsupported",
+        location = sprintf("core_read:%s", file)
+      )
     }
+    handle$meta$output_dtype <- output_dtype
+    handle$meta$allow_plugins <- allow_plugins
+    handle
   }
 
-  if (identical(output_dtype, "float16") && !has_float16_support()) {
-    abort_lna(
-      "float16 output not supported",
-      .subclass = "lna_error_float16_unsupported",
-      location = sprintf("core_read:%s", file)
-    )
-  }
-  handle$meta$output_dtype <- output_dtype
-  handle$meta$allow_plugins <- allow_plugins
+  results <- lapply(runs, process_run)
+  names(results) <- runs
 
-  return(handle)
+  if (length(results) == 1) {
+    results[[1]]
+  } else {
+    results
+  }
 }
