@@ -7,7 +7,7 @@ test_that("compress_fmri forwards to write_lna", {
   with_mocked_bindings(
     write_lna = function(...) { captured <<- list(...); "res" },
     {
-      out <- compress_fmri(x = array(1, dim = c(1, 1, 1)), file = "foo.h5")
+      out <- compress_fmri(x = 1, file = "foo.h5")
     }
   )
   expect_identical(captured$x, 1)
