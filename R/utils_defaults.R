@@ -161,10 +161,20 @@ lna_default.embed <- function() {
   default_params("embed")
 }
 
+
+#' Default parameters for the 'delta' transform
+#'
+#' Convenience wrapper around `default_params("delta")`.
+#' @export
+lna_default.delta <- function() {
+  default_params("delta")
+}
+
 #' Default parameters for the 'temporal' transform
 #'
 #' Convenience wrapper around `default_params("temporal")`.
 #' @export
 lna_default.temporal <- function() {
   default_params("temporal")
+
 }
