@@ -103,10 +103,17 @@ DataHandle <- R6::R6Class("DataHandle",
          current_stash[keys_to_remove] <- NULL
       }
 
-      # Add new values (potentially overwriting existing keys if not removed)
-      # Consider if overwriting should be prevented/warned if key wasn't in `keys`?
-      # For now, allow overwriting as list assignment does.
+      # Warn if new_values will overwrite existing stash entries that were not removed
       if (length(new_values) > 0) {
+          overlap <- intersect(names(new_values), names(current_stash))
+          if (length(overlap) > 0) {
+              warning(
+                paste(
+                  "Overwriting existing stash entries:",
+                  paste(overlap, collapse = ", ")
+                )
+              )
+          }
           # Use modifyList for safe merging/overwriting
           current_stash <- utils::modifyList(current_stash, new_values)
       }
