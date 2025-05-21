@@ -1,6 +1,11 @@
 #' Basis Transform - Inverse Step
 #'
 #' Reconstructs data from coefficients using a stored basis matrix.
+#'
+#' The `basis` dataset may be stored either as a component-by-voxel matrix
+#' (`storage_order = "component_x_voxel"`) or as a voxel-by-component matrix
+#' (`storage_order = "voxel_x_component"`). After optional transposition, it
+#' should have dimensions `n_voxel x n_component` for reconstruction.
 #' @keywords internal
 invert_step.basis <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -22,7 +27,7 @@ invert_step.basis <- function(type, desc, handle) {
   coeff_key <- desc$outputs[[1]] %||% "coefficients"
   input_key  <- desc$inputs[[1]] %||% "dense_mat"
 
-  if (!handle$exists(coeff_key)) {
+  if (!handle$has_key(coeff_key)) {
     # Nothing to reconstruct; return handle unchanged
     return(handle)
   }
@@ -45,11 +50,15 @@ invert_step.basis <- function(type, desc, handle) {
     coeff <- coeff[subset$time_idx, , drop = FALSE]
   }
 
-  if (identical(storage_order, "voxel_x_component")) {
+  if (identical(storage_order, "component_x_voxel")) {
     basis <- t(basis)
   }
 
-  dense <- tcrossprod(coeff, basis)
+  if (nrow(basis) == ncol(coeff)) {
+    dense <- coeff %*% basis
+  } else {
+    dense <- coeff %*% t(basis)
+  }
 
   handle$update_stash(keys = coeff_key, new_values = setNames(list(dense), input_key))
 }

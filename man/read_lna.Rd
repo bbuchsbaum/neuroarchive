@@ -19,11 +19,15 @@ read_lna(file, run_id = NULL,
   \code{allow_plugins = "none"}.}
   \item{validate}{Logical flag for validation.}
   \item{output_dtype}{Desired output data type.}
-  \item{roi_mask}{Optional ROI mask for subsetting.}
-  \item{time_idx}{Optional integer vector of time indices.}
+  \item{roi_mask}{Optional ROI mask used to subset voxels before applying
+  transforms.}
+  \item{time_idx}{Optional vector of time indices for subsetting volumes
+  prior to transformation.}
   \item{lazy}{If \code{TRUE}, returns an \code{lna_reader} for lazy access.}
 }
-\value{A \code{DataHandle} or \code{lna_reader}.}
+\value{When \code{lazy = TRUE}, an \code{lna_reader}. Otherwise a
+\code{DataHandle} for a single run or a list of them when multiple runs are
+loaded.}
 \description{Loads data from an LNA file. With \code{lazy = TRUE} the file
 remains open and data are reconstructed on demand. Run identifiers may
 be matched using glob patterns and subsetting via \code{roi_mask} and

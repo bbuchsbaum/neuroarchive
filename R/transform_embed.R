@@ -34,6 +34,13 @@ forward_step.embed <- function(type, desc, handle) {
   } else {
     X <- as.matrix(X)
   }
+  if (!is.numeric(X)) {
+    abort_lna(
+      "embed transform requires numeric input matrix",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:input"
+    )
+  }
   if (!is.null(mean_vec)) X <- sweep(X, 2, mean_vec, "-")
   if (!is.null(scale_vec)) X <- sweep(X, 2, scale_vec, "/")
 
@@ -50,6 +57,7 @@ forward_step.embed <- function(type, desc, handle) {
   }
 
   run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
   fname <- plan$get_next_filename(type)
   base_name <- tools::file_path_sans_ext(fname)
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
@@ -93,14 +101,43 @@ invert_step.embed <- function(type, desc, handle) {
 
   coeff_key <- desc$outputs[[1]] %||% "coefficients"
   input_key  <- desc$inputs[[1]] %||% "dense_mat"
-  if (!handle$exists(coeff_key)) {
+  if (!handle$has_key(coeff_key)) {
     return(handle)
   }
 
   root <- handle$h5[["/"]]
+  if (!root$exists(basis_path)) {
+    abort_lna(
+      sprintf("basis matrix dataset '%s' not found", basis_path),
+      .subclass = "lna_error_contract",
+      location = "invert_step.embed:basis"
+    )
+  }
   basis <- h5_read(root, basis_path)
-  mean_vec <- if (!is.null(p$center_data_with)) h5_read(root, p$center_data_with) else NULL
-  scale_vec <- if (!is.null(p$scale_data_with)) h5_read(root, p$scale_data_with) else NULL
+  if (!is.null(p$center_data_with)) {
+    if (!root$exists(p$center_data_with)) {
+      abort_lna(
+        sprintf("center dataset '%s' not found", p$center_data_with),
+        .subclass = "lna_error_contract",
+        location = "invert_step.embed:center"
+      )
+    }
+    mean_vec <- h5_read(root, p$center_data_with)
+  } else {
+    mean_vec <- NULL
+  }
+  if (!is.null(p$scale_data_with)) {
+    if (!root$exists(p$scale_data_with)) {
+      abort_lna(
+        sprintf("scale dataset '%s' not found", p$scale_data_with),
+        .subclass = "lna_error_contract",
+        location = "invert_step.embed:scale"
+      )
+    }
+    scale_vec <- h5_read(root, p$scale_data_with)
+  } else {
+    scale_vec <- NULL
+  }
 
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 

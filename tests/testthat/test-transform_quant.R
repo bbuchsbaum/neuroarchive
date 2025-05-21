@@ -52,6 +52,7 @@ test_that("invert_step.quant applies roi_mask and time_idx", {
   expect_equal(dim(out), c(sum(roi), 2))
 })
 
+
 test_that(".quantize_global handles constant arrays", {
   x <- rep(5, 10)
   res <- neuroarchive:::.quantize_global(x, bits = 8, method = "range", center = TRUE)
@@ -72,4 +73,23 @@ test_that(".quantize_voxel handles constant arrays", {
   res2 <- neuroarchive:::.quantize_voxel(arr, bits = 8, method = "range", center = FALSE)
   expect_true(all(as.numeric(res2$scale) == 1))
   expect_true(all(res2$q == 0))
+})
+          
+test_that("quant transform errors on non-finite input", {
+  arr <- c(1, NA, 3)
+  tmp <- local_tempfile(fileext = ".h5")
+  expect_error(
+    write_lna(arr, file = tmp, transforms = "quant"),
+    class = "lna_error_validation",
+    regexp = "non-finite"
+  )
+
+  arr_nan <- c(1, NaN, 3)
+  tmp2 <- local_tempfile(fileext = ".h5")
+  expect_error(
+    write_lna(arr_nan, file = tmp2, transforms = "quant"),
+    class = "lna_error_validation",
+    regexp = "non-finite"
+  )
+
 })
