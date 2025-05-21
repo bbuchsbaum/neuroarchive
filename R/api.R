@@ -57,15 +57,15 @@ write_lna <- function(x, file = NULL, transforms = character(),
         )
       }
       coords <- unlist(block_table)
-      if (any(coords < 1)) {
+      if (any(is.na(coords)) || any(coords < 1, na.rm = TRUE)) {
         abort_lna(
-          "block_table coordinates must be >= 1",
+          "block_table coordinates must be non-missing and >= 1",
           .subclass = "lna_error_validation",
           location = "write_lna:block_table"
         )
       }
       max_idx <- result$handle$mask_info$active_voxels
-      if (!is.null(max_idx) && any(coords > max_idx)) {
+      if (!is.null(max_idx) && any(coords > max_idx, na.rm = TRUE)) {
         abort_lna(
           "block_table coordinates exceed masked voxel count",
           .subclass = "lna_error_validation",
