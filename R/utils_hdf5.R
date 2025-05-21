@@ -104,7 +104,9 @@ h5_attr_delete <- function(h5_obj, name) {
 #' @param dtype_size Size in bytes of a single data element.
 #' @return Integer vector of chunk dimensions.
 guess_chunk_dims <- function(dims, dtype_size) {
-  target <- 1024^2  # 1 MiB
+  target_mib <- lna_options("write.chunk_target_mib")[[1]]
+  if (is.null(target_mib)) target_mib <- 1
+  target <- as.numeric(target_mib) * 1024^2
   chunk <- hdf5r::guess_chunks(space_maxdims = dims,
                                dtype_size = dtype_size,
                                chunk_size = target)

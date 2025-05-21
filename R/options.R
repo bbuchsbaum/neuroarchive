@@ -1,10 +1,17 @@
 #' Package Options for LNA
 #'
-#' Minimal stub implementation storing options in a package environment.
+#' Provides a lightweight mechanism for storing global package defaults.
+#' Options are kept in an internal environment and can be retrieved or
+#' updated via this helper.  Typical options include
+#' `write.compression_level`, `write.chunk_target_mib` and per-transform
+#' defaults such as `quant` or `delta` lists.
 #'
-#' @param ... Named options to set, or names of options to retrieve.
-#' @return A list of current options or requested values.
-#' @keywords internal
+#' @param ... Named options to set, or character names of options to
+#'   retrieve.  If no arguments are provided, the full option list is
+#'   returned.
+#' @return A list of current options or the requested subset.  When setting
+#'   values the updated option list is returned invisibly.
+#' @export
 lna_options <- function(...) {
   .lna_opts <- get(".lna_opts", envir = lna_options_env)
   args <- list(...)
@@ -21,4 +28,11 @@ lna_options <- function(...) {
 }
 
 lna_options_env <- new.env(parent = emptyenv())
-assign(".lna_opts", new.env(parent = emptyenv()), envir = lna_options_env)
+default_opts <- list(
+  write.compression_level = 0L,
+  write.chunk_target_mib = 1,
+  quant = list(),
+  delta = list()
+)
+assign(".lna_opts", list2env(default_opts, parent = emptyenv()),
+       envir = lna_options_env)
