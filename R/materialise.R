@@ -6,13 +6,19 @@
 #'   for common HDF5 errors.
 #' @param h5 An open `H5File` object.
 #' @param plan A `Plan` R6 object produced by `core_write`.
+#' @param checksum Character string indicating checksum mode.
+#' @param header Optional named list of header attributes.
 #' @return Invisibly returns the modified `plan`.
 #' @import hdf5r
 #' @keywords internal
-materialise_plan <- function(h5, plan, checksum = c("none", "sha256")) {
+materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
+                             header = NULL) {
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
   stopifnot(inherits(plan, "Plan"))
+  if (!is.null(header)) {
+    stopifnot(is.list(header))
+  }
 
   # Create core groups
   tf_group <- if (h5$exists("transforms")) h5[["transforms"]] else h5$create_group("transforms")
@@ -79,6 +85,14 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256")) {
 
       plan$datasets$write_mode_effective[i] <- "eager"
       plan$mark_payload_written(key)
+    }
+  }
+
+  if (!is.null(header) && length(header) > 0) {
+    hdr_grp <- if (!h5$exists("header")) h5$create_group("header") else h5[["header"]]
+    g <- if (hdr_grp$exists("global")) hdr_grp[["global"]] else hdr_grp$create_group("global")
+    for (nm in names(header)) {
+      h5_attr_write(g, nm, header[[nm]])
     }
   }
 

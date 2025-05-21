@@ -6,10 +6,13 @@
 #' @param x An input object to be written.
 #' @param transforms Character vector of transform types (forward order).
 #' @param transform_params Named list of user supplied parameters for transforms.
+#' @param mask Optional mask object passed through to transforms.
+#' @param header Optional named list of header attributes.
 #'
 #' @return A list with `handle` and `plan` objects.
 #' @keywords internal
-core_write <- function(x, transforms, transform_params = list(), mask = NULL) {
+core_write <- function(x, transforms, transform_params = list(),
+                       mask = NULL, header = NULL) {
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
 
@@ -27,7 +30,15 @@ core_write <- function(x, transforms, transform_params = list(), mask = NULL) {
     }
     active_voxels <- sum(mask_array)
   }
-  header <- list()
+  if (!is.null(header)) {
+    stopifnot(is.list(header))
+    if (is.null(names(header)) || any(names(header) == "")) {
+      abort_lna("header must be a named list", .subclass = "lna_error_validation")
+    }
+    header_list <- header
+  } else {
+    header_list <- list()
+  }
 
   # --- Determine run identifiers ---
   if (is.list(x)) {
@@ -62,7 +73,7 @@ core_write <- function(x, transforms, transform_params = list(), mask = NULL) {
   plan <- Plan$new()
   handle <- DataHandle$new(
     initial_stash = list(input = x),
-    initial_meta = list(mask = mask_array, header = header),
+    initial_meta = list(mask = mask_array, header = header_list),
     plan = plan,
     run_ids = run_ids,
     current_run_id = run_ids[1],

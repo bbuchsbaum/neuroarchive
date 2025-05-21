@@ -8,24 +8,35 @@
 #' @param transforms Character vector of transform types.
 #' @param transform_params Named list of transform parameters.
 #' @param mask Optional mask passed to `core_write`.
+#' @param header Optional named list of header attributes.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
 #'   `header` with class `"lna_write_result"`.
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
-                      transform_params = list(), mask = NULL) {
+                      transform_params = list(), mask = NULL,
+                      header = NULL) {
+  in_memory <- FALSE
   if (is.null(file)) {
-    file <- tempfile(fileext = ".h5")
+    tmp <- tempfile(fileext = ".h5")
+    file <- tmp
+    in_memory <- TRUE
   }
 
   result <- core_write(x = x, transforms = transforms,
                        transform_params = transform_params,
-                       mask = mask)
+                       mask = mask, header = header)
 
-  h5 <- hdf5r::H5File$new(file, mode = "w")
-  materialise_plan(h5, result$plan)
+  if (in_memory) {
+    h5 <- hdf5r::H5File$new(file, mode = "w", driver = "core",
+                            backing_store = FALSE)
+  } else {
+    h5 <- hdf5r::H5File$new(file, mode = "w")
+  }
+  materialise_plan(h5, result$plan, header = result$handle$meta$header)
   h5$close_all()
 
-  out <- list(file = file, plan = result$plan,
+  out_file <- if (in_memory) NULL else file
+  out <- list(file = out_file, plan = result$plan,
               header = result$handle$meta$header)
   class(out) <- c("lna_write_result", class(out))
   invisible(out)
