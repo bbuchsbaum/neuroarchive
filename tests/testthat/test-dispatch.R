@@ -32,6 +32,7 @@ test_that("invert_step generic dispatches to default and errors", {
   # Check that calling with an undefined type dispatches to default and errors
   expect_error(
     invert_step(dummy_type, dummy_desc, dummy_handle),
+
     regexp = paste("No invert_step method implemented for transform type:", dummy_type)
      class = "lna_error_no_method"
   )

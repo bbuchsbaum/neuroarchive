@@ -1,3 +1,4 @@
+
 #' LNA Error Handling Helpers
 #'
 #' Provides a thin wrapper around `rlang::abort` for package specific
