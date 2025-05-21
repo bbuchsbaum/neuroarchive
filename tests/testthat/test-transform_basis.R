@@ -13,6 +13,22 @@ test_that("default_params for basis loads schema", {
 })
 
 
+test_that("forward_step.basis validates storage_order", {
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = matrix(1:4, nrow = 2)),
+                      plan = plan)
+  desc <- list(type = "basis",
+               params = list(storage_order = "invalid"),
+               inputs = c("input"))
+
+  expect_error(
+    neuroarchive:::forward_step.basis("basis", desc, h),
+    class = "lna_error_validation",
+    regexp = "Invalid storage_order"
+  )
+}
+
+
 test_that("forward_step.basis truncates k when PCA returns fewer components", {
   plan <- Plan$new()
   X <- matrix(rnorm(10), nrow = 2)
@@ -27,4 +43,5 @@ test_that("forward_step.basis truncates k when PCA returns fewer components", {
   expect_equal(params$k, 2)
   payload <- h$plan$payloads[[defs$payload_key]]
   expect_equal(nrow(payload), params$k)
+
 })

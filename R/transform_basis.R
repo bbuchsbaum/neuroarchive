@@ -53,6 +53,18 @@ forward_step.basis <- function(type, desc, handle) {
   center <- p$center %||% TRUE
   scale <- p$scale %||% FALSE
   storage_order <- p$storage_order %||% "component_x_voxel"
+  allowed_orders <- c("component_x_voxel", "voxel_x_component")
+  if (!storage_order %in% allowed_orders) {
+    abort_lna(
+      sprintf(
+        "Invalid storage_order '%s'. Allowed values: %s",
+        storage_order,
+        paste(allowed_orders, collapse = ", ")
+      ),
+      .subclass = "lna_error_validation",
+      location = "forward_step.basis:storage_order"
+    )
+  }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   X <- handle$get_inputs(input_key)[[1]]
