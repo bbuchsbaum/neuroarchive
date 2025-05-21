@@ -186,7 +186,8 @@ read_lna <- function(file, run_id = NULL,
 
 #' Convenience alias for `write_lna`
 #'
-#' `compress_fmri()` simply forwards its arguments to `write_lna()`.
+#' `compress_fmri()` simply forwards its arguments to `write_lna()` without
+#' altering the dimensions of the input.
 #'
 #' @inheritParams write_lna
 #' @seealso write_lna
