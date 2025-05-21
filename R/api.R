@@ -133,8 +133,9 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #'   volumes prior to transformation.
 #' @param lazy Logical. If `TRUE`, the HDF5 file remains open and the
 #'   returned `lna_reader` can load data lazily.
-#' @return The result of `core_read`: a `DataHandle` for a single run or a list
-#'   of `DataHandle` objects when multiple runs are loaded.
+#' @return When `lazy = TRUE`, an `lna_reader` object.  Otherwise the result of
+#'   `core_read`: a `DataHandle` for a single run or a list of `DataHandle`
+#'   objects when multiple runs are loaded.
 #' @seealso write_lna, validate_lna
 #' @examples
 #' tmp <- tempfile(fileext = ".h5")

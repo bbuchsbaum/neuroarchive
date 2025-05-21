@@ -25,7 +25,9 @@ read_lna(file, run_id = NULL,
   prior to transformation.}
   \item{lazy}{If \code{TRUE}, returns an \code{lna_reader} for lazy access.}
 }
-\value{A \code{DataHandle} or \code{lna_reader}.}
+\value{When \code{lazy = TRUE}, an \code{lna_reader}. Otherwise a
+\code{DataHandle} for a single run or a list of them when multiple runs are
+loaded.}
 \description{Loads data from an LNA file. With \code{lazy = TRUE} the file
 remains open and data are reconstructed on demand. Run identifiers may
 be matched using glob patterns and subsetting via \code{roi_mask} and
