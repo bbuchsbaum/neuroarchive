@@ -4,7 +4,7 @@
 \alias{open_h5}
 \title{Open an HDF5 file with basic error handling}
 \usage{
-open_h5(path, mode = "r", ...)
+open_h5(path, mode = "a", ...)
 }
 \arguments{
 \item{path}{Path to the HDF5 file.}

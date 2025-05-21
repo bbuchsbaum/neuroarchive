@@ -93,7 +93,7 @@ lna_reader <- R6::R6Class("lna_reader",
     #' @description
     #' Print summary of the reader
     print = function(...) {
-      status <- if (!is.null(self$h5) && self$h5$is_valid()) "open" else "closed"
+      status <- if (!is.null(self$h5) && self$h5$is_valid) "open" else "closed"
       cat("<lna_reader>", self$file, "[", status, "] runs:", paste(self$run_ids, collapse = ","), "\n")
       invisible(self)
     },

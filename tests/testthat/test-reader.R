@@ -23,7 +23,7 @@ test_that("read_lna(lazy=TRUE) returns lna_reader", {
 
   reader <- read_lna(tmp, lazy = TRUE)
   expect_s3_class(reader, "lna_reader")
-  expect_true(reader$h5$is_valid())
+  expect_true(reader$h5$is_valid)
   reader$close()
 })
 
@@ -44,7 +44,7 @@ test_that("lna_reader initialize closes file on failure", {
   },
   class = "lna_error_run_id")
   expect_true(inherits(captured_h5, "H5File"))
-  expect_false(captured_h5$is_valid())
+  expect_false(captured_h5$is_valid)
 })
 
 
@@ -53,7 +53,7 @@ test_that("lna_reader close is idempotent", {
   create_empty_lna(tmp)
 
   reader <- read_lna(tmp, lazy = TRUE)
-  expect_true(reader$h5$is_valid())
+  expect_true(reader$h5$is_valid)
   reader$close()
   expect_null(reader$h5)
   expect_silent(reader$close())

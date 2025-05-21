@@ -8,9 +8,9 @@ test_that("open_h5 creates and closes files", {
   tmp <- local_tempfile(fileext = ".h5")
   h5 <- neuroarchive:::open_h5(tmp, mode = "w")
   expect_s3_class(h5, "H5File")
-  expect_true(h5$is_valid())
+  expect_true(h5$is_valid)
   neuroarchive:::close_h5_safely(h5)
-  expect_false(h5$is_valid())
+  expect_false(h5$is_valid)
 })
 
 test_that("open_h5 errors for missing file", {

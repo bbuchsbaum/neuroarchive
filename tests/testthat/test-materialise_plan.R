@@ -30,7 +30,7 @@ test_that("materialise_plan creates structure and updates plan", {
   expect_true(is.null(plan$payloads$payload))
   expect_true(h5$exists("scans/run-01/data"))
   expect_equal(h5[["scans/run-01/data"]]$read(), matrix(1:4, nrow = 2))
-  expect_true(h5$is_valid())
+  expect_true(h5$is_valid)
   neuroarchive:::close_h5_safely(h5)
 })
 

@@ -19,9 +19,9 @@ Provides internal functions for reading and writing transform
   descriptors stored as JSON strings within HDF5 datasets.
 }
 \details{
-Assumes the dataset stores a single UTF-8 string (potentially variable length).
-Numeric values are coerced with \code{as.numeric()} so that whole-number
-values are returned as base numeric rather than integers.
+Assumes the dataset stores a single UTF-8 string (potentially variable length). Numeric
+  values in the JSON are coerced with `as.numeric()` so that whole-number values are not
+  returned as integers.
 }
 \keyword{HDF5}
 \keyword{JSON}

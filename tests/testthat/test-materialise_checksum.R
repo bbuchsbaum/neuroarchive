@@ -15,7 +15,7 @@ test_that("materialise_plan writes sha256 checksum attribute", {
 
   materialise_plan(h5, plan, checksum = "sha256")
 
-  expect_false(h5$is_valid())
+  expect_false(h5$is_valid)
   h5r <- neuroarchive:::open_h5(tmp, mode = "r")
   root <- h5r[["/"]]
   expect_true(h5_attr_exists(root, "lna_checksum"))

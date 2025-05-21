@@ -36,19 +36,29 @@ write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
                       header = NULL, plugins = NULL, block_table = NULL,
                       run_id = NULL) {
+  cat("\n[write_lna] Entry\n")
+  cat(paste0("[write_lna] Input file arg: ", ifelse(is.null(file), "NULL", file), "\n"))
 
   in_memory <- FALSE
+  file_to_use <- file # Will be updated if file is NULL
+
   if (is.null(file)) {
-    tmp <- tempfile(fileext = ".h5")
-    file <- tmp
+    cat("[write_lna] file is NULL, preparing for in-memory HDF5.\n")
+    # Ensure tmp is uniquely named to avoid clashes if this function is called multiple times with file=NULL
+    tmp_for_mem <- tempfile(fileext = ".h5") 
+    cat(paste0("[write_lna] Temporary file for in-memory mode: ", tmp_for_mem, "\n"))
+    file_to_use <- tmp_for_mem
     in_memory <- TRUE
+  } else {
+    cat(paste0("[write_lna] file is provided: ", file, ", preparing for disk-based HDF5.\n"))
+    file_to_use <- file
   }
 
-
-
+  cat("[write_lna] Calling core_write...\n")
   result <- core_write(x = x, transforms = transforms,
                        transform_params = transform_params,
-                       mask = mask, header = header, plugins = plugins)
+                       mask = mask, header = header, plugins = plugins, run_id = run_id)
+  cat("[write_lna] core_write returned. Plan object: ", class(result$plan), " Handle object: ", class(result$handle), "\n")
 
   if (!is.null(block_table)) {
     if (!is.data.frame(block_table)) {
@@ -86,36 +96,82 @@ write_lna <- function(x, file = NULL, transforms = character(),
     }
   }
 
-  if (in_memory) {
-    h5 <- open_h5(file, mode = "w", driver = "core", backing_store = FALSE)
-  } else {
-    h5 <- open_h5(file, mode = "w")
+  cat(paste0("[write_lna] Attempting to open HDF5 file: ", file_to_use, " in_memory: ", in_memory, "\n"))
+  h5 <- NULL # Initialize h5 to NULL
+  tryCatch({
+    if (in_memory) {
+      cat("[write_lna] Opening HDF5 for in-memory via core driver.\n")
+      h5 <- open_h5(file_to_use, mode = "w", driver = "core", backing_store = FALSE)
+    } else {
+      cat("[write_lna] Opening HDF5 for disk-based write.\n")
+      h5 <- open_h5(file_to_use, mode = "w")
+    }
+    cat(paste0("[write_lna] open_h5 call completed. H5 object valid: ", ifelse(!is.null(h5) && h5$is_valid, "TRUE", "FALSE"), "\n"))
+  }, error = function(e) {
+    cat(paste0("[write_lna] ERROR during open_h5: ", conditionMessage(e), "\n"))
+    # To ensure h5 is NULL if open_h5 failed before assignment or with an invalid object
+    h5 <<- NULL 
+    stop(e) # Re-throw the error to halt execution as expected
+  })
+  
+  # If h5 is NULL here, it means open_h5 failed and error was re-thrown, 
+  # or it failed in a way that didn't assign to h5 before erroring and stop() was called.
+  # However, if we want to be super defensive for the on.exit:
+  if (is.null(h5) || !inherits(h5, "H5File") || !h5$is_valid) {
+     cat("[write_lna] HDF5 handle is NULL or invalid after open_h5 attempt and before materialise_plan. Aborting write_lna.\n")
+     # Depending on desired behavior, could return an error or a specific result indicating failure.
+     # For now, let it proceed to on.exit if h5 is NULL, close_h5_safely handles NULL.
+     # But if it should stop, this is a place.
   }
 
-  on.exit(neuroarchive:::close_h5_safely(h5), add = TRUE)
+  cat("[write_lna] Setting up on.exit handler to close HDF5 file.\n")
+  on.exit({
+    cat(paste0("[write_lna] on.exit: Attempting to close HDF5 file: ", file_to_use, "\n"))
+    cat(paste0("[write_lna] on.exit: Is h5 object NULL? ", is.null(h5), "\n"))
+    if (!is.null(h5)) {
+      cat(paste0("[write_lna] on.exit: Is h5 valid before close? ", h5$is_valid, "\n"))
+    }
+    neuroarchive:::close_h5_safely(h5)
+    cat(paste0("[write_lna] on.exit: close_h5_safely completed for ", file_to_use, "\n"))
+    # Check if file exists after attempted close, especially if in_memory was false
+    if (!in_memory && !is.null(file_to_use)) {
+        cat(paste0("[write_lna] on.exit: Checking file existence for ", file_to_use, " after close: ", file.exists(file_to_use), "\n"))
+    }
+  }, add = TRUE)
 
-  plugins <- result$handle$meta$plugins
-  if (length(plugins) == 0) plugins <- NULL
+  # plugins_from_handle <- result$handle$meta$plugins # Original line
+  # Using a safer access pattern in case result$handle$meta or plugins is NULL
+  plugins_from_handle <- list()
+  if (!is.null(result) && !is.null(result$handle) && !is.null(result$handle$meta) && !is.null(result$handle$meta$plugins)) {
+    plugins_from_handle <- result$handle$meta$plugins
+  }
+  if (length(plugins_from_handle) == 0) plugins_from_handle <- NULL
 
-  # Debug: Print the structure of the datasets in the plan
-  # cat("\nDebug - Plan datasets before materialise_plan:\n")
-  # print(str(result$plan$datasets))
-  # cat("-----\n")
+  header_from_handle <- list()
+  if (!is.null(result) && !is.null(result$handle) && !is.null(result$handle$meta) && !is.null(result$handle$meta$header)) {
+    header_from_handle <- result$handle$meta$header
+  }
 
+  cat("[write_lna] Calling materialise_plan...\n")
   materialise_plan(h5, result$plan,
-                   header = result$handle$meta$header,
-                   plugins = plugins)
+                   header = header_from_handle, # use safe version
+                   plugins = plugins_from_handle) # use safe version
+  cat("[write_lna] materialise_plan returned.\n")
 
   if (!is.null(block_table)) {
-    # Convert to matrix and ensure dimensions are preserved
+    cat("[write_lna] Writing block_table dataset.\n")
     bt_matrix <- as.matrix(block_table)
     h5_write_dataset(h5[["/"]], "spatial/block_table", bt_matrix)
+    cat("[write_lna] Finished writing block_table dataset.\n")
   }
 
-  out_file <- if (in_memory) NULL else file
-  out <- list(file = out_file, plan = result$plan,
-              header = result$handle$meta$header)
+  final_out_file <- if (in_memory) NULL else file_to_use
+  cat(paste0("[write_lna] Final out file determination: ", ifelse(is.null(final_out_file), "NULL", final_out_file), "\n"))
+  
+out <- list(file = final_out_file, plan = result$plan,
+              header = header_from_handle)
   class(out) <- c("lna_write_result", class(out))
+  cat("[write_lna] Exiting successfully.\n")
   invisible(out)
 }
 

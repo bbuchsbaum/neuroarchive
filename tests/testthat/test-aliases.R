@@ -15,5 +15,7 @@ test_that("compress_fmri forwards to write_lna", {
 })
 
 test_that("open_lna is an alias of read_lna", {
-  expect_identical(open_lna, read_lna)
+  # Explicitly reference functions from the namespace to ensure they are found
+  # This assumes devtools::load_all() has correctly loaded the package.
+  expect_identical(neuroarchive::open_lna, neuroarchive::read_lna)
 })

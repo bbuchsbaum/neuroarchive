@@ -10,7 +10,8 @@ core_write(
   transform_params = list(),
   mask = NULL,
   header = NULL,
-  plugins = NULL
+  plugins = NULL,
+  run_id = NULL
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ core_write(
 
 \item{plugins}{Optional named list of plugin metadata to store under
 `/plugins`.}
+
+\item{run_id}{Optional run_id parameter to override names(x) logic.}
 }
 \value{
 A list with `handle` and `plan` objects.

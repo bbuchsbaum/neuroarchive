@@ -32,6 +32,8 @@ Defines the structure and operations for planning the write
 \item \href{#method-Plan-add_dataset_def}{\code{Plan$add_dataset_def()}}
 \item \href{#method-Plan-add_descriptor}{\code{Plan$add_descriptor()}}
 \item \href{#method-Plan-get_next_filename}{\code{Plan$get_next_filename()}}
+\item \href{#method-Plan-first_run_id}{\code{Plan$first_run_id()}}
+\item \href{#method-Plan-import_from_array}{\code{Plan$import_from_array()}}
 \item \href{#method-Plan-mark_payload_written}{\code{Plan$mark_payload_written()}}
 \item \href{#method-Plan-clone}{\code{Plan$clone()}}
 }
@@ -153,6 +155,39 @@ Get the next sequential filename prefix for a transform descriptor.
 }
 \subsection{Returns}{
 Character string (e.g., "00_type.json").
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Plan-first_run_id"></a>}}
+\if{latex}{\out{\hypertarget{method-Plan-first_run_id}{}}}
+\subsection{Method \code{first_run_id()}}{
+Return the first run identifier appearing in the plan. If no dataset
+definitions exist, fall back to `origin_label` when it matches the run
+pattern. Returns `NULL` when no run information is available.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Plan$first_run_id()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Plan-import_from_array"></a>}}
+\if{latex}{\out{\hypertarget{method-Plan-import_from_array}{}}}
+\subsection{Method \code{import_from_array()}}{
+Convenience helper to add an array as the initial payload for a run.
+This is used by `core_write` when no transforms are specified.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Plan$import_from_array(x, run_id = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{x}}{Array to add.}
+
+\item{\code{run_id}}{Optional run identifier. Defaults to "run-01" when neither
+`run_id` nor `origin_label` specifies a run pattern.}
+}
+\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}

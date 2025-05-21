@@ -243,7 +243,8 @@ h5_write_dataset <- function(h5_group, path, data,
 #'   exists. Use a unique temporary file and `file.rename()` when
 #'   writing in parallel.
 #' @keywords internal
-open_h5 <- function(path, mode = "r", ...) {
+open_h5 <- function(path, mode = "a", ...) {
+
   stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.character(mode), length(mode) == 1)
 
