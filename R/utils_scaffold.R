@@ -24,20 +24,21 @@ scaffold_transform <- function(type) {
   dir.create(dirname(schema_path), recursive = TRUE, showWarnings = FALSE)
   dir.create(dirname(test_path), recursive = TRUE, showWarnings = FALSE)
 
+  pkg <- utils::packageName(environment(scaffold_transform))
   r_template <- sprintf(
 "forward_step.%1$s <- function(type, desc, handle) {
-  params <- default_params('%1$s')
+  params <- %2$s:::default_params('%1$s')
   ## TODO: implement forward transform
   handle
 }
 
 invert_step.%1$s <- function(type, desc, handle) {
-  params <- default_params('%1$s')
+  params <- %2$s:::default_params('%1$s')
   ## TODO: implement inverse transform
   handle
 }
 ",
-    type)
+    type, pkg)
 
   writeLines(r_template, r_path)
 

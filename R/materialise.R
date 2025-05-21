@@ -9,6 +9,7 @@
 #' @param checksum Character string indicating checksum mode.
 #' @param header Optional named list of header attributes.
 #' @param plugins Optional named list of plugin metadata.
+
 #' @return Invisibly returns the `H5File` handle. When `checksum = "sha256"`
 #'   the handle is closed as part of computing the digest and the returned
 #'   handle will be invalid.
@@ -19,6 +20,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
   if (!h5$is_valid()) {
+
     abort_lna(
       "Provided HDF5 handle is not open or valid",
       .subclass = "lna_error_validation",
@@ -68,6 +70,36 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         location = "materialise_plan:scans"
       )
     }
+
+    obj <- h5[["transforms"]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
+      stop("'/transforms' exists but is not a group", call. = FALSE)
+    }
+    tf_group <- obj
+  } else {
+    tf_group <- h5$create_group("transforms")
+  }
+
+  if (h5$exists("basis")) {
+    obj <- h5[["basis"]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
+      stop("'/basis' exists but is not a group", call. = FALSE)
+    }
+    obj$close()
+  } else {
+    h5$create_group("basis")
+  }
+
+  if (h5$exists("scans")) {
+    obj <- h5[["scans"]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
+      stop("'/scans' exists but is not a group", call. = FALSE)
+    }
+    obj$close()
+
   } else {
     h5$create_group("scans")
   }
@@ -91,8 +123,10 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     chunk_dims <- NULL
 
     attempt <- function(level, chunks) {
-      h5_write_dataset(root, path, data, chunk_dims = chunks,
-                       compression_level = level)
+      ds <- h5_write_dataset(root, path, data, chunk_dims = chunks,
+                             compression_level = level)
+      if (inherits(ds, "H5D")) ds$close()
+      NULL
     }
 
     res <- tryCatch(attempt(comp_level, chunk_dims), error = function(e) e)
@@ -105,10 +139,20 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       }
     }
 
+
     dtype <- guess_h5_type(data)
     dtype_size <- dtype$get_size(variable_as_inf = FALSE)
     if (!is.finite(dtype_size) || dtype_size <= 0) {
       dtype_size <- 1L
+    }
+    if (is.integer(data)) {
+      dtype_size <- 4L
+    } else if (is.double(data)) {
+      dtype_size <- 8L
+    } else {
+      t <- guess_h5_type(data)
+      dtype_size <- t$get_size()
+      if (inherits(t, "H5T")) t$close()
     }
     cdims <- if (is.null(chunk_dims)) guess_chunk_dims(dim(data), dtype_size) else as.integer(chunk_dims)
 

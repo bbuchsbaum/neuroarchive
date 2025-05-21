@@ -105,3 +105,22 @@ test_that("core_write works with progress handlers", {
   )
   progressr::handlers(NULL)
 })
+
+test_that("input data requires >=3 dimensions", {
+  expect_error(
+    core_write(x = matrix(1:4, nrow = 2), transforms = "tA"),
+    class = "lna_error_validation"
+  )
+})
+
+test_that("header and plugins must be named lists", {
+  arr <- array(1, dim = c(2,2,2))
+  expect_error(
+    core_write(x = arr, transforms = "tA", header = list(1)),
+    class = "lna_error_validation"
+  )
+  expect_error(
+    core_write(x = arr, transforms = "tA", plugins = list(1)),
+    class = "lna_error_validation"
+  )
+})

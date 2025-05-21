@@ -34,7 +34,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
         location = sprintf("validate_lna:%s", file)
       )
     } else {
-      warning(msg)
+      warning(msg, call. = FALSE)
       issues <<- c(issues, msg)
       invisible(NULL)
     }
@@ -121,6 +121,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
             }
 
             dset <- h5[[path]]
+            on.exit(if (inherits(dset, "H5D")) dset$close(), add = TRUE)
             if (!is.null(ds$dims)) {
               if (!identical(as.integer(ds$dims), as.integer(dset$dims))) {
                 fail(sprintf("Dimensions mismatch for dataset '%s'", path))
@@ -129,6 +130,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
 
             if (!is.null(ds$dtype)) {
               dt <- dset$get_type()
+              on.exit(if (inherits(dt, "H5T")) dt$close(), add = TRUE)
               class_id <- dt$get_class()
               size <- dt$get_size()
               actual <- switch(as.character(class_id),
@@ -141,7 +143,13 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
               }
             }
 
-            data <- tryCatch(h5_read(root, path), error = function(e) NULL)
+            data <- tryCatch(
+              h5_read(root, path),
+              error = function(e) {
+                fail(sprintf("Error reading dataset '%s': %s", path, e$message))
+                NULL
+              }
+            )
             if (is.numeric(data)) {
               if (all(is.na(data)) || all(data == 0)) {
                 fail(sprintf("Dataset '%s' contains only zeros/NaN", path))

@@ -147,7 +147,6 @@ This appendix details various compression and encoding techniques that can be im
         *   `order`: Typically `1` for frame-to-frame differences.
         *   `axis`: The axis along which to compute deltas (e.g., time axis).
         *   `reference_value_storage`: `"first_value_verbatim"` (stores first frame/value separately), `"reconstruct_from_deltas"` (implies first value is zero or known).
-        *   `delta_quantization_bits` (optional, if deltas are quantized within this step, otherwise a subsequent `quant` step is used): Bit depth for deltas.
         *   `coding_method` (optional): `"none"`, `"rle"`, `"arithmetic"`, `"range_coded"`. If not part of `delta`, these could be subsequent transforms or part of a `quant` step on deltas. (The spec implies `delta` itself might handle range coding).
     *   **Data Stored (HDF5 Paths):**
         *   `/scans/{run_id}/deltas/transform_XX/first_values`: The first frame/value if `reference_value_storage="first_value_verbatim"`.

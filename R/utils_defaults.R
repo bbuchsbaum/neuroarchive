@@ -11,6 +11,28 @@
 .default_param_cache <- new.env(parent = emptyenv())
 .required_param_cache <- new.env(parent = emptyenv())
 
+#' Clear the default parameter cache
+#'
+#' Removes all cached default parameter lists.
+#'
+#' @return invisible(NULL)
+#' @keywords internal
+default_param_cache_clear <- function() {
+  rm(list = ls(envir = .default_param_cache, all.names = TRUE), envir = .default_param_cache)
+  invisible(NULL)
+}
+
+#' Clear the required parameter cache
+#'
+#' Removes all cached required parameter vectors.
+#'
+#' @return invisible(NULL)
+#' @keywords internal
+required_param_cache_clear <- function() {
+  rm(list = ls(envir = .required_param_cache, all.names = TRUE), envir = .required_param_cache)
+  invisible(NULL)
+}
+
 
 # Recursively extract `default` values from a parsed JSON schema list
 .extract_schema_defaults <- function(node) {
@@ -28,6 +50,20 @@
       val <- .extract_schema_defaults(node$properties[[nm]])
       if (!is.null(val)) {
         defaults[[nm]] <- val
+      }
+    }
+  }
+
+  if (is.list(node$items)) {
+    if (is.null(names(node$items))) {
+      item_vals <- lapply(node$items, .extract_schema_defaults)
+      if (any(vapply(item_vals, Negate(is.null), logical(1)))) {
+        defaults$items <- item_vals
+      }
+    } else {
+      val <- .extract_schema_defaults(node$items)
+      if (!is.null(val)) {
+        defaults$items <- val
       }
     }
   }
@@ -167,44 +203,43 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
   merged
 }
 
-#' Default parameters for the 'quant' transform
-#'
-#' Convenience wrapper around `default_params("quant")`.
+#' @title Default parameters for the 'quant' transform
+#' @description Convenience wrapper around `default_params("quant")`.
+#' @seealso default_params
 #' @export
 lna_default.quant <- function() {
   default_params("quant")
 }
 
-#' Default parameters for the 'basis' transform
-#'
-#' Convenience wrapper around `default_params("basis")`.
+#' @title Default parameters for the 'basis' transform
+#' @description Convenience wrapper around `default_params("basis")`.
+#' @seealso default_params
 #' @export
 lna_default.basis <- function() {
   default_params("basis")
 }
 
-#' Default parameters for the 'embed' transform
-#'
-#' Convenience wrapper around `default_params("embed")`.
+#' @title Default parameters for the 'embed' transform
+#' @description Convenience wrapper around `default_params("embed")`.
+#' @seealso default_params
 #' @export
 lna_default.embed <- function() {
   default_params("embed")
 }
 
 
-#' Default parameters for the 'delta' transform
-#'
-#' Convenience wrapper around `default_params("delta")`.
+#' @title Default parameters for the 'delta' transform
+#' @description Convenience wrapper around `default_params("delta")`.
+#' @seealso default_params
 #' @export
 lna_default.delta <- function() {
   default_params("delta")
 }
 
-#' Default parameters for the 'temporal' transform
-#'
-#' Convenience wrapper around `default_params("temporal")`.
+#' @title Default parameters for the 'temporal' transform
+#' @description Convenience wrapper around `default_params("temporal")`.
+#' @seealso default_params
 #' @export
 lna_default.temporal <- function() {
   default_params("temporal")
-
 }

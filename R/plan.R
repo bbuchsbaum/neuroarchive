@@ -118,6 +118,20 @@ Plan <- R6::R6Class("Plan",
     #' @return Character string (e.g., "00_type.json").
     get_next_filename = function(type) {
       stopifnot(is.character(type), length(type) == 1)
+
+      if (grepl("\.\.", type) || grepl("/", type) || grepl("\\\\", type)) {
+        stop(sprintf(
+          "Invalid characters found in type '%s'", type
+        ), call. = FALSE)
+      }
+
+      safe_pat <- "^[A-Za-z][A-Za-z0-9_.]*$"
+      if (!grepl(safe_pat, type)) {
+        stop(sprintf(
+          "Invalid transform type '%s'. Must match %s", type, safe_pat
+        ), call. = FALSE)
+      }
+
       index_str <- sprintf("%02d", self$next_index)
       filename <- paste0(index_str, "_", type, ".json")
       return(filename)
