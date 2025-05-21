@@ -120,15 +120,11 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     }
 
 
+    # Determine datatype size for chunk heuristics
     dtype <- guess_h5_type(data)
     dtype_size <- dtype$get_size(variable_as_inf = FALSE)
     if (!is.finite(dtype_size) || dtype_size <= 0) {
       dtype_size <- 1L
-    }
-    if (is.integer(data)) {
-      dtype_size <- 4L
-    } else if (is.double(data)) {
-      dtype_size <- 8L
     }
     if (inherits(dtype, "H5T")) dtype$close()
     cdims <- if (is.null(chunk_dims)) guess_chunk_dims(dim(data), dtype_size) else as.integer(chunk_dims)
