@@ -22,8 +22,8 @@ test_that("invert_step.embed reconstructs dense data", {
 
   h <- invert_step.embed("embed", desc, handle)
 
-  expect_true(h$exists("dense_mat"))
-  expect_false(h$exists("coef"))
+  expect_true(h$has_key("dense_mat"))
+  expect_false(h$has_key("coef"))
   expected <- tcrossprod(coef_mat, basis_mat)
   expect_equal(h$stash$dense_mat, expected)
 

@@ -64,18 +64,18 @@ test_that("DataHandle initialization works correctly", {
 
 })
 
-test_that("DataHandle exists works correctly", {
+test_that("DataHandle has_key works correctly", {
   h <- DataHandle$new(initial_stash = list(a = 1, b = NULL))
 
-  expect_true(h$exists("a"))
-  expect_true(h$exists("b")) # Key exists even if value is NULL
-  expect_false(h$exists("c"))
-  expect_false(h$exists("stash")) # Should not find fields
+  expect_true(h$has_key("a"))
+  expect_true(h$has_key("b")) # Key exists even if value is NULL
+  expect_false(h$has_key("c"))
+  expect_false(h$has_key("stash")) # Should not find fields
 
   # Check error on invalid key type
-  expect_error(h$exists(123))
-  expect_error(h$exists(c("a", "b")))
-  expect_error(h$exists(list()))
+  expect_error(h$has_key(123))
+  expect_error(h$has_key(c("a", "b")))
+  expect_error(h$has_key(list()))
 })
 
 test_that("DataHandle get_inputs works correctly", {

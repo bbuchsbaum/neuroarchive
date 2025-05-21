@@ -22,7 +22,7 @@ invert_step.basis <- function(type, desc, handle) {
   coeff_key <- desc$outputs[[1]] %||% "coefficients"
   input_key  <- desc$inputs[[1]] %||% "dense_mat"
 
-  if (!handle$exists(coeff_key)) {
+  if (!handle$has_key(coeff_key)) {
     # Nothing to reconstruct; return handle unchanged
     return(handle)
   }

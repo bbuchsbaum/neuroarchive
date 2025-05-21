@@ -139,9 +139,9 @@ DataHandle <- R6::R6Class("DataHandle",
     #' Check if a key exists in the stash.
     #' @param key Character string, the key to check.
     #' @return Logical, TRUE if the key exists in the stash, FALSE otherwise.
-    exists = function(key) {
+    has_key = function(key) {
       stopifnot(is.character(key), length(key) == 1)
       return(key %in% names(self$stash))
     }
   )
-) 
+)
