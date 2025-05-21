@@ -202,3 +202,61 @@ h5_write_dataset <- function(h5_group, path, data,
 
   invisible(dset)
 }
+
+#' Read a dataset from an HDF5 group
+#'
+#' @param h5_group An `H5Group` object used as the starting location for `path`.
+#' @param path Character string giving the dataset path relative to `h5_group`.
+#' @return The contents of the dataset.
+#' @details Throws an error if the dataset does not exist or reading fails.
+h5_read <- function(h5_group, path) {
+  stopifnot(inherits(h5_group, "H5Group"))
+  stopifnot(is.character(path), length(path) == 1)
+
+  if (!h5_group$exists(path)) {
+    stop(paste0("Dataset '", path, "' not found."), call. = FALSE)
+  }
+
+  dset <- NULL
+  result <- NULL
+  tryCatch({
+    dset <- h5_group[[path]]
+    result <- dset$read()
+  }, error = function(e) {
+    stop(paste0("Error reading dataset '", path, "': ", conditionMessage(e)), call. = FALSE)
+  }, finally = {
+    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+  })
+
+  result
+}
+
+#' Read a subset of a dataset from an HDF5 group
+#'
+#' @param h5_group An `H5Group` object used as the starting location for `path`.
+#' @param path Character string giving the dataset path relative to `h5_group`.
+#' @param index List of indices for each dimension as accepted by `hdf5r`.
+#' @return The selected subset of the dataset.
+#' @details Throws an error if the dataset does not exist or reading fails.
+h5_read_subset <- function(h5_group, path, index) {
+  stopifnot(inherits(h5_group, "H5Group"))
+  stopifnot(is.character(path), length(path) == 1)
+  stopifnot(is.list(index))
+
+  if (!h5_group$exists(path)) {
+    stop(paste0("Dataset '", path, "' not found."), call. = FALSE)
+  }
+
+  dset <- NULL
+  result <- NULL
+  tryCatch({
+    dset <- h5_group[[path]]
+    result <- dset$read(args = list(index = index))
+  }, error = function(e) {
+    stop(paste0("Error reading subset from dataset '", path, "': ", conditionMessage(e)), call. = FALSE)
+  }, finally = {
+    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+  })
+
+  result
+}
