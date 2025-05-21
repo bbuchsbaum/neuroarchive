@@ -126,5 +126,6 @@ forward_step.basis <- function(type, desc, handle) {
   }
 
   handle$plan <- plan
-  handle$update_stash(keys = input_key, new_values = list())
+  # keep input in the stash for subsequent transforms (e.g., 'embed')
+  handle
 }
