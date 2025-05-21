@@ -28,6 +28,7 @@ read_lna(file, run_id = NULL,
 remains open and data are reconstructed on demand. Run identifiers may
 be matched using glob patterns and subsetting via \code{roi_mask} and
 \code{time_idx} is supported.}
+\seealso{\code{\link{write_lna}}, \code{\link{validate_lna}}}
 \examples{
 r <- read_lna("ex.h5", run_id = "run-*", lazy = TRUE,
               roi_mask = array(TRUE, dim = c(4,4,4)), time_idx = 1:2)

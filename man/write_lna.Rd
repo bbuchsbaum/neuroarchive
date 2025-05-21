@@ -25,6 +25,7 @@ specified transform pipeline. Parameter values are merged from schema
 defaults, \code{lna_options()} and \code{transform_params}. The
 \code{plugins} list and \code{block_table} (if supplied) are written to
 the corresponding HDF5 groups.}
+\seealso{\code{\link{read_lna}}, \code{\link{validate_lna}}}
 \examples{
 x <- array(rnorm(64), dim = c(4,4,4,1))
 write_lna(x, "ex.h5", transforms = "quant")
