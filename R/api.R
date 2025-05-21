@@ -159,29 +159,25 @@ read_lna <- function(file, run_id = NULL,
   output_dtype <- match.arg(output_dtype)
   allow_plugins <- match.arg(allow_plugins)
 
+  args <- list(
+    file = file,
+    run_id = run_id,
+    allow_plugins = allow_plugins,
+    validate = validate,
+    output_dtype = output_dtype
+  )
+
+  if (!is.null(roi_mask)) args$roi_mask <- roi_mask
+  if (!is.null(time_idx)) args$time_idx <- time_idx
+
   if (lazy) {
     lna_reader$new(
       file = file,
-      core_read_args = list(
-        run_id = run_id,
-        allow_plugins = allow_plugins,
-        validate = validate,
-        output_dtype = output_dtype,
-        roi_mask = roi_mask,
-        time_idx = time_idx
-      )
+      core_read_args = args
     )
   } else {
-    core_read(
-      file = file,
-      run_id = run_id,
-      allow_plugins = allow_plugins,
-      validate = validate,
-      output_dtype = output_dtype,
-      roi_mask = roi_mask,
-      time_idx = time_idx,
-      lazy = FALSE
-    )
+    args$lazy <- FALSE
+    do.call(core_read, args)
   }
 }
 
