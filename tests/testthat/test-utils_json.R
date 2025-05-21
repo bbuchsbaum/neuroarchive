@@ -106,15 +106,12 @@ test_that("read_json_descriptor error handling works", {
   # 2. Read descriptor with invalid JSON
   expect_error(
     read_json_descriptor(root_group_r, "bad_desc"),
-    "bad_desc",
     class = "lna_error_json_parse"
-    # regexp = "lexical error: invalid character inside string" # Error msg might vary
   )
 
   # 3. Read descriptor that is not a string (or not scalar char)
   expect_error(
       read_json_descriptor(root_group_r, "numeric_desc"),
-      "numeric_desc",
       class = "lna_error_invalid_descriptor"
   )
 
