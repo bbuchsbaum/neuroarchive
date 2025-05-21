@@ -27,12 +27,42 @@ write_lna(x, "cookbook.h5", transforms = "quant")
 r <- read_lna("cookbook.h5", lazy = TRUE)
 r$subset(time_idx = 1)
 subset_data <- r$data()
+r$close()
+```
+
+## PCA Compression Pipeline
+
+```r
+# Use basis -> embed -> quant for PCA-based compression
+pca_file <- "pca_example.h5"
+write_lna(
+  x,
+  pca_file,
+  transforms = c("basis", "embed", "quant"),
+  transform_params = list(basis = list(k = 5))
+)
+
+# Validate the resulting file
+validate_lna(pca_file)
+```
+
+### ROI and Time Slicing
+
+```r
+r <- read_lna(pca_file, lazy = TRUE)
+roi <- array(runif(64) > 0.5, dim = c(4,4,4))
+r$subset(roi_mask = roi, time_idx = 1:2)
+roi_slice <- r$data()
+r$close()
 ```
 
 ## Scaffolding a New Transform
 
 ```r
-scaffold_transform("mycustom")
+paths <- scaffold_transform("mycustom")
+# After editing `paths$r_file` to implement the transform,
+# it can be used like any built-in step:
+# write_lna(x, "custom.h5", transforms = "mycustom")
 ```
 
 This creates template files in `R/`, `inst/schemas/`, and `tests/` for a
