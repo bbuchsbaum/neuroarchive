@@ -11,6 +11,28 @@
 .default_param_cache <- new.env(parent = emptyenv())
 .required_param_cache <- new.env(parent = emptyenv())
 
+#' Clear the default parameter cache
+#'
+#' Removes all cached default parameter lists.
+#'
+#' @return invisible(NULL)
+#' @keywords internal
+default_param_cache_clear <- function() {
+  rm(list = ls(envir = .default_param_cache, all.names = TRUE), envir = .default_param_cache)
+  invisible(NULL)
+}
+
+#' Clear the required parameter cache
+#'
+#' Removes all cached required parameter vectors.
+#'
+#' @return invisible(NULL)
+#' @keywords internal
+required_param_cache_clear <- function() {
+  rm(list = ls(envir = .required_param_cache, all.names = TRUE), envir = .required_param_cache)
+  invisible(NULL)
+}
+
 
 # Recursively extract `default` values from a parsed JSON schema list
 .extract_schema_defaults <- function(node) {
