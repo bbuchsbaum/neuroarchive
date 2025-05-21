@@ -17,12 +17,24 @@ core_write <- function(x, transforms, transform_params = list()) {
   mask <- NULL
   header <- list()
 
+  # --- Determine run identifiers ---
+  if (is.list(x)) {
+    if (is.null(names(x)) || any(names(x) == "")) {
+      names(x) <- sprintf("run-%02d", seq_along(x))
+    }
+    run_ids <- names(x)
+  } else {
+    run_ids <- "run-01"
+  }
+
   # --- Create plan and initial handle ---
   plan <- Plan$new()
   handle <- DataHandle$new(
     initial_stash = list(input = x),
     initial_meta = list(mask = mask, header = header),
-    plan = plan
+    plan = plan,
+    run_ids = run_ids,
+    current_run_id = run_ids[1]
   )
 
   # --- Resolve parameters with defaults and package options ---

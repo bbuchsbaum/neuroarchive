@@ -59,3 +59,22 @@ test_that("unknown transform names in transform_params error", {
     class = "lna_error_validation"
   )
 })
+
+test_that("unnamed list input generates run names accessible to forward_step", {
+  captured <- list()
+  forward_step.runTest <- function(type, desc, handle) {
+    captured$run_ids <<- handle$run_ids
+    captured$current_run <<- handle$current_run_id
+    captured$names <<- names(handle$stash$input)
+    handle
+  }
+  assign("forward_step.runTest", forward_step.runTest, envir = .GlobalEnv)
+  withr::defer(rm(forward_step.runTest, envir = .GlobalEnv))
+
+  res <- core_write(x = list(matrix(1), matrix(2)), transforms = "runTest")
+
+  expect_equal(captured$run_ids, c("run-01", "run-02"))
+  expect_equal(captured$names, c("run-01", "run-02"))
+  expect_equal(res$handle$run_ids, c("run-01", "run-02"))
+  expect_equal(res$handle$current_run_id, "run-01")
+})

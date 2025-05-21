@@ -18,6 +18,10 @@ DataHandle <- R6::R6Class("DataHandle",
     h5 = NULL,
     #' @field subset A list specifying subsetting parameters (e.g., ROI, time indices).
     subset = NULL,
+    #' @field run_ids Character vector of run identifiers for multi-run data.
+    run_ids = NULL,
+    #' @field current_run_id The run identifier currently being processed.
+    current_run_id = NULL,
 
     #' @description
     #' Initialize a new DataHandle object.
@@ -26,7 +30,9 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @param plan A Plan object (optional, for writing).
     #' @param h5 An H5File object (optional, for reading/writing).
     #' @param subset A list specifying subsetting (optional, for reading).
-    initialize = function(initial_stash = list(), initial_meta = list(), plan = NULL, h5 = NULL, subset = list()) {
+    initialize = function(initial_stash = list(), initial_meta = list(), plan = NULL,
+                          h5 = NULL, subset = list(), run_ids = character(),
+                          current_run_id = NULL) {
       # Basic input validation
       stopifnot(is.list(initial_stash))
       stopifnot(is.list(initial_meta))
@@ -40,11 +46,18 @@ DataHandle <- R6::R6Class("DataHandle",
         stop("'h5' must be an H5File object from hdf5r or NULL")
       }
 
+      stopifnot(is.character(run_ids))
+      if (!is.null(current_run_id)) {
+        stopifnot(is.character(current_run_id), length(current_run_id) == 1)
+      }
+
       self$stash <- initial_stash
       self$meta <- initial_meta
       self$plan <- plan
       self$h5 <- h5
       self$subset <- subset
+      self$run_ids <- run_ids
+      self$current_run_id <- current_run_id
     },
 
     #' @description
