@@ -9,6 +9,8 @@ teardown({
   rm(list = ls(envir = opts_env), envir = opts_env)
   cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
   rm(list = ls(envir = cache_env), envir = cache_env)
+  schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
+  rm(list = ls(envir = schema_env), envir = schema_env)
 })
 
 # Test lna_options set/get
@@ -25,14 +27,33 @@ test_that("lna_options set and get work", {
 
 # Test default_params caching behavior
 
-test_that("default_params returns empty list and caches", {
+test_that("default_params warns and caches empty list when schema missing", {
   cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
+  schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
   rm(list = ls(envir = cache_env), envir = cache_env)
+  rm(list = ls(envir = schema_env), envir = schema_env)
 
-  p1 <- neuroarchive:::default_params("foo")
+  expect_warning(p1 <- neuroarchive:::default_params("foo"), "not found")
   expect_equal(p1, list())
   expect_true("foo" %in% ls(envir = cache_env))
+  expect_false("foo" %in% ls(envir = schema_env))
 
   p2 <- neuroarchive:::default_params("foo")
   expect_identical(p1, p2)
+})
+
+test_that("default_params loads defaults from schema and caches", {
+  cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
+  schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))
+  rm(list = ls(envir = cache_env), envir = cache_env)
+  rm(list = ls(envir = schema_env), envir = schema_env)
+
+  expect_false("test" %in% ls(envir = cache_env))
+  d1 <- neuroarchive:::default_params("test")
+  expect_equal(d1, list(a = 1L, b = "x", nested = list(c = 0.5)))
+  expect_true("test" %in% ls(envir = cache_env))
+  expect_true("test" %in% ls(envir = schema_env))
+
+  d2 <- neuroarchive:::default_params("test")
+  expect_identical(d1, d2)
 })

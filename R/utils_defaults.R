@@ -1,19 +1,58 @@
-#' Default Parameter Retrieval (Stub)
+#' Default Parameter Retrieval
 #'
-#' Provides a cached stub returning an empty list for any transform type.
+#' Loads parameter defaults from a JSON schema for the given transform type and
+#' caches both the schema and the resulting defaults. If a schema cannot be
+#' found, an empty list is cached and returned with a warning.
 #'
 #' @param type Character transform type.
-#' @return A list of default parameters (currently empty).
+#' @return A list of default parameters extracted from the schema, or an empty
+#'   list if none are defined or the schema is missing.
 #' @keywords internal
 .default_param_cache <- new.env(parent = emptyenv())
+
+# Recursively extract `default` values from a parsed JSON schema list
+.extract_schema_defaults <- function(node) {
+  if (!is.list(node)) {
+    return(NULL)
+  }
+
+  if (!is.null(node$default)) {
+    return(node$default)
+  }
+
+  defaults <- list()
+  if (is.list(node$properties)) {
+    for (nm in names(node$properties)) {
+      val <- .extract_schema_defaults(node$properties[[nm]])
+      if (!is.null(val)) {
+        defaults[[nm]] <- val
+      }
+    }
+  }
+
+  if (length(defaults) > 0) defaults else NULL
+}
 
 default_params <- function(type) {
   stopifnot(is.character(type), length(type) == 1)
   if (exists(type, envir = .default_param_cache, inherits = FALSE)) {
     return(.default_param_cache[[type]])
   }
-  .default_param_cache[[type]] <- list()
-  .default_param_cache[[type]]
+
+  schema_path <- system.file("schemas", paste0(type, ".schema.json"),
+                              package = "neuroarchive")
+
+  if (schema_path == "") {
+    warning(sprintf("Schema for transform '%s' not found", type), call. = FALSE)
+    defaults <- list()
+  } else {
+    schema <- jsonlite::read_json(schema_path, simplifyVector = FALSE)
+    assign(type, schema, envir = .schema_cache)
+    defaults <- .extract_schema_defaults(schema)
+  }
+
+  assign(type, defaults, envir = .default_param_cache)
+  defaults
 }
 
 #' Resolve Transform Parameters
