@@ -58,11 +58,25 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       }
     }
 
+    dtype_size <- if (is.integer(data)) 4L else 8L
+    cdims <- if (is.null(chunk_dims)) guess_chunk_dims(dim(data), dtype_size) else as.integer(chunk_dims)
+
     if (inherits(res, "error")) {
-      warning(sprintf("Write failed for %s; retrying with smaller chunks", path))
-      cdims <- if (is.null(chunk_dims)) pmin(dim(data), rep(128L, length(dim(data)))) else chunk_dims
-      cdims[length(cdims)] <- pmax(1L, floor(cdims[length(cdims)] / 2))
-      res <- tryCatch(attempt(0, cdims), error = function(e) e)
+      cdims1 <- reduce_chunk_dims(cdims, dtype_size, 1024^3)
+      warning(sprintf(
+        "Write failed for %s; retrying with smaller chunks (<1 GiB, ~%.1f MiB)",
+        path, prod(cdims1) * dtype_size / 1024^2
+      ))
+      res <- tryCatch(attempt(0, cdims1), error = function(e) e)
+    }
+
+    if (inherits(res, "error")) {
+      cdims2 <- reduce_chunk_dims(cdims1, dtype_size, 256 * 1024^2)
+      warning(sprintf(
+        "Write failed for %s; retrying with smaller chunks (<=256 MiB, ~%.1f MiB)",
+        path, prod(cdims2) * dtype_size / 1024^2
+      ))
+      res <- tryCatch(attempt(0, cdims2), error = function(e) e)
     }
 
     if (inherits(res, "error")) {

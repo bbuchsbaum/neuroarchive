@@ -101,9 +101,19 @@ test_that("core_read validate=TRUE calls validate_lna", {
   expect_true(called)
 })
 
-test_that("core_read allow_plugins='off' errors on unknown transform", {
+test_that("core_read allow_plugins='none' errors on unknown transform", {
   tmp <- local_tempfile(fileext = ".h5")
   create_dummy_lna(tmp)
-  expect_error(core_read(tmp, allow_plugins = "off"),
+  expect_error(core_read(tmp, allow_plugins = "none"),
                class = "lna_error_no_method")
+})
+
+test_that("core_read allow_plugins='prompt' falls back when non-interactive", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_dummy_lna(tmp)
+  with_mocked_bindings(
+    rlang::is_interactive = function() FALSE,
+    { expect_warning(core_read(tmp, allow_plugins = "prompt"),
+                    "Missing invert_step") }
+  )
 })

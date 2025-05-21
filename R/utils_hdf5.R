@@ -131,6 +131,29 @@ guess_chunk_dims <- function(dims, dtype_size) {
   return(chunk)
 }
 
+#' Reduce chunk dimensions toward a byte target
+#'
+#' Helper used when retrying dataset writes. Starting from an existing
+#' chunk dimension vector, halves the first dimension until the
+#' estimated chunk size is below `target_bytes` or the dimension would
+#' drop below 1. Returns the adjusted chunk vector.
+#'
+#' @param chunk Integer vector of current chunk dimensions.
+#' @param dtype_size Size in bytes of the datatype being stored.
+#' @param target_bytes Target maximum chunk size in bytes.
+#' @return Integer vector of reduced chunk dimensions.
+#' @keywords internal
+reduce_chunk_dims <- function(chunk, dtype_size, target_bytes) {
+  stopifnot(is.numeric(chunk))
+  chunk <- as.integer(chunk)
+  chunk_bytes <- prod(chunk) * dtype_size
+  while (chunk_bytes > target_bytes && chunk[1] > 1) {
+    chunk[1] <- ceiling(chunk[1] / 2)
+    chunk_bytes <- prod(chunk) * dtype_size
+  }
+  chunk
+}
+
 #' Write a dataset to an HDF5 group
 #'
 #' @description Creates or overwrites a dataset at `path`, optionally using
@@ -213,6 +236,9 @@ h5_write_dataset <- function(h5_group, path, data,
 #' @param mode File mode passed to `H5File$new`.
 #' @param ... Additional arguments forwarded to `H5File$new`.
 #' @return An `H5File` object.
+#' @details When `mode` is `"w"` the file is truncated if it already
+#'   exists. Use a unique temporary file and `file.rename()` when
+#'   writing in parallel.
 #' @keywords internal
 open_h5 <- function(path, mode = "r", ...) {
   stopifnot(is.character(path), length(path) == 1)

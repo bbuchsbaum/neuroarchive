@@ -15,6 +15,10 @@
 #' @param header Optional named list of header attributes.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
 #'   `header` with class `"lna_write_result"`.
+#' @details For parallel workflows use a unique temporary file and
+#'   `file.rename()` it to the final path once writing succeeds.
+#'   The underlying HDF5 handle is opened with mode `"w"` which
+#'   truncates any existing file at `file`.
 #' @export
 write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
@@ -52,7 +56,11 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #' the HDF5 handle open for on-demand reconstruction of the data.
 #'
 #' @param file Path to an LNA file on disk.
-#' @param allow_plugins Forwarded to `core_read`.
+#' @param allow_plugins Character string specifying how to handle
+#'   transforms that require optional packages. One of
+#'   \code{"installed"} (default), \code{"none"}, or \code{"prompt"}.
+#'   See \code{core_read} for details. Non-interactive sessions treat
+#'   \code{"prompt"} the same as \code{"installed"}.
 #' @param validate Logical flag for validation; forwarded to `core_read`.
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.
@@ -60,7 +68,7 @@ write_lna <- function(x, file = NULL, transforms = character(),
 #'   returned `lna_reader` can load data lazily.
 #' @return A `DataHandle` object from `core_read`.
 #' @export
-read_lna <- function(file, allow_plugins = c("warn", "off", "on"),
+read_lna <- function(file, allow_plugins = c("installed", "none", "prompt"),
                      validate = FALSE,
                      output_dtype = c("float32", "float64", "float16"),
                      lazy = FALSE) {
