@@ -10,6 +10,8 @@ scaffold_transform <- function(type) {
   if (!nzchar(type)) {
     stop("type must be a non-empty string", call. = FALSE)
   }
+
+  check_transform_implementation(type)
   r_path <- file.path("R", sprintf("transform_%s.R", type))
   schema_path <- file.path("inst", "schemas", sprintf("%s.schema.json", type))
   test_path <- file.path("tests", "testthat", sprintf("test-transform_%s.R", type))
