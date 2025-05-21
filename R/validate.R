@@ -141,7 +141,13 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
               }
             }
 
-            data <- tryCatch(h5_read(root, path), error = function(e) NULL)
+            data <- tryCatch(
+              h5_read(root, path),
+              error = function(e) {
+                fail(sprintf("Error reading dataset '%s': %s", path, e$message))
+                NULL
+              }
+            )
             if (is.numeric(data)) {
               if (all(is.na(data)) || all(data == 0)) {
                 fail(sprintf("Dataset '%s' contains only zeros/NaN", path))
