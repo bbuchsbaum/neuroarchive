@@ -214,18 +214,27 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 
   if (checksum == "sha256") {
     file_path <- h5$filename
-    placeholder <- paste(rep("0", 64), collapse = "")
-    root <- h5[["/"]]
-    h5_attr_write(root, "lna_checksum", placeholder)
-    neuroarchive:::close_h5_safely(h5)
+    # Ensure all data is written and file is closed BEFORE hashing
+    neuroarchive:::close_h5_safely(h5) # IMPORTANT: h5 is closed here
+
     if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
+      # Calculate hash on the closed file
       hash_val <- digest::digest(file = file_path, algo = "sha256")
-      h5_tmp <- open_h5(file_path, mode = "r+")
-      root_tmp <- h5_tmp[["/"]]
-      h5_attr_write(root_tmp, "lna_checksum", hash_val)
-      neuroarchive:::close_h5_safely(h5_tmp)
+
+      # Re-open to write the checksum attribute
+      h5_tmp <- NULL # Initialize to NULL for error handling if open_h5 fails
+      tryCatch({
+          h5_tmp <- open_h5(file_path, mode = "r+")
+          root_tmp <- h5_tmp[["/"]]
+          h5_attr_write(root_tmp, "lna_checksum", hash_val)
+      }, finally = {
+          if (!is.null(h5_tmp) && inherits(h5_tmp, "H5File") && h5_tmp$is_valid) {
+              neuroarchive:::close_h5_safely(h5_tmp)
+          }
+      })
     } else {
-      warning("Checksum requested but file path unavailable; skipping")
+      warning("Checksum requested but file path unavailable or invalid; skipping write of checksum attribute.")
+      # Note: h5 was already closed. The function is documented to return an invalid handle.
     }
   }
 
