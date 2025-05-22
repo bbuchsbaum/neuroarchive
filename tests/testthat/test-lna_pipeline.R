@@ -161,3 +161,20 @@ test_that("print() summarises pipeline", {
   expect_true(any(grepl("1 run", output)))
 })
 
+# Introspection methods ------------------------------------------------------
+
+test_that("steps() returns internal step list", {
+  pipe <- as_pipeline(array(1))
+  s1 <- list(type = "quant", params = list(bits = 8))
+  s2 <- list(type = "basis", params = list(k = 2))
+  s3 <- list(type = "quant", params = list(bits = 4))
+  pipe$add_step(s1)
+  pipe$add_step(s2)
+  pipe$add_step(s3)
+
+  expect_identical(pipe$steps(), pipe$steps)
+  expect_identical(pipe$get_step(2), s2)
+  expect_identical(pipe$get_step("quant"), s3)
+  expect_identical(pipe$get_last_step_spec(), s3)
+})
+
