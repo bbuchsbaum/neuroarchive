@@ -140,3 +140,61 @@ test_that("invert_step.quant warns when quant_bits attribute missing", {
   write_lna(arr, file = tmp, transforms = "quant")
   expect_warning(read_lna(tmp), regexp = "quant_bits")
 })
+
+test_that("quantized dataset uses uint8 or uint16 storage", {
+  arr <- array(runif(6), dim = c(2,3))
+
+  tmp8 <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp8, transforms = "quant",
+           transform_params = list(quant = list(bits = 7)))
+  h5 <- H5File$new(tmp8, mode = "r")
+  dset <- h5[["scans/run-01/quantized"]]
+  dt <- hdf5r:::datatype_to_char(dset$get_type())
+  expect_equal(dt, "H5T_STD_U8LE")
+  expect_equal(h5_attr_read(dset, "quant_bits"), 7L)
+  st <- h5[["scans/run-01/quant_scale"]]
+  ot <- h5[["scans/run-01/quant_offset"]]
+  expect_equal(hdf5r:::datatype_to_char(st$get_type()), "H5T_IEEE_F32LE")
+  expect_equal(hdf5r:::datatype_to_char(ot$get_type()), "H5T_IEEE_F32LE")
+  dset$close(); st$close(); ot$close(); h5$close_all()
+
+  tmp16 <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp16, transforms = "quant",
+           transform_params = list(quant = list(bits = 12)))
+  h52 <- H5File$new(tmp16, mode = "r")
+  dset2 <- h52[["scans/run-01/quantized"]]
+  dt2 <- hdf5r:::datatype_to_char(dset2$get_type())
+  expect_equal(dt2, "H5T_STD_U16LE")
+  expect_equal(h5_attr_read(dset2, "quant_bits"), 12L)
+  st2 <- h52[["scans/run-01/quant_scale"]]
+  ot2 <- h52[["scans/run-01/quant_offset"]]
+  expect_equal(hdf5r:::datatype_to_char(st2$get_type()), "H5T_IEEE_F32LE")
+  expect_equal(hdf5r:::datatype_to_char(ot2$get_type()), "H5T_IEEE_F32LE")
+  dset2$close(); st2$close(); ot2$close(); h52$close_all()
+})
+
+test_that("quant_bits attribute is validated against descriptor", {
+  arr <- array(runif(6), dim = c(2,3))
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp, transforms = "quant",
+           transform_params = list(quant = list(bits = 9)))
+  expect_silent(read_lna(tmp))
+
+  h5 <- H5File$new(tmp, mode = "a")
+  dset <- h5[["scans/run-01/quantized"]]
+  h5_attr_write(dset, "quant_bits", 8L)
+  dset$close(); h5$close_all()
+
+  expect_error(read_lna(tmp), class = "lna_error_validation")
+})
+
+test_that("missing quant_bits attribute triggers warning", {
+  arr <- array(runif(6), dim = c(2,3))
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp, transforms = "quant")
+  h5 <- H5File$new(tmp, mode = "a")
+  dset <- h5[["scans/run-01/quantized"]]
+  if (h5_attr_exists(dset, "quant_bits")) h5_attr_delete(dset, "quant_bits")
+  dset$close(); h5$close_all()
+  expect_warning(read_lna(tmp), regexp = "quant_bits")
+})
