@@ -250,8 +250,11 @@ test_that("forward_step.quant warns or errors based on clipping thresholds", {
   )
 })
 
-test_that("quantized values are hard clipped to valid range", {
-  arr <- c(rep(0, 98), 100, -100)
+
+test_that("forward_step.quant hard clips output range", {
+  arr <- c(rep(0, 98), 10, -10)
+
+
   tmp <- local_tempfile(fileext = ".h5")
   write_lna(arr, file = tmp, transforms = "quant",
             transform_params = list(quant = list(method = "sd")))
