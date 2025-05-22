@@ -98,10 +98,21 @@ test_that(".quantize_global handles constant arrays", {
   res <- neuroarchive:::.quantize_global(x, bits = 8, method = "range", center = TRUE)
   expect_equal(res$scale, 1)
   expect_true(all(res$q == 0))
+  expect_equal(res$n_clipped_total, 0L)
+  expect_equal(res$clip_pct, 0)
 
   res2 <- neuroarchive:::.quantize_global(x, bits = 8, method = "range", center = FALSE)
   expect_equal(res2$scale, 1)
   expect_true(all(res2$q == 0))
+})
+
+test_that(".quantize_global counts clipping", {
+  set.seed(1)
+  x <- c(rep(0, 98), 5, -5)
+  res <- neuroarchive:::.quantize_global(x, bits = 8, method = "sd", center = TRUE)
+  expect_equal(res$n_clipped_total, 2L)
+  expect_equal(res$clip_pct, 2)
+  expect_true(all(res$q >= 0 & res$q <= 255))
 })
 
 test_that(".quantize_voxel handles constant arrays", {
@@ -132,6 +143,15 @@ test_that("quant transform errors on non-finite input", {
     regexp = "non-finite"
   )
 
+})
+
+test_that("forward_step.quant stores clipping stats in handle meta", {
+  arr <- c(rep(0, 98), 5, -5)
+  tmp <- local_tempfile(fileext = ".h5")
+  res <- write_lna(arr, file = tmp, transforms = "quant",
+                   transform_params = list(quant = list(method = "sd")))
+  expect_equal(res$handle$meta$quant_stats$n_clipped_total, 2L)
+  expect_equal(res$handle$meta$quant_stats$clip_pct, 2)
 })
 
 test_that("invert_step.quant warns when quant_bits attribute missing", {
