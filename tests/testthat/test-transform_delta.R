@@ -59,3 +59,43 @@ test_that("delta transform rejects unsupported coding_method", {
     regexp = "coding_method"
   )
 })
+
+test_that("rle coding compresses delta stream for 1D input", {
+  arr <- rep(0, 10)
+  tmp <- local_tempfile(fileext = ".h5")
+
+  write_lna(arr, file = tmp, transforms = "delta",
+           transform_params = list(delta = list(coding_method = "rle")))
+  expect_true(file.exists(tmp))
+
+  h5 <- H5File$new(tmp, mode = "r")
+  ds_path <- "/scans/run-01/deltas/00_delta/delta_stream"
+  delta_stream <- h5[[ds_path]][]
+  h5$close_all()
+
+  expect_true(nrow(delta_stream) < length(arr) - 1)
+
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(drop(out), arr)
+})
+
+test_that("rle coding compresses delta stream for matrix input", {
+  arr <- matrix(0, nrow = 4, ncol = 5)
+  tmp <- local_tempfile(fileext = ".h5")
+
+  write_lna(arr, file = tmp, transforms = "delta",
+           transform_params = list(delta = list(coding_method = "rle")))
+  expect_true(file.exists(tmp))
+
+  h5 <- H5File$new(tmp, mode = "r")
+  ds_path <- "/scans/run-01/deltas/00_delta/delta_stream"
+  delta_stream <- h5[[ds_path]][]
+  h5$close_all()
+
+  expect_true(nrow(delta_stream) < prod(dim(arr)) - nrow(arr))
+
+  h <- read_lna(tmp)
+  out <- h$stash$input
+  expect_equal(drop(out), arr)
+})
