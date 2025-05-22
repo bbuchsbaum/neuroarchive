@@ -45,6 +45,14 @@ forward_step.quant <- function(type, desc, handle) {
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   x <- handle$get_inputs(input_key)[[1]]
 
+  if (any(!is.finite(x))) {
+    abort_lna(
+      "quant cannot handle non-finite values – run an imputation/filtering transform first.",
+      .subclass = "lna_error_validation",
+      location = "forward_step.quant"
+    )
+  }
+
   if (identical(scope, "voxel")) {
     if (length(dim(x)) < 4) {
       warning("scale_scope='voxel' requires 4D data; falling back to global")
