@@ -24,7 +24,12 @@ core_write <- function(x, transforms, transform_params = list(),
   stopifnot(is.list(transform_params))
 
   # cat("[core_write] Validating input data...\n")
-  validate_input_data(x)
+  min_dims <- if (length(transforms) > 0) {
+    transform_min_dims(transforms[1])
+  } else {
+    3L
+  }
+  validate_input_data(x, min_dims = min_dims)
   # cat("[core_write] Input data validated.\n")
 
   # cat("[core_write] Validating mask...\n")
@@ -234,17 +239,20 @@ validate_named_list <- function(lst, field) {
 
 #' Validate input data
 #'
-#' Ensures that `x` (or each element of a list `x`) has at least three
-#' dimensions. This prevents ambiguous handling of 2D matrices.
+#' Ensures that `x` (or each element of a list `x`) has at least
+#' `min_dims` dimensions. This prevents ambiguous handling of 2D
+#' matrices when transforms expect 3D input.
 #'
 #' @param x Input object for `core_write`.
+#' @param min_dims Integer, minimum required number of dimensions.
+#'
 #' @keywords internal
-validate_input_data <- function(x) {
+validate_input_data <- function(x, min_dims = 3L) {
   check_dims <- function(obj) {
     dims <- dim(obj)
-    if (is.null(dims) || length(dims) < 3) {
+    if (is.null(dims) || length(dims) < min_dims) {
       abort_lna(
-        "input data must have at least 3 dimensions",
+        sprintf("input data must have at least %d dimensions", min_dims),
         .subclass = "lna_error_validation",
         location = "core_write:input"
       )
