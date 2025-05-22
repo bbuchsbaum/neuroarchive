@@ -1,6 +1,12 @@
 #' Quantization Transform - Forward Step
 #'
-#' Applies simple min-max quantization to numeric data.
+#' Implements the writer-side quant step. Parameters follow the quant
+#' schema (`bits`, `method`, `center`, `scale_scope`, `allow_clip`).
+#' Excessive clipping triggers an error unless `allow_clip` is `TRUE`.
+#'
+#' @param type,desc,handle Internal arguments used by the transform
+#'   dispatcher.
+#' @return None. Updates the write plan and `handle$meta`.
 #' @keywords internal
 forward_step.quant <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -290,7 +296,13 @@ forward_step.quant <- function(type, desc, handle) {
 
 #' Quantization Transform - Inverse Step
 #'
-#' Reconstructs data from quantized representation stored in HDF5.
+#' Reads quantized values and reconstructs the original data using the
+#' stored scale and offset. Validates the `quant_bits` attribute and
+#' handles legacy files missing it.
+#'
+#' @param type,desc,handle Internal arguments used by the transform
+#'   dispatcher.
+#' @return None. Places the reconstructed array into `handle$stash`.
 #' @keywords internal
 invert_step.quant <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
