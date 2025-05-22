@@ -7,6 +7,9 @@
 \method{invert_step}{delta}(type, desc, handle)
 }
 \description{
-Reconstructs data from delta representation stored in HDF5.
+Reconstructs data from the delta representation written by
+\code{\link{forward_step.delta}}. If run-length encoding was used, the
+stored runs are expanded back to the full set of differences before
+reconstruction.
 }
 \keyword{internal}
