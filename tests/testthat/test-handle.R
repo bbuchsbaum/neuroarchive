@@ -116,6 +116,14 @@ test_that("DataHandle get_inputs works correctly", {
   expect_error(h$get_inputs(character(0))) # Empty vector
 })
 
+test_that("DataHandle pull_first retrieves first available", {
+  h <- DataHandle$new(initial_stash = list(a = 1, b = 2))
+  res <- h$pull_first(c("c", "b", "a"))
+  expect_equal(res$key, "b")
+  expect_equal(res$value, 2)
+  expect_error(h$pull_first(c("x", "y")), class = "lna_error_contract")
+})
+
 test_that("DataHandle with method provides immutability", {
   # Initial object
   h1_stash <- list(a = 1)

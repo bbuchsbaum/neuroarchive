@@ -10,8 +10,11 @@
 Performs a sparse PCA on the input matrix. If the optional `sparsepca`
 package is available, the transform uses `sparsepca::spca()` to compute
 sparse loadings. Otherwise it falls back to a truncated SVD via `irlba`
-or base `svd`). This example demonstrates how an external plugin transform
+(or base `svd`). Columns can be whitened prior to fitting and the
+singular values of the fit are saved alongside the basis.
+This example demonstrates how an external plugin transform
 might integrate with the LNA pipeline.
+
 }
 \details{
 The orientation of the stored basis matrix is controlled by the

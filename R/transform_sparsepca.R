@@ -3,7 +3,9 @@
 #' Performs a sparse PCA on the input matrix. If the optional `sparsepca`
 #' package is available, the transform uses `sparsepca::spca()` to compute
 #' sparse loadings. Otherwise it falls back to a truncated SVD via `irlba`
-#' (or base `svd`). This example demonstrates how an external plugin transform
+#' (or base `svd`). Columns may be optionally whitened prior to fitting.
+#' The chosen backend and singular values are recorded for later use.
+#' This example demonstrates how an external plugin transform
 #' might integrate with the LNA pipeline.
 #'
 #' @param storage_order Character string specifying the orientation of the
@@ -15,6 +17,9 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   k <- p$k %||% 2
   alpha <- p$alpha %||% 0.001
   storage_order <- p$storage_order %||% "component_x_voxel"
+  whiten <- p$whiten %||% FALSE
+  seed <- p$seed
+
   allowed_orders <- c("component_x_voxel", "voxel_x_component")
   if (!storage_order %in% allowed_orders) {
     abort_lna(
@@ -28,32 +33,43 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
     )
   }
 
-  input_key <- if (handle$has_key("aggregated_matrix")) {
-    "aggregated_matrix"
-  } else if (handle$has_key("dense_mat")) {
-    "dense_mat"
-  } else {
-    "input"
-  }
-  X <- handle$get_inputs(input_key)[[1]]
+  inp <- handle$pull_first(c("aggregated_matrix", "dense_mat", "input"))
+  input_key <- inp$key
+  X <- inp$value
   if (!is.matrix(X)) {
     X <- as.matrix(X)
   }
+  if (isTRUE(whiten)) {
+    X <- scale(X, center = TRUE, scale = TRUE)
+  }
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
   if (requireNamespace("sparsepca", quietly = TRUE)) {
+    backend <- "sparsepca"
     fit <- sparsepca::spca(X, k = as.integer(k), alpha = alpha,
                            verbose = FALSE)
     basis <- fit$loadings
     embed <- fit$scores
+    d <- svd(X, nu = 0, nv = 0)$d[seq_len(k)]
   } else if (requireNamespace("irlba", quietly = TRUE)) {
+    backend <- "irlba"
     fit <- irlba::irlba(X, nv = as.integer(k))
     basis <- fit$v
-    embed <- fit$u %*% diag(fit$d)
+    embed <- fit$u
+    d <- fit$d
   } else {
+    backend <- "svd"
     sv <- svd(X, nu = as.integer(k), nv = as.integer(k))
     basis <- sv$v
-    embed <- sv$u %*% diag(sv$d[seq_len(k)])
+    embed <- sv$u
+    d <- sv$d[seq_len(k)]
   }
+  if (!is.null(handle$logger)) {
+    handle$logger$info(sprintf("sparsepca backend: %s", backend))
+  }
+  embed <- embed %*% diag(d)
 
   if (identical(storage_order, "voxel_x_component")) {
     basis <- Matrix::t(basis)
@@ -63,6 +79,7 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   fname <- plan$get_next_filename(type)
   base <- tools::file_path_sans_ext(fname)
   basis_path <- paste0("/basis/", base, "/basis")
+  d_path <- paste0("/basis/", base, "/singular_values")
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
   embed_path <- paste0("/scans/", run_id, "/", base, "/embedding")
@@ -72,7 +89,9 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   desc$inputs <- c(input_key)
   desc$outputs <- c("sparsepca_basis", "sparsepca_embedding")
   desc$datasets <- list(list(path = basis_path, role = "basis_matrix"),
-                        list(path = embed_path, role = "coefficients"))
+                        list(path = embed_path, role = "coefficients"),
+                        list(path = d_path, role = "singular_values"))
+  desc$params <- p
   plan$add_descriptor(fname, desc)
 
   plan$add_payload(basis_path, basis)
@@ -83,6 +102,10 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   plan$add_dataset_def(embed_path, "coefficients", as.character(type),
                        handle$plan$origin_label, as.integer(plan$next_index - 1),
                        params_json, embed_path, "eager")
+  plan$add_payload(d_path, d)
+  plan$add_dataset_def(d_path, "singular_values", as.character(type),
+                       handle$plan$origin_label, as.integer(plan$next_index - 1),
+                       params_json, d_path, "eager")
 
   handle$plan <- plan
   # Stash the actual basis and embedding, not just TRUE/FALSE flags
@@ -105,10 +128,13 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
   ds <- desc$datasets
   basis_path <- ds[[which(vapply(ds, function(d) d$role, character(1)) == "basis_matrix")]]$path
   embed_path <- ds[[which(vapply(ds, function(d) d$role, character(1)) == "coefficients")]]$path
+  d_idx <- which(vapply(ds, function(d) d$role, character(1)) == "singular_values")
+  d_path <- if (length(d_idx) == 1) ds[[d_idx]]$path else NULL
 
   root <- handle$h5[["/"]]
   basis <- h5_read(root, basis_path)
   embed <- h5_read(root, embed_path)
+  d <- if (!is.null(d_path)) h5_read(root, d_path) else NULL
   p <- desc$params %||% list()
   storage_order <- p$storage_order %||% "component_x_voxel"
   allowed_orders <- c("component_x_voxel", "voxel_x_component")
@@ -125,6 +151,10 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
   }
   if (identical(storage_order, "voxel_x_component")) {
     basis <- Matrix::t(basis)
+  }
+
+  if (!is.null(d) && ncol(embed) == length(d)) {
+    embed <- embed %*% diag(d)
   }
 
   Xhat <- embed %*% basis
@@ -146,5 +176,6 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
 #' @export
 #' @keywords internal
 lna_default.myorg.sparsepca <- function() {
-  list(k = 50L, alpha = 1e-3, whiten = FALSE, storage_order = "component_x_voxel")
+  list(k = 50L, alpha = 1e-3, whiten = FALSE, seed = 42L,
+       storage_order = "component_x_voxel")
 }
