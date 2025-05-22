@@ -70,6 +70,12 @@ forward_step.quant <- function(type, desc, handle) {
   q <- params$q
   scale <- params$scale
   offset <- params$offset
+  if (identical(scope, "global")) {
+    handle$meta$quant_stats <- list(
+      n_clipped_total = params$n_clipped_total %||% 0L,
+      clip_pct = params$clip_pct %||% 0
+    )
+  }
 
   storage.mode(q) <- "integer"
   storage_type_str <- if (bits <= 8) "uint8" else "uint16"
@@ -198,14 +204,28 @@ invert_step.quant <- function(type, desc, handle) {
 
   if (scale == 0) {
     scale <- 1
-    q <- rep.int(0L, length(x))
+    q_raw <- rep.int(0L, length(x))
+    n_clipped_total <- 0L
   } else {
-    q <- round((x - offset) / scale)
-    q[q < 0] <- 0L
-    q[q > 2^bits - 1] <- 2^bits - 1L
+    q_raw <- round((x - offset) / scale)
+    n_clipped_total <- sum(q_raw < 0 | q_raw > 2^bits - 1)
   }
 
-  list(q = q, scale = scale, offset = offset)
+  clip_pct <- if (length(x) > 0) {
+    100 * n_clipped_total / length(x)
+  } else {
+    0
+  }
+
+  q <- q_raw
+  q[q < 0] <- 0L
+  q[q > 2^bits - 1] <- 2^bits - 1L
+
+  list(q = q,
+       scale = scale,
+       offset = offset,
+       n_clipped_total = as.integer(n_clipped_total),
+       clip_pct = clip_pct)
 }
 
 #' Compute quantization parameters per voxel (time series)
