@@ -27,11 +27,14 @@ test_that("materialise_plan retries with chunk heuristics", {
     grp$create_dataset(tail(parts, 1), data)
   }
 
+  local_mocked_bindings(
+    h5_write_dataset = fake_write,
+    .env = asNamespace("neuroarchive")
+  )
+
   expect_warning(
     expect_warning(
-      testthat::local_mocked_bindings(h5_write_dataset = fake_write, .package = "neuroarchive", {
-        materialise_plan(h5, plan)
-      }),
+      materialise_plan(h5, plan),
       "<1 GiB"
     ),
     "256 MiB"
