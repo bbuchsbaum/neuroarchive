@@ -95,9 +95,10 @@ Input: Data $X$ (from `DataHandle$stash`), parameters from `desc$params`.
     *   `clip_pct = 100 * n_clipped_total / length(X)`.
     *   Apply clipping: `Q(X_{unit})` is bounded to $[0, 2^{bits}-1]$.
 5.  **Clipping Handling (Global):**
-    *   `clip_warn_pct = getOption("lna.quant.clip_warn_pct", 0.5)`
-    *   `clip_abort_pct = getOption("lna.quant.clip_abort_pct", 5.0)`
-    *   If `clip_pct > clip_abort_pct && !params$allow_clip`: `abort_lna(...)`.
+    *   `clip_warn_pct <- getOption("lna.quant.clip_warn_pct", 0.5)`
+    *   `clip_abort_pct <- getOption("lna.quant.clip_abort_pct", 5.0)`
+    *   `allow_clip <- isTRUE(desc$params$allow_clip)` (defaults to `FALSE`)
+    *   If `clip_pct > clip_abort_pct && !allow_clip`: `abort_lna(...)`.
     *   Else if `clip_pct > clip_warn_pct`: `warn_lna(...)` (LNA specific warning).
 6.  **Data Storage:**
     *   Determine narrowest unsigned integer type: `storage_type_str = if (bits <= 8) "uint8" else "uint16"`.
@@ -213,7 +214,7 @@ Okay, here are granular tickets for **Sprint 1** of implementing the "Rock-Solid
 *   `invert_step.quant` reads the `quant_bits` attribute (with fallback and validation) to correctly interpret data.
 *   Scale and offset parameters are stored as `float32`.
 *   `forward_step.quant` includes a check for non-finite input values.
-*   For `scale_scope="global"`, clipping is counted, and warnings/aborts are triggered based on `clip_pct` and the `allow_clip` parameter. Output values are hard-clipped.
+*   For `scale_scope="global"`, clipping is counted. `clip_warn_pct` and `clip_abort_pct` are read from `lna_options()` and compared with `clip_pct`. If `clip_pct` exceeds the abort threshold and `allow_clip` is `FALSE`, an error is thrown; otherwise a warning is issued when `clip_pct` exceeds the warn threshold. Output values are hard-clipped.
 *   Unit tests cover all implemented functionalities for efficient storage, `quant_bits` attribute handling, non-finite checks, and global scope clipping.
 *   The `quant` transform (for global scope) is more robust and storage-efficient.
 
