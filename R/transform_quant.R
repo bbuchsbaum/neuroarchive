@@ -97,7 +97,9 @@ forward_step.quant <- function(type, desc, handle) {
     }
     handle$meta$quant_stats <- list(
       n_clipped_total = params$n_clipped_total %||% 0L,
-      clip_pct = params$clip_pct %||% 0
+      clip_pct = params$clip_pct %||% 0,
+      scale_val = as.numeric(scale),
+      offset_val = as.numeric(offset)
     )
     q[q < 0] <- 0L
     q[q > (2^bits - 1)] <- (2^bits - 1L)
@@ -137,6 +139,8 @@ forward_step.quant <- function(type, desc, handle) {
 
     slab <- bs$slab_dims
     n_clipped_total <- 0L
+    sc_min <- Inf; sc_max <- -Inf; sc_sum <- 0; sc_sum_sq <- 0
+    off_min <- Inf; off_max <- -Inf; off_sum <- 0; off_sum_sq <- 0
     for (z in seq(1, dims[3], by = slab[3])) {
       zi <- z:min(z + slab[3] - 1, dims[3])
       for (y in seq(1, dims[2], by = slab[2])) {
@@ -150,19 +154,86 @@ forward_step.quant <- function(type, desc, handle) {
           dset_scale$write(args = idx[1:3], res$scale)
           dset_offset$write(args = idx[1:3], res$offset)
           n_clipped_total <- n_clipped_total + res$n_clipped_total
+          sc <- as.numeric(res$scale)
+          of <- as.numeric(res$offset)
+          sc_min <- min(sc_min, min(sc))
+          sc_max <- max(sc_max, max(sc))
+          sc_sum <- sc_sum + sum(sc)
+          sc_sum_sq <- sc_sum_sq + sum(sc^2)
+          off_min <- min(off_min, min(of))
+          off_max <- max(off_max, max(of))
+          off_sum <- off_sum + sum(of)
+          off_sum_sq <- off_sum_sq + sum(of^2)
         }
       }
     }
     dset_q$close(); dset_scale$close(); dset_offset$close()
     clip_pct <- if (length(x) > 0) 100 * n_clipped_total / length(x) else 0
+    vox_total <- prod(dims[1:3])
+    sc_mean <- sc_sum / vox_total
+    sc_sd <- sqrt(sc_sum_sq / vox_total - sc_mean^2)
+    off_mean <- off_sum / vox_total
+    off_sd <- sqrt(off_sum_sq / vox_total - off_mean^2)
     handle$meta$quant_stats <- list(
       n_clipped_total = as.integer(n_clipped_total),
-      clip_pct = clip_pct
+      clip_pct = clip_pct,
+      scale_min = sc_min,
+      scale_max = sc_max,
+      scale_mean = sc_mean,
+      scale_sd = sc_sd,
+      offset_min = off_min,
+      offset_max = off_max,
+      offset_mean = off_mean,
+      offset_sd = off_sd
     )
     q <- NULL
     scale <- NULL
     offset <- NULL
   }
+
+  input_range <- range(as.numeric(x))
+  qs <- handle$meta$quant_stats
+  if (!identical(scope, "voxel")) {
+    var_x <- stats::var(as.numeric(x))
+    snr_db <- 10 * log10(var_x / ((qs$scale_val)^2 / 12))
+    hist_info <- hist(as.numeric(q), breaks = 64, plot = FALSE)
+    quant_report <- list(
+      report_version = "1.0",
+      clipped_samples_count = qs$n_clipped_total,
+      clipped_samples_percentage = qs$clip_pct,
+      input_data_range = input_range,
+      effective_step_size = qs$scale_val,
+      effective_offset = qs$offset_val,
+      estimated_snr_db = snr_db,
+      histogram_quantized_values = list(
+        breaks = hist_info$breaks,
+        counts = unname(hist_info$counts)
+      )
+    )
+  } else {
+    var_x <- stats::var(as.numeric(x))
+    snr_db <- 10 * log10(var_x / ((qs$scale_mean)^2 / 12))
+    quant_report <- list(
+      report_version = "1.0",
+      clipped_samples_count = qs$n_clipped_total,
+      clipped_samples_percentage = qs$clip_pct,
+      input_data_range = input_range,
+      scale_stats = list(
+        min = qs$scale_min,
+        max = qs$scale_max,
+        mean = qs$scale_mean,
+        sd = qs$scale_sd
+      ),
+      offset_stats = list(
+        min = qs$offset_min,
+        max = qs$offset_max,
+        mean = qs$offset_mean,
+        sd = qs$offset_sd
+      ),
+      estimated_snr_db = snr_db
+    )
+  }
+  handle$meta$quant_report <- quant_report
 
   plan <- handle$plan
   step_index <- plan$next_index
