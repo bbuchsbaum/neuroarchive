@@ -18,6 +18,7 @@ Imports:
     tibble,
     progressr,
     digest,
+    memoise,
     jsonvalidate,
     withr,
     rle,
