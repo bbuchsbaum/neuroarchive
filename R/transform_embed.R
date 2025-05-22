@@ -76,7 +76,7 @@ forward_step.embed <- function(type, desc, handle) {
 
   plan$add_dataset_def(coef_path, "coefficients", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       coef_path, "eager")
+                       coef_path, "eager", dtype = NA_character_)
 
   handle$plan <- plan
   handle$update_stash(keys = input_key, new_values = list(input = coeff,

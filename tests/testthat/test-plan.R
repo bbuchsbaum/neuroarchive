@@ -24,7 +24,8 @@ test_that("Plan initialization works correctly", {
   # Check datasets tibble structure
   expected_cols <- c(
     "path", "role", "producer", "origin", "step_index",
-    "params_json", "payload_key", "write_mode", "write_mode_effective"
+    "params_json", "payload_key", "write_mode", "write_mode_effective",
+    "dtype"
   )
   expect_equal(names(plan$datasets), expected_cols)
   # Check column types (optional but good)
@@ -92,7 +93,8 @@ test_that("Plan add_dataset_def works correctly", {
   plan$add_dataset_def(
     path = def1$path, role = def1$role, producer = def1$producer,
     origin = def1$origin, step_index = def1$step_index, params_json = def1$params_json,
-    payload_key = def1$payload_key, write_mode = def1$write_mode
+    payload_key = def1$payload_key, write_mode = def1$write_mode,
+    dtype = NA_character_
   )
 
   # Check results
@@ -107,28 +109,29 @@ test_that("Plan add_dataset_def works correctly", {
   expect_equal(row1$payload_key, def1$payload_key)
   expect_equal(row1$write_mode, def1$write_mode)
   expect_equal(row1$write_mode_effective, NA_character_)
+  expect_equal(row1$dtype, NA_character_)
 
   # Add another one
-  plan$add_dataset_def("/basis/global", "basis", "pca", "global", 0L, '{"k": 50}', "pca_basis", "eager")
+  plan$add_dataset_def("/basis/global", "basis", "pca", "global", 0L, '{"k": 50}', "pca_basis", "eager", dtype = NA_character_)
   expect_equal(nrow(plan$datasets), 2)
 
   # step_index accepts numeric integer
-  plan$add_dataset_def("/data/extra", "extra", "dummy", "run-01", 1, "{}", "raw_data", "eager")
+  plan$add_dataset_def("/data/extra", "extra", "dummy", "run-01", 1, "{}", "raw_data", "eager", dtype = NA_character_)
   expect_equal(nrow(plan$datasets), 3)
   expect_equal(plan$datasets$step_index[3], 1L)
 
   # invalid step_index (non integer numeric)
-  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 1.5, "{}", "raw_data", "eager"))
+  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 1.5, "{}", "raw_data", "eager", dtype = NA_character_))
 
   # invalid write_mode
-  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 0L, "{}", "raw_data", "invalid"))
+  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 0L, "{}", "raw_data", "invalid", dtype = NA_character_))
 
   # invalid JSON
-  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 0L, "not json", "raw_data", "eager"))
+  expect_error(plan$add_dataset_def("/bad", "data", "dummy", "run-01", 0L, "not json", "raw_data", "eager", dtype = NA_character_))
 
   # Check some basic type errors handled by stopifnot
-  expect_error(plan$add_dataset_def(path=123, role="", producer="", origin="", step_index=0L, params_json="", payload_key="", write_mode=""))
-  expect_error(plan$add_dataset_def(path="", role="", producer="", origin="", step_index="a", params_json="", payload_key="", write_mode=""))
+  expect_error(plan$add_dataset_def(path=123, role="", producer="", origin="", step_index=0L, params_json="", payload_key="", write_mode="", dtype = NA_character_))
+  expect_error(plan$add_dataset_def(path="", role="", producer="", origin="", step_index="a", params_json="", payload_key="", write_mode="", dtype = NA_character_))
 })
 
 test_that("Plan add_descriptor and get_next_filename work correctly", {

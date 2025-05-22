@@ -64,6 +64,7 @@ forward_step.quant <- function(type, desc, handle) {
   offset <- params$offset
 
   storage.mode(q) <- "integer"
+  storage_type_str <- if (bits <= 8) "uint8" else "uint16"
 
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
@@ -79,15 +80,15 @@ forward_step.quant <- function(type, desc, handle) {
   plan$add_payload(data_path, q)
   plan$add_dataset_def(data_path, "quantized", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       data_path, "eager")
+                       data_path, "eager", dtype = storage_type_str)
   plan$add_payload(scale_path, scale)
   plan$add_dataset_def(scale_path, "scale", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       scale_path, "eager")
+                       scale_path, "eager", dtype = NA_character_)
   plan$add_payload(offset_path, offset)
   plan$add_dataset_def(offset_path, "offset", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       offset_path, "eager")
+                       offset_path, "eager", dtype = NA_character_)
 
   handle$plan <- plan
   handle$update_stash(keys = input_key, new_values = list())

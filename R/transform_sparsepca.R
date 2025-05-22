@@ -97,15 +97,15 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   plan$add_payload(basis_path, basis)
   plan$add_dataset_def(basis_path, "basis_matrix", as.character(type),
                        handle$plan$origin_label, as.integer(plan$next_index - 1),
-                       params_json, basis_path, "eager")
+                       params_json, basis_path, "eager", dtype = NA_character_)
   plan$add_payload(embed_path, embed)
   plan$add_dataset_def(embed_path, "coefficients", as.character(type),
                        handle$plan$origin_label, as.integer(plan$next_index - 1),
-                       params_json, embed_path, "eager")
+                       params_json, embed_path, "eager", dtype = NA_character_)
   plan$add_payload(d_path, d)
   plan$add_dataset_def(d_path, "singular_values", as.character(type),
                        handle$plan$origin_label, as.integer(plan$next_index - 1),
-                       params_json, d_path, "eager")
+                       params_json, d_path, "eager", dtype = NA_character_)
 
   handle$plan <- plan
   # Stash the actual basis and embedding, not just TRUE/FALSE flags

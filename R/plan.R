@@ -34,7 +34,8 @@ Plan <- R6::R6Class("Plan",
         params_json = character(),
         payload_key = character(),
         write_mode = character(),
-        write_mode_effective = character() # Added based on Spec v1.4
+        write_mode_effective = character(), # Added based on Spec v1.4
+        dtype = character()
       )
       self$descriptors <- list()
       self$payloads <- list()
@@ -69,7 +70,9 @@ Plan <- R6::R6Class("Plan",
     #' @param params_json Character string, JSON representation of transform params.
     #' @param payload_key Character string, key linking to the entry in `self$payloads`.
     #' @param write_mode Character string, requested write mode ("eager"/"stream").
-    add_dataset_def = function(path, role, producer, origin, step_index, params_json, payload_key, write_mode) {
+    #' @param dtype Optional character string naming the storage datatype (e.g.,
+    #'   "uint8", "uint16").
+    add_dataset_def = function(path, role, producer, origin, step_index, params_json, payload_key, write_mode, dtype = NA_character_) {
       # Basic type checks with additional validation
       stopifnot(
         is.character(path), length(path) == 1,
@@ -79,7 +82,8 @@ Plan <- R6::R6Class("Plan",
         is.numeric(step_index), length(step_index) == 1, !is.na(step_index), step_index %% 1 == 0,
         is.character(params_json), length(params_json) == 1,
         is.character(payload_key), length(payload_key) == 1,
-        is.character(write_mode), length(write_mode) == 1
+        is.character(write_mode), length(write_mode) == 1,
+        is.character(dtype), length(dtype) == 1
       )
 
       # Validate write_mode values
@@ -103,7 +107,8 @@ Plan <- R6::R6Class("Plan",
         params_json = params_json,
         payload_key = payload_key,
         write_mode = write_mode,
-        write_mode_effective = NA_character_ # To be filled during materialization
+        write_mode_effective = NA_character_, # To be filled during materialization
+        dtype = as.character(dtype)
       )
       invisible(self)
     },
@@ -192,7 +197,8 @@ Plan <- R6::R6Class("Plan",
         step_index = 0L,
         params_json = "{}",
         payload_key = key,
-        write_mode = "eager"
+        write_mode = "eager",
+        dtype = NA_character_
       )
       invisible(self)
     },
