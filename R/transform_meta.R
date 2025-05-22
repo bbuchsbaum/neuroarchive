@@ -29,3 +29,13 @@ transform_min_dims.basis <- function(type) {
 transform_min_dims.embed <- function(type) {
   2L # Embed also typically works on 2D (time x features) or (time x voxels)
 }
+
+#' @export
+transform_min_dims.myorg.sparsepca <- function(type) {
+  2L
+}
+
+#' @export
+transform_min_dims.myorg.aggregate_runs <- function(type) {
+  2L
+}
