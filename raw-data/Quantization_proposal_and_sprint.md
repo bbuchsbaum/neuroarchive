@@ -102,6 +102,8 @@ Input: Data $X$ (from `DataHandle$stash`), parameters from `desc$params`.
 6.  **Data Storage:**
     *   Determine narrowest unsigned integer type: `storage_type_str = if (bits <= 8) "uint8" else "uint16"`.
     *   Convert $Q(X)$ to this integer type before writing.
+    *   Pass `storage_type_str` to `h5_write_dataset()` so the dataset uses the matching HDF5 type
+        (`H5T_STD_U8LE` or `H5T_STD_U16LE`).
     *   **HDF5 Datasets:**
         *   `/scans/{run_id}/quant_data/{transform_basename}/quantized_values`: Stores $Q(X)$ as `storage_type_str`.
             *   **Attribute:** Attach `quant_bits = bits` (integer) to this dataset using `lna:::h5_attr_write()`.
