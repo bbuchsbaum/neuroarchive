@@ -44,20 +44,8 @@ forward_step.temporal <- function(type, desc, handle) {
             p)
   basis <- do.call(temporal_basis, args)
 
-  if (identical(kind, "bspline")) {
-    # For b-splines, basis columns are not necessarily orthogonal.
-    # To get coefficients for orthogonal projection, use (B'B)^-1 B'X
-    # This ensures that basis %*% coeff is the true projection.
-    if (qr(crossprod(basis))$rank < ncol(basis)) {
-        message("[forward_step.temporal WARN] B-spline basis is rank deficient. Projection may be unstable.")
-        # Fallback to simple crossprod, or error, or use pseudo-inverse?
-        # For now, let it proceed, solve() might give an error or a solution.
-    }
-    coeff <- solve(crossprod(basis)) %*% crossprod(basis, X)
-  } else {
-    # For orthonormal bases (DCT, wavelet, polynomial, DPSS with good params)
-    coeff <- crossprod(basis, X) # X is time x features, basis is time x n_basis, coeff is n_basis x features
-  }
+  # Delegate projection logic to per-kind methods for extensibility
+  coeff <- temporal_project(kind, basis, X)
 
   # DEBUG: Check reconstruction locally
   if (is.matrix(basis) && is.matrix(coeff) && ncol(basis) == nrow(coeff)) {
@@ -98,7 +86,8 @@ forward_step.temporal <- function(type, desc, handle) {
     list(path = basis_path, role = "temporal_basis"),
     list(path = coef_path, role = "temporal_coefficients")
   )
-  if (identical(kind, "bspline")) {
+  knots_data <- attr(basis, "knots")
+  if (!is.null(knots_data)) {
     datasets[[length(datasets) + 1]] <- list(path = knots_path, role = "knots")
   }
   desc$datasets <- datasets
@@ -115,11 +104,10 @@ forward_step.temporal <- function(type, desc, handle) {
   plan$add_dataset_def(basis_path, "temporal_basis", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
                        basis_path, "eager")
-  
-  if (identical(kind, "bspline")) {
-    knots_data <- attr(basis, "knots") # Original basis is 2D here
+
+  if (!is.null(knots_data)) {
     knots_payload <- knots_data
-    if (!is.null(knots_payload)) { 
+    if (!is.null(knots_payload)) {
         dim(knots_payload) <- c(length(knots_payload), 1, 1)
     }
     plan$add_payload(knots_path, knots_payload)
@@ -204,7 +192,7 @@ invert_step.temporal <- function(type, desc, handle) {
     abort_lna("Invalid matrix dimensions for multiplication", .subclass="lna_error_internal", location="invert_step.temporal")
   }
 
-  dense <- basis %*% coeff
+  dense <- temporal_reconstruct(desc$params$kind %||% "dct", basis, coeff)
   message(sprintf("[invert_step.temporal] Dense dims after matmult: %s", paste(dim(dense), collapse="x")))
   if (nrow(dense) >=2 && ncol(dense) >=2) message("dense[1:2, 1:2]:"); print(dense[1:2, 1:2, drop=FALSE])
 
@@ -390,4 +378,49 @@ temporal_basis.default <- function(kind, n_time, n_basis, ...) {
     location = "temporal_basis:kind"
   )
 
+}
+
+#' Project data onto a temporal basis
+#'
+#' Each temporal basis kind can implement customised projection logic.
+#' The default assumes an orthonormal basis and uses `crossprod`.
+#' @keywords internal
+temporal_project <- function(kind, basis, X, ...) {
+  stopifnot(is.character(kind), length(kind) == 1)
+  obj <- structure(kind, class = c(kind, "character"))
+  UseMethod("temporal_project", obj)
+}
+
+#' @export
+temporal_project.default <- function(kind, basis, X, ...) {
+  crossprod(basis, X)
+}
+
+#' @export
+temporal_project.bspline <- function(kind, basis, X, ...) {
+  if (qr(crossprod(basis))$rank < ncol(basis)) {
+    message("[temporal_project.bspline WARN] B-spline basis is rank deficient. Projection may be unstable.")
+  }
+  qr.solve(basis, X)
+}
+
+#' Reconstruct data from temporal coefficients
+#'
+#' Mirrors `temporal_project` for the inverse operation. The default
+#' simply multiplies the basis by the coefficient matrix.
+#' @keywords internal
+temporal_reconstruct <- function(kind, basis, coeff, ...) {
+  stopifnot(is.character(kind), length(kind) == 1)
+  obj <- structure(kind, class = c(kind, "character"))
+  UseMethod("temporal_reconstruct", obj)
+}
+
+#' @export
+temporal_reconstruct.default <- function(kind, basis, coeff, ...) {
+  basis %*% coeff
+}
+
+#' @export
+temporal_reconstruct.bspline <- function(kind, basis, coeff, ...) {
+  basis %*% coeff
 }
