@@ -73,19 +73,19 @@ forward_step.quant <- function(type, desc, handle) {
 
   plan <- handle$plan
   step_index <- plan$next_index
-  params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
 
   plan$add_descriptor(plan$get_next_filename("quant"), list(type = "quant", params = p))
   plan$add_payload(data_path, q)
-  plan$add_dataset_def(data_path, "quantized", "quant", run_id,
+  plan$add_dataset_def(data_path, "quantized", as.character(type), run_id,
                        as.integer(step_index), params_json,
                        data_path, "eager")
   plan$add_payload(scale_path, scale)
-  plan$add_dataset_def(scale_path, "scale", "quant", run_id,
+  plan$add_dataset_def(scale_path, "scale", as.character(type), run_id,
                        as.integer(step_index), params_json,
                        scale_path, "eager")
   plan$add_payload(offset_path, offset)
-  plan$add_dataset_def(offset_path, "offset", "quant", run_id,
+  plan$add_dataset_def(offset_path, "offset", as.character(type), run_id,
                        as.integer(step_index), params_json,
                        offset_path, "eager")
 

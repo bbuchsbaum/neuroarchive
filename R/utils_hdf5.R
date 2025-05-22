@@ -130,6 +130,7 @@ guess_chunk_dims <- function(dims, dtype_size) {
   }
 
   chunk <- pmin(as.integer(chunk), dims)
+  chunk <- pmax(chunk, 1L)
   return(chunk)
 }
 
@@ -431,7 +432,7 @@ h5_read_subset <- function(h5_group, path, index) {
   result <- NULL
   tryCatch({
     dset <- h5_group[[path]]
-    result <- dset$read(args = list(index = index))
+    result <- dset$read(args = index)
   }, error = function(e) {
     stop(paste0("Error reading subset from dataset '", path, "': ", conditionMessage(e)), call. = FALSE)
   }, finally = {
@@ -439,7 +440,6 @@ h5_read_subset <- function(h5_group, path, index) {
   })
 
   result
-
 }
 
 #' Discover run identifiers in an LNA file

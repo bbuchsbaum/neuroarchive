@@ -129,11 +129,9 @@ DataHandle <- R6::R6Class("DataHandle",
     with = function(...) {
       new_obj <- self$clone(deep = TRUE) # Use deep clone for safety with lists
       updates <- list(...)
-      class_def <- self$.__enclos_env__$private$.class
-      if (is.null(class_def)) {
-        class_def <- self$.__enclos_env__$self
-      }
-      allowed_fields <- names(class_def$public_fields)
+      # Get public field names from the R6 class generator
+      class_generator <- get(class(self)[1])
+      allowed_fields <- names(class_generator$public_fields)
 
       for (field_name in names(updates)) {
         if (!field_name %in% allowed_fields) {

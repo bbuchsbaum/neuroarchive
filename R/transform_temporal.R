@@ -4,10 +4,25 @@
 #' @keywords internal
 forward_step.temporal <- function(type, desc, handle) {
   p <- desc$params %||% list()
+  # Extract temporal-specific parameters and remove them from p to avoid duplication
   kind <- p$kind %||% "dct"
   n_basis <- p$n_basis
+  p$kind <- NULL
+  p$n_basis <- NULL
   order <- p$order %||% 3
-  input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
+  p$order <- NULL
+  # Determine input key based on previous transform's output
+  if (handle$has_key("temporal_coefficients") && FALSE) { # avoid self-loop
+    input_key <- "temporal_coefficients"
+  } else if (handle$has_key("delta_stream")) {
+    input_key <- "delta_stream"
+  } else if (handle$has_key("sparsepca_embedding")) {
+    input_key <- "sparsepca_embedding"
+  } else if (handle$has_key("aggregated_matrix")) {
+    input_key <- "aggregated_matrix"
+  } else {
+    input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
+  }
 
   X <- handle$get_inputs(input_key)[[1]]
   if (is.array(X) && length(dim(X)) > 2) {
@@ -39,7 +54,7 @@ forward_step.temporal <- function(type, desc, handle) {
   basis_path <- paste0("/temporal/", base_name, "/basis")
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
   knots_path <- paste0("/temporal/", base_name, "/knots")
-  params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
@@ -55,24 +70,23 @@ forward_step.temporal <- function(type, desc, handle) {
 
   plan$add_descriptor(fname, desc)
   plan$add_payload(basis_path, basis)
-  plan$add_dataset_def(basis_path, "temporal_basis", type, run_id,
+  plan$add_dataset_def(basis_path, "temporal_basis", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
                        basis_path, "eager")
   if (identical(kind, "bspline")) {
     plan$add_payload(knots_path, attr(basis, "knots"))
-    plan$add_dataset_def(knots_path, "knots", type, run_id,
+    plan$add_dataset_def(knots_path, "knots", as.character(type), run_id,
                          as.integer(plan$next_index), params_json,
                          knots_path, "eager")
   }
   plan$add_payload(coef_path, coeff)
-  plan$add_dataset_def(coef_path, "temporal_coefficients", type, run_id,
+  plan$add_dataset_def(coef_path, "temporal_coefficients", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
                        coef_path, "eager")
   handle$plan <- plan
 
-  handle$update_stash(keys = input_key,
-                      new_values = list(input = coeff,
-                                        temporal_coefficients = coeff))
+  handle$update_stash(keys = c(input_key),
+                      new_values = list(temporal_coefficients = coeff))
 }
 
 #' Temporal Transform - Inverse Step

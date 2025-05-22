@@ -118,6 +118,55 @@ test_that("core_read closes file if invert_step errors", {
 ```
 This approach ensures that when `core_read` internally calls `getS3method("invert_step", "dummy")`, the locally defined `invert_step.dummy` is found and used for S3 dispatch.
 
+## Mocking S3 Methods for Broader Scope (e.g., `.GlobalEnv`)
+
+Further debugging revealed that for S3 methods to be consistently found across multiple calls within a more complex function (like `core_read` processing multiple "runs", each invoking the S3 dispatch), a more robust approach involves managing the S3 generic and method in a shared environment, typically `.GlobalEnv` for testing purposes.
+
+**Key Challenges Addressed:**
+
+*   **`local_mocked_bindings` Limitations for S3:** `local_mocked_bindings` is not ideal for creating S3 methods that aren't already part of the package's namespace or for ensuring they are found by `getS3method` if the generic itself isn't correctly resolved first.
+*   **Consistency across multiple calls:** Ensuring the mock S3 method is available for every dispatch event, especially in loops or `lapply` calls within the function under test.
+
+**Refined Solution (from `test-core_read.R` globbing tests):**
+
+1.  **Ensure Generic Exists:** Conditionally define the S3 generic (e.g., `invert_step <- function(type, ...) UseMethod("invert_step", type)`) in `.GlobalEnv` if it doesn't already exist. Use `withr::defer` to remove it after the test.
+    ```R
+    if (!exists("invert_step", mode = "function", envir = .GlobalEnv)) {
+      .GlobalEnv$invert_step <- function(type, ...) UseMethod("invert_step", type)
+      withr::defer(rm(invert_step, envir = .GlobalEnv))
+    }
+    ```
+
+2.  **Save Original Method (if any):** Before assigning the mock, check if a method of the same name already exists in `.GlobalEnv`. Store it for restoration.
+    ```R
+    original_method <- if(exists("invert_step.dummy", envir = .GlobalEnv, inherits = FALSE)) {
+      .GlobalEnv$invert_step.dummy
+    } else {
+      NA # Use a sentinel like NA to indicate it didn't exist
+    }
+    ```
+
+3.  **Assign Mock Method:** Directly assign the mock S3 method function to `.GlobalEnv`.
+    ```R
+    .GlobalEnv$invert_step.dummy <- function(type, desc, handle) { /* mock logic */ handle }
+    ```
+
+4.  **Defer Cleanup/Restoration:** Use `withr::defer` to either remove the mock method (if no original existed) or restore the original method.
+    ```R
+    if (identical(original_method, NA)) {
+      withr::defer(rm(invert_step.dummy, envir = .GlobalEnv))
+    } else {
+      withr::defer(assign("invert_step.dummy", original_method, envir = .GlobalEnv))
+    }
+    ```
+
+**Outcome:** This strategy proved effective for tests where `core_read` processed multiple runs and needed to dispatch `invert_step.dummy` for each. The mock in `.GlobalEnv` was consistently found.
+
+**Important Considerations:**
+*   **Order of `withr::defer`:** If both the generic and the method are managed by `defer`, ensure the method is cleaned up/restored *before* the generic is potentially removed.
+*   **Sentinel Values:** Using `NA` (and checking with `identical()`) is a reliable way to track if an original method existed.
+*   **Simplicity:** While this approach directly manipulates `.GlobalEnv`, it's a common and effective pattern for testing S3 dispatch when methods are not part of the package's formal exports or when needing to override behavior globally for a test.
+
 # hdf5r Cheatsheet
 
 `hdf5r` provides an R interface to the HDF5 library, allowing for storage and management of large and complex data. It uses R6 classes for an object-oriented approach.

@@ -16,84 +16,62 @@
 #' @keywords internal
 core_write <- function(x, transforms, transform_params = list(),
                        mask = NULL, header = NULL, plugins = NULL, run_id = NULL) {
-  cat("\n[core_write] Entry\n")
-  cat(paste0("[core_write] Number of transforms: ", length(transforms), "\n"))
-  # Be careful about printing x directly if it could be very large
-  cat(paste0("[core_write] Input data 'x' class: ", class(x), " Is list? ", is.list(x), "\n"))
+  # cat("\n[core_write] Entry\n")
+  # cat(paste0("[core_write] Number of transforms: ", length(transforms), "\n"))
+  # cat(paste0("[core_write] Input data 'x' class: ", class(x), " Is list? ", is.list(x), "\n"))
 
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
 
-  cat("[core_write] Validating input data...\n")
+  # cat("[core_write] Validating input data...\n")
   validate_input_data(x)
-  cat("[core_write] Input data validated.\n")
+  # cat("[core_write] Input data validated.\n")
 
-  cat("[core_write] Validating mask...\n")
+  # cat("[core_write] Validating mask...\n")
   mask_info <- validate_mask(mask)
   mask_array <- mask_info$array
   active_voxels <- mask_info$active_voxels
-  cat(paste0("[core_write] Mask validated. Is mask_array NULL? ", is.null(mask_array), " Active voxels: ", ifelse(is.null(active_voxels), "N/A", active_voxels), "\n"))
+  # cat(paste0("[core_write] Mask validated. Is mask_array NULL? ", is.null(mask_array), " Active voxels: ", ifelse(is.null(active_voxels), "N/A", active_voxels), "\n"))
 
   header_list <- validate_named_list(header, "header")
   plugin_list <- validate_named_list(plugins, "plugins")
-  cat(paste0("[core_write] Header list length: ", length(header_list), " Plugin list length: ", length(plugin_list), "\n"))
+  # cat(paste0("[core_write] Header list length: ", length(header_list), " Plugin list length: ", length(plugin_list), "\n"))
 
-  cat("[core_write] Determining run identifiers...\n")
-  # --- Determine run identifiers --- (original logic with run_id param now considered)
-  # This section might need adjustment if run_id parameter is to override names(x) logic
+  # cat("[core_write] Determining run identifiers...\n")
   if (!is.null(run_id)) {
-    cat(paste0("[core_write] run_id parameter provided: ", paste(run_id, collapse=", "), "\n"))
-    # Assuming sanitize_run_id can take a vector or a single string
-    # If run_id is a glob, discover_run_ids might be needed if x is a single item to be matched against pattern
-    # For now, assume if run_id is given, it's the definitive set of run_ids to use/filter by.
-    # This part of logic might be complex depending on how run_id interacts with list input x.
-    # Let's assume for now if x is a list, run_id filters/selects from names(x) or is used directly if x is not a list.
-    # This is simplified for now; proper run_id handling for lists needs more thought.
+    # cat(paste0("[core_write] run_id parameter provided: ", paste(run_id, collapse=", "), "\n"))
     if (is.list(x)) {
-        # If x is a list, and run_id is provided, this implies run_id should match names(x) or similar.
-        # This simplistic assignment might not be fully robust for all cases.
         sanitized_run_ids <- vapply(run_id, sanitize_run_id, character(1), USE.NAMES = FALSE)
-        cat(paste0("[core_write] Using provided run_id for list input, sanitized: ", paste(sanitized_run_ids, collapse=", "), "\n"))
+        # cat(paste0("[core_write] Using provided run_id for list input, sanitized: ", paste(sanitized_run_ids, collapse=", "), "\n"))
     } else {
-        # If x is not a list, run_id (if single) is the run_id.
-        # If run_id is a pattern, it implies a different pre-filtering step not done here.
-        # Sticking to simpler case for now: run_id is the ID for the single data item x.
         sanitized_run_ids <- vapply(run_id, sanitize_run_id, character(1), USE.NAMES = FALSE)
-        cat(paste0("[core_write] Using provided run_id for non-list input, sanitized: ", paste(sanitized_run_ids, collapse=", "), "\n"))
+        # cat(paste0("[core_write] Using provided run_id for non-list input, sanitized: ", paste(sanitized_run_ids, collapse=", "), "\n"))
     }
-    # Ensure run_ids is consistent with how it's used later (e.g., first element for current_run_id_for_handle)
-    # This is a placeholder for more robust run_id logic when x is a list and run_id is also provided
     final_run_ids <- sanitized_run_ids 
   } else if (is.list(x)) {
-    cat("[core_write] Input x is a list, deriving run_ids from names(x).\n")
+    # cat("[core_write] Input x is a list, deriving run_ids from names(x).\n")
     raw_run_ids <- names(x)
     if (is.null(raw_run_ids) || any(raw_run_ids == "")) {
-      cat("[core_write] names(x) are NULL or empty, generating default run_ids.\n")
+      # cat("[core_write] names(x) are NULL or empty, generating default run_ids.\n")
       raw_run_ids <- sprintf("run-%02d", seq_along(x))
     }
     final_run_ids <- vapply(raw_run_ids, sanitize_run_id, character(1), USE.NAMES = FALSE)
-    cat(paste0("[core_write] Derived run_ids from list: ", paste(final_run_ids, collapse=", "), "\n"))
+    # cat(paste0("[core_write] Derived run_ids from list: ", paste(final_run_ids, collapse=", "), "\n"))
   } else {
-    cat("[core_write] Input x is not a list, using default run_id 'run-01'.\n")
-    final_run_ids <- sanitize_run_id("run-01") # Ensure this is sanitized
-    cat(paste0("[core_write] Default run_id: ", final_run_ids, "\n"))
+    # cat("[core_write] Input x is not a list, using default run_id 'run-01'.\n")
+    final_run_ids <- sanitize_run_id("run-01")
+    # cat(paste0("[core_write] Default run_id: ", final_run_ids, "\n"))
   }
   
-  # Ensure final_run_ids is not empty if x was an empty list and no run_id provided
   if (length(final_run_ids) == 0 && is.list(x) && length(x) == 0) {
-      cat("[core_write] x is an empty list and no run_ids derived, defaulting to run-01 for handle continuity.\n")
-      # This default might need review depending on how empty lists are to be processed.
-      # Plan might still be empty, but DataHandle expects a current_run_id.
+      # cat("[core_write] x is an empty list and no run_ids derived, defaulting to run-01 for handle continuity.\n")
       final_run_ids <- sanitize_run_id("run-01") 
   }
 
-  # current_run_id_for_handle logic
   current_run_id_for_handle <- if (length(final_run_ids) > 0) final_run_ids[1] else sanitize_run_id("run-01")
-  cat(paste0("[core_write] current_run_id_for_handle set to: ", current_run_id_for_handle, "\n"))
+  # cat(paste0("[core_write] current_run_id_for_handle set to: ", current_run_id_for_handle, "\n"))
 
   if (!is.null(mask_array)) {
-    # Strict check: mask must cover all voxels of the input data. This
-    # may be relaxed when partial masking is supported.
     check_mask <- function(obj) {
       dims <- dim(obj)
       if (is.null(dims) || length(dims) < 3) {
@@ -119,7 +97,7 @@ core_write <- function(x, transforms, transform_params = list(),
     }
   }
 
-  cat("[core_write] Creating Plan and DataHandle objects...\n")
+  # cat("[core_write] Creating Plan and DataHandle objects...\n")
   plan <- Plan$new()
   handle <- DataHandle$new(
     initial_stash = list(input = x),
@@ -131,23 +109,23 @@ core_write <- function(x, transforms, transform_params = list(),
     mask_info = if (!is.null(mask_array)) list(mask = mask_array,
                                              active_voxels = active_voxels) else NULL
   )
-  cat("[core_write] Plan and DataHandle created.\n")
+  # cat("[core_write] Plan and DataHandle created.\n")
 
-  cat("[core_write] Resolving transform parameters...\n")
+  # cat("[core_write] Resolving transform parameters...\n")
   merged_params <- resolve_transform_params(transforms, transform_params)
-  cat("[core_write] Transform parameters resolved.\n")
+  # cat("[core_write] Transform parameters resolved.\n")
 
-  cat("[core_write] Starting transform loop...\n")
+  # cat("[core_write] Starting transform loop...\n")
   progress_enabled <- is_progress_globally_enabled()
   loop <- function() {
     p <- if (progress_enabled) progressr::progressor(steps = length(transforms)) else NULL
     for (type in transforms) {
-      cat(paste0("[core_write] Applying transform: ", type, "\n"))
+      # cat(paste0("[core_write] Applying transform: ", type, "\n"))
       if (!is.null(p)) p(message = type)
       desc <- list(type = type, params = merged_params[[type]])
       step_idx <- handle$plan$next_index
       handle <<- run_transform_step("forward", type, desc, handle, step_idx)
-      cat(paste0("[core_write] Finished transform: ", type, "\n"))
+      # cat(paste0("[core_write] Finished transform: ", type, "\n"))
     }
   }
   if (progress_enabled) {
@@ -155,18 +133,18 @@ core_write <- function(x, transforms, transform_params = list(),
   } else {
     loop()
   }
-  cat("[core_write] Transform loop finished.\n")
+  # cat("[core_write] Transform loop finished.\n")
 
   if (length(transforms) == 0) {
-    cat("[core_write] No transforms specified, adding initial data to plan.\n")
+    # cat("[core_write] No transforms specified, adding initial data to plan.\n")
     current_input <- handle$stash$input
     
     add_initial_data_to_plan <- function(data_to_write, run_label, plan_to_update) {
-      cat(paste0("[core_write] add_initial_data_to_plan for run_label: ", run_label, "\n"))
+      # cat(paste0("[core_write] add_initial_data_to_plan for run_label: ", run_label, "\n"))
       payload_key <- paste0(run_label, "_initial_data_payload")
       plan_to_update$add_payload(payload_key, data_to_write, overwrite = TRUE)
       hdf5_path <- file.path("/scans", run_label, "data", "values")
-      cat(paste0("[core_write] Adding dataset definition for path: ", hdf5_path, "\n"))
+      # cat(paste0("[core_write] Adding dataset definition for path: ", hdf5_path, "\n"))
       plan_to_update$add_dataset_def(
         path = hdf5_path,
         role = "raw_data",
@@ -180,23 +158,23 @@ core_write <- function(x, transforms, transform_params = list(),
     }
 
     if (is.list(current_input) && !is.null(names(current_input))) {
-      cat("[core_write] Processing initial data for a list input.\n")
+      # cat("[core_write] Processing initial data for a list input.\n")
       if (length(handle$run_ids) == length(current_input)) {
           for (i in seq_along(handle$run_ids)) {
             add_initial_data_to_plan(current_input[[i]], handle$run_ids[i], handle$plan)
           }
       } else {
-        cat("[core_write] WARNING: Mismatch between number of runs in handle$run_ids and current_input list.\n")
+        # cat("[core_write] WARNING: Mismatch between number of runs in handle$run_ids and current_input list.\n")
         warning("Mismatch between number of runs in handle$run_ids and current_input list.")
       }
     } else {
-      cat("[core_write] Processing initial data for a single array input.\n")
+      # cat("[core_write] Processing initial data for a single array input.\n")
       add_initial_data_to_plan(current_input, handle$current_run_id, handle$plan)
     }
-    cat("[core_write] Finished adding initial data to plan.\n")
+    # cat("[core_write] Finished adding initial data to plan.\n")
   }
 
-  cat("[core_write] Exiting successfully.\n")
+  # cat("[core_write] Exiting successfully.\n")
   list(handle = handle, plan = plan)
 }
 

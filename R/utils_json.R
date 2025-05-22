@@ -113,9 +113,11 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
   }, add = TRUE)
 
   # --- Define scalar, variable-length, UTF-8 string dataset ----
-  str_type <- H5T_STRING$new(size = Inf)
+  # Use C-style string datatype and set to variable length
+  str_type <- hdf5r::H5T_C_S1$new()
+  str_type$set_size(Inf)
   str_type$set_cset("UTF-8")
-  space <- H5S$new("scalar")                   # scalar (0-dim) dataspace
+  space <- hdf5r::H5S$new("scalar")                   # scalar (0-dim) dataspace
 
   # Create the dataset skeleton
   dset <- h5_group$create_dataset(name,

@@ -62,7 +62,7 @@ forward_step.embed <- function(type, desc, handle) {
   base_name <- tools::file_path_sans_ext(fname)
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
   step_index <- plan$next_index
-  params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
   desc$params <- p
 
   desc$version <- "1.0"
@@ -74,7 +74,7 @@ forward_step.embed <- function(type, desc, handle) {
   plan$add_descriptor(fname, desc)
   plan$add_payload(coef_path, coeff)
 
-  plan$add_dataset_def(coef_path, "coefficients", type, run_id,
+  plan$add_dataset_def(coef_path, "coefficients", as.character(type), run_id,
                        as.integer(step_index), params_json,
                        coef_path, "eager")
 

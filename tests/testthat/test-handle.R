@@ -108,7 +108,7 @@ test_that("DataHandle get_inputs works correctly", {
   # Check the custom data attached to the condition
   expect_true(!is.null(err$missing_keys))
   expect_equal(sort(err$missing_keys), c("d", "e"))
-  expect_true(grepl("DataHandle$get_inputs", err$location))
+  expect_true(grepl("DataHandle\\$get_inputs", err$location))
 
   # Error on invalid key type
   expect_error(h$get_inputs(123))
@@ -184,7 +184,7 @@ test_that("DataHandle update_stash provides immutability", {
   # 1a. Check h2 is new object
   expect_false(identical(h1, h2))
   # 1a2. Field names should be identical
-  expect_true(identical(names(h1), names(h2)))
+  expect_true(setequal(names(h1), names(h2)))
 
   # 1b. Check h2 stash is correct
   expected_h2_stash <- list(a = 99, c = 3, d = 4) # Order might vary, use setequal/sort

@@ -22,7 +22,14 @@ forward_step.delta <- function(type, desc, handle) {
               location = "forward_step.delta:order")
   }
 
-  input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
+  # Determine input key based on previous transform's output
+  if (handle$has_key("sparsepca_embedding")) {
+    input_key <- "sparsepca_embedding"
+  } else if (handle$has_key("aggregated_matrix")) {
+    input_key <- "aggregated_matrix"
+  } else {
+    input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
+  }
   x <- handle$get_inputs(input_key)[[1]]
   dims <- dim(x)
   if (is.null(dims)) dims <- length(x)
@@ -54,11 +61,11 @@ forward_step.delta <- function(type, desc, handle) {
   first_path <- paste0("/scans/", run_id, "/deltas/", base, "/first_values")
   step_index <- plan$next_index
   p$orig_dims <- dims
-  params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
-  desc$outputs <- character()
+  desc$outputs <- "delta_stream"
   desc$params <- p
   ds <- list(list(path = delta_path, role = "delta_stream"))
   if (identical(ref_store, "first_value_verbatim")) {
@@ -68,18 +75,19 @@ forward_step.delta <- function(type, desc, handle) {
 
   plan$add_descriptor(fname, desc)
   plan$add_payload(delta_path, delta_stream)
-  plan$add_dataset_def(delta_path, "delta_stream", type, run_id,
+  plan$add_dataset_def(delta_path, "delta_stream", as.character(type), run_id,
                        as.integer(step_index), params_json,
                        delta_path, "eager")
   if (identical(ref_store, "first_value_verbatim")) {
     plan$add_payload(first_path, first_vals)
-    plan$add_dataset_def(first_path, "first_values", type, run_id,
+    plan$add_dataset_def(first_path, "first_values", as.character(type), run_id,
                          as.integer(step_index), params_json,
                          first_path, "eager")
   }
 
   handle$plan <- plan
-  handle$update_stash(keys = input_key, new_values = list())
+  handle$update_stash(keys = c(input_key), 
+                      new_values = list(delta_stream = delta_stream))
 }
 
 #' Delta Transform - Inverse Step

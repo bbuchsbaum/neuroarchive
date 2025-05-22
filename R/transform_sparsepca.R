@@ -44,7 +44,7 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
   embed_path <- paste0("/scans/", run_id, "/", base, "/embedding")
-  params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
@@ -54,17 +54,20 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   plan$add_descriptor(fname, desc)
 
   plan$add_payload(basis_path, basis)
-  plan$add_dataset_def(basis_path, "basis_matrix", type,
+  plan$add_dataset_def(basis_path, "basis_matrix", as.character(type),
                        handle$plan$origin_label, as.integer(plan$next_index - 1),
                        params_json, basis_path, "eager")
   plan$add_payload(embed_path, embed)
-  plan$add_dataset_def(embed_path, "coefficients", type,
+  plan$add_dataset_def(embed_path, "coefficients", as.character(type),
                        handle$plan$origin_label, as.integer(plan$next_index - 1),
                        params_json, embed_path, "eager")
 
   handle$plan <- plan
-  out <- list(sparsepca_basis = TRUE, sparsepca_embedding = TRUE)
-  handle <- handle$update_stash(c(input_key), out)
+  # Stash the actual basis and embedding, not just TRUE/FALSE flags
+  out_stash <- list()
+  out_stash[[desc$outputs[1]]] <- basis # e.g., sparsepca_basis
+  out_stash[[desc$outputs[2]]] <- embed # e.g., sparsepca_embedding
+  handle <- handle$update_stash(keys = c(input_key), new_values = out_stash)
   handle
 }
 
