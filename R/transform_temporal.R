@@ -200,6 +200,16 @@ invert_step.temporal <- function(type, desc, handle) {
               .subclass = "lna_error_validation",
               location = ".wavelet_basis")
   }
+  # Map common aliases (e.g., "db4") to names expected by `wavelets::dwt`
+  if (is.character(wavelet)) {
+    wl <- tolower(wavelet)
+    if (wl == "db1") {
+      wl <- "haar"
+    } else if (grepl("^db[0-9]+$", wl)) {
+      wl <- sub("^db", "d", wl)
+    }
+    wavelet <- wl
+  }
   J <- log2(n_time)
   dwt_single <- function(x) {
     w <- wavelets::dwt(x, filter = wavelet, n.levels = J, boundary = "periodic")
