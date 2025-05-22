@@ -4,29 +4,43 @@
 \usage{
 write_lna(x, file = NULL, transforms = character(),
           transform_params = list(), mask = NULL, header = NULL,
-          plugins = NULL, block_table = NULL)
+          plugins = NULL, block_table = NULL, run_id = NULL,
+          checksum = c("none", "sha256"))
 }
 \arguments{
-  \item{x}{Input object passed to \code{core_write}.}
+  \item{x}{Numeric array or list of arrays. Each array should have at least
+  three dimensions (\code{x}, \code{y}, \code{z}, optionally \code{time}). Lists
+  denote multiple runs.}
   \item{file}{Path to output \code{.h5} file. If \code{NULL}, writing is
-    performed in memory using the HDF5 core driver and no file is created.
-    The returned list then contains \code{file = NULL}.}
-  \item{transforms}{Character vector of transform types.}
-  \item{transform_params}{Named list of transform parameters.}
-  \item{mask}{Optional mask passed to \code{core_write}.}
-  \item{header}{Optional named list of header attributes.}
+  performed in memory using the HDF5 core driver and no file is created. The
+  returned result then contains \code{file = NULL}.}
+  \item{transforms}{Character vector naming the transforms to apply in forward
+  order.}
+  \item{transform_params}{Named list of parameters for the transforms.}
+  \item{mask}{Optional \code{LogicalNeuroVol} or 3D logical array used to subset
+  voxels prior to compression.}
+  \item{header}{Optional named list of header attributes stored under
+  \code{/header}.}
   \item{plugins}{Optional named list saved to the \code{/plugins} group.}
-  \item{block_table}{Optional data frame of spatial block coordinates
-  stored under \code{/spatial/block_table}.}
+  \item{block_table}{Optional data frame of spatial block coordinates stored
+  under \code{/spatial/block_table}. Columns must contain 1-based voxel indices
+  in masked space when a mask is provided.}
+  \item{run_id}{Optional character vector of run identifiers. When \code{x} is a
+  list these override \code{names(x)}.}
+  \item{checksum}{One of \code{"none"} (default) or \code{"sha256"}. When
+  \code{"sha256"} a checksum of the final file is stored in the
+  \code{/lna_checksum} attribute.}
 }
-\value{Invisibly returns a list with the output file and plan.}
-\description{Compresses and stores a neuroimaging object using the
-specified transform pipeline. Parameter values are merged from schema
-defaults, \code{lna_options()} and \code{transform_params}. The
-\code{plugins} list and \code{block_table} (if supplied) are written to
-the corresponding HDF5 groups.}
+\value{Invisibly returns a list with elements \code{file}, \code{plan} and
+\code{header} (class \code{"lna_write_result"}).}
+\description{Compresses one or more fMRI runs using a sequence of transforms.
+Parameter values are merged from the transform schemas, package options and the
+user supplied \code{transform_params}. The optional \code{mask}, \code{header},
+\code{plugins} and \code{block_table} are written to the corresponding HDF5
+groups. Use \code{read_lna()} to reconstruct the data.}
 \seealso{\code{\link{read_lna}}, \code{\link{validate_lna}}}
 \examples{
 x <- array(rnorm(64), dim = c(4,4,4,1))
 write_lna(x, "ex.h5", transforms = "quant")
+read_lna("ex.h5")
 }

@@ -1,40 +1,49 @@
 #' Write data to an LNA file
 #'
-#' Compresses and stores a neuroimaging object using the specified
-#' transform pipeline.  Parameter values are resolved by merging
-#' transform schema defaults, package options set via
-#' `lna_options()`, and the user supplied `transform_params`
-#' (later values override earlier ones).
+#' Compresses one or more fMRI runs using a sequence of transforms and
+#' stores the result in an `.lna.h5` file. Parameter values for each
+#' transform are resolved by merging the JSON schema defaults, package
+#' options set via `lna_options()`, and any user supplied
+#' `transform_params` (later values override earlier ones).
 #'
-#' @param x Input object passed to `core_write`.
-#' @param file Path to output `.h5` file. If `NULL`, writing is performed
+#' @param x Numeric array or list of arrays. Each array must have at
+#'   least three dimensions (`x`, `y`, `z`, and optionally `time`). If a
+#'   list is supplied each element represents a run. When `x` is a single
+#'   array it is treated as one run.
+#' @param file Path to the output `.h5` file. If `NULL`, writing occurs
 #'   in memory using the HDF5 core driver and no file is created. The
-#'   returned list then has `file = NULL`.
-#' @param transforms Character vector of transform types.
-#' @param transform_params Named list of transform parameters.
-#' @param mask Optional mask passed to `core_write`.
-#' @param header Optional named list of header attributes.
-#' @param plugins Optional named list saved under `/plugins/`.
-#' @param block_table Optional data frame specifying spatial block coordinates
-#'   stored at `/spatial/block_table`. Coordinate columns must contain
+#'   returned result then contains `file = NULL`.
+#' @param transforms Character vector naming the transforms to apply in
+#'   forward order (e.g., `c("quant", "basis")`).
+#' @param transform_params Named list of parameters for the specified
+#'   transforms.
+#' @param mask Optional: a `LogicalNeuroVol` or 3D logical array used to
+#'   subset voxels prior to compression.
+#' @param header Optional named list of header attributes to store under
+#'   `/header`.
+#' @param plugins Optional named list saved under the `/plugins` group.
+#' @param block_table Optional data frame specifying spatial block
+#'   coordinates stored at `/spatial/block_table`. Columns must contain
 #'   1-based voxel indices in masked space when a mask is provided.
-#' @param run_id Character vector of run identifiers or glob patterns. Passed to
-#'   `core_write` for selection of specific runs.
-#' @param checksum Character string specifying checksum mode. One of `"none"`
-#'   (default) or `"sha256"`. If `"sha256"`, a checksum of the entire file
-#'   (after all data is written) is computed and stored as the `/lna_checksum`
-#'   attribute. Note that this involves closing and reopening the file.
+#' @param run_id Optional character vector of run identifiers. When `x`
+#'   is a list these override `names(x)`; otherwise a single identifier
+#'   is used for the lone run.
+#' @param checksum Character string specifying checksum mode. One of
+#'   `"none"` (default) or `"sha256"`. When `"sha256"` a checksum of the
+#'   final file is computed and stored in the `/lna_checksum` attribute.
+#'   This requires closing and reopening the file once writing has
+#'   finished.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
-#'   `header` with class `"lna_write_result"`.
-#' @details For parallel workflows use a unique temporary file and
-#'   `file.rename()` it to the final path once writing succeeds.
-#'   The underlying HDF5 handle is opened with mode `"w"` which
-#'   truncates any existing file at `file`.
+#'   `header` and class `"lna_write_result"`.
+#' @details For parallel workflows create a unique temporary file and
+#'   rename it into place once writing succeeds. The underlying HDF5 file
+#'   is opened with mode `"w"`, truncating any existing file at `file`.
 #' @seealso read_lna, validate_lna
 #' @examples
 #' tmp <- tempfile(fileext = ".h5")
-#' arr <- array(rnorm(16), dim = c(4, 4, 1, 1))
+#' arr <- array(rnorm(64), dim = c(4, 4, 4, 1))
 #' write_lna(arr, tmp, transforms = "quant")
+#' read_lna(tmp)
 #' @export
 write_lna <- function(x, ...) {
   UseMethod("write_lna")
