@@ -178,3 +178,69 @@ pca <- function(data_or_pipe, k = NULL, ...) {
   pipe$add_step(step_spec)
   pipe
 }
+
+##' Embed DSL verb
+#'
+#' Adds an embedding step that projects the input data onto a basis
+#' computed by a preceding transform. When called immediately after a
+#' `basis` step (e.g., created by `pca()`), the path to the basis matrix
+#' is inferred automatically using the conventional HDF5 location
+#' `/basis/<NN>_basis/matrix` where `<NN>` is the zero-based index of the
+#' previous step.
+#'
+#' @param data_or_pipe Data object or `lna_pipeline`.
+#' @param basis_path Optional explicit HDF5 path to the basis matrix.
+#' @param ... Additional parameters for the embed transform.
+#'
+#' @return An `lna_pipeline` object with the embed step appended.
+#' @export
+embed <- function(data_or_pipe, basis_path = NULL, ...) {
+  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
+    data_or_pipe
+  } else {
+    as_pipeline(data_or_pipe)
+  }
+
+  prev <- pipe$get_last_step_spec()
+  if (is.null(prev)) {
+    abort_lna(
+      "embed() must follow a basis-producing step",
+      .subclass = "lna_error_validation",
+      location = "embed:context"
+    )
+  }
+
+  user_params <- c(list(basis_path = basis_path), list(...))
+  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
+
+  embed_type <- "embed"
+  default_path <- NULL
+
+  prev_index <- length(pipe$steps)
+  if (prev$type == "basis") {
+    base_name <- sprintf("%02d_%s", prev_index - 1L, prev$type)
+    default_path <- paste0("/basis/", base_name, "/matrix")
+  }
+
+  pars <- default_params("embed")
+  opts <- lna_options("embed")$embed %||% list()
+  pars <- utils::modifyList(pars, opts)
+
+  if (is.null(user_params$basis_path)) {
+    if (!is.null(default_path)) {
+      user_params$basis_path <- default_path
+    } else {
+      abort_lna(
+        "basis_path must be supplied or inferable from previous step",
+        .subclass = "lna_error_validation",
+        location = "embed:basis_path"
+      )
+    }
+  }
+
+  pars <- utils::modifyList(pars, user_params)
+
+  step_spec <- list(type = embed_type, params = pars)
+  pipe$add_step(step_spec)
+  pipe
+}

@@ -75,7 +75,7 @@ test_that("pca -> embed -> quant pipeline executes", {
   )
 
   pipe <- pca(X, k = 2)
-  pipe$add_step(list(type = "embed", params = list(basis_path = "/basis/00_basis/matrix")))
+  pipe <- embed(pipe)
   pipe <- quant(pipe, bits = 6)
   lna_write(pipe, file = "bar.h5")
 
@@ -83,4 +83,9 @@ test_that("pca -> embed -> quant pipeline executes", {
   expect_equal(captured$transform_params$basis$k, 2)
   expect_equal(captured$transform_params$quant$bits, 6)
   expect_equal(captured$transform_params$embed$basis_path, "/basis/00_basis/matrix")
+})
+
+test_that("embed() without prior basis step errors", {
+  rm(list = ls(envir = opts_env), envir = opts_env)
+  expect_error(embed(as_pipeline(matrix(1, 2, 2))), "basis-producing")
 })
