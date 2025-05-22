@@ -204,6 +204,51 @@ lna_pipeline <- R6::R6Class(
       }
 
       invisible(self)
+    },
+
+    #' @description
+    #' Return the internal list of step specifications
+    steps = function() {
+      self$steps
+    },
+
+    #' @description
+    #' Retrieve a step specification by index or by type name. If a type
+    #' string is provided and occurs multiple times, the last matching step
+    #' is returned. Returns `NULL` if no matching step exists.
+    #' @param index_or_type Integer index or character type string
+    get_step = function(index_or_type) {
+      if (is.numeric(index_or_type)) {
+        idx <- as.integer(index_or_type[1])
+        if (idx < 1 || idx > length(self$steps)) {
+          return(NULL)
+        }
+        return(self$steps[[idx]])
+      } else if (is.character(index_or_type)) {
+        typ <- as.character(index_or_type[1])
+        matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
+        if (length(matches) == 0) {
+          return(NULL)
+        }
+        return(self$steps[[matches[length(matches)]]])
+      } else {
+        abort_lna(
+          "index_or_type must be numeric or character",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:get_step"
+        )
+      }
+    },
+
+    #' @description
+    #' Return the specification of the most recently added step, or `NULL`
+    #' if no steps have been added yet.
+    get_last_step_spec = function() {
+      if (length(self$steps) > 0) {
+        self$steps[[length(self$steps)]]
+      } else {
+        NULL
+      }
     }
   )
 )
