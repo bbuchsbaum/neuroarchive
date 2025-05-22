@@ -46,8 +46,9 @@ forward_step.delta <- function(type, desc, handle) {
 
   if (identical(coding, "rle")) {
     vec <- as.vector(deltas)
-    r <- rle(vec)
-    delta_stream <- cbind(lengths = r$lengths, values = r$values)
+    r_obj <- rle::as.rle(vec)
+    r_obj <- rle::compress.rle(r_obj)
+    delta_stream <- cbind(lengths = r_obj$lengths, values = r_obj$values)
   } else {
     delta_stream <- deltas
   }
