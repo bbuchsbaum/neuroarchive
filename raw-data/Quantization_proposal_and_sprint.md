@@ -245,6 +245,8 @@ Implementation note (2025-05-22): Ticket **QNT-S2-2** has been implemented in `f
 
 Implementation note (2025-05-23): Ticket **QNT-S2-3** has been implemented in `forward_step.quant`. The function iterates over spatial blocks determined by `auto_block_size()` and calls `.quantize_voxel_block()` for each slab to compute per-block scale and offset before performing quantization.
 
+Implementation note (2025-05-24): Ticket **QNT-S2-4** has been implemented in `forward_step.quant`. During the block-wise loop, each slab's quantized values, scale and offset are now written directly to the pre-created HDF5 datasets using `hdf5r` hyperslab writes.
+
 **Epic QNT-S2-E2: Quantization Report & Final Polish**
 *Goal: Implement the detailed JSON quantization report, associated helper function, and finalize documentation and tests for the `quant` transform.*
 
