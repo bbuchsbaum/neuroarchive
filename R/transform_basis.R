@@ -106,28 +106,63 @@ forward_step.basis <- function(type, desc, handle) {
               location = "forward_step.basis:input")
   }
 
-  if (!identical(method, "pca")) {
-    abort_lna(sprintf("Unsupported basis method '%s'", method),
-              .subclass = "lna_error_validation",
-              location = "forward_step.basis:method")
-  }
+  original_k <- k
+  min_dim <- min(dim(X))
 
   if (requireNamespace("irlba", quietly = TRUE)) {
+    # For irlba, k must be < min_dim. Max k is min_dim - 1.
+    k_max_allowed <- max(1, min_dim - 1) 
+    if (k > k_max_allowed) {
+      warning(sprintf(
+        "Requested k=%d but irlba::prcomp_irlba can only compute %d components for %dx%d data; truncating k to %d.",
+        original_k, k_max_allowed, nrow(X), ncol(X), k_max_allowed
+      ), call. = FALSE)
+      k <- k_max_allowed
+    }
+    # Ensure k is not zero if min_dim was 1 (k_max_allowed would be 0)
+    k <- max(1, k) 
+    if (k >= min_dim) { # Final safety check if min_dim is 1 or 2
+        # This case should ideally not be hit if k_max_allowed is correct
+        # but prcomp_irlba errors if k is not strictly less than min_dim
+        k <- max(1, min_dim -1)
+         if (k == 0 && min_dim > 0) k <- 1 # if min_dim = 1, k becomes 0, fix to 1
+         if (k==0 && min_dim ==0) { # edge case of 0-dim input.
+            abort_lna("Input matrix for PCA has zero dimensions.", 
+                        .subclass="lna_error_validation", 
+                        location="forward_step.basis:input")
+         }
+    }
+
     fit <- irlba::prcomp_irlba(X, n = k, center = center, scale. = scale)
   } else {
+    # For stats::prcomp, rank. can be <= min_dim. Max k is min_dim.
+    k_max_allowed <- max(1, min_dim)
+    if (k > k_max_allowed) {
+      warning(sprintf(
+        "Requested k=%d but stats::prcomp can only compute %d components for %dx%d data; truncating k to %d.",
+        original_k, k_max_allowed, nrow(X), ncol(X), k_max_allowed
+      ), call. = FALSE)
+      k <- k_max_allowed
+    }
+    # Ensure k is not zero
+    k <- max(1, k)
     fit <- stats::prcomp(X, rank. = k, center = center, scale. = scale)
   }
 
   k_effective <- ncol(fit$rotation)
-  if (k_effective < k) {
+  # This secondary warning might occur if the data is rank deficient 
+  # and the PCA method returns fewer components than k_to_use.
+  if (k_effective < k && original_k >= k_effective ) { # Check against original_k for the warning message
     warning(sprintf(
-      "Requested k=%d but fit returned %d components; truncating",
-      k, k_effective
+      "PCA fit returned %d components when k was set to %d (original request: k=%d); using %d components.",
+      k_effective, k, original_k, k_effective
     ), call. = FALSE)
   }
-  k_effective <- min(k, k_effective)
+  # p$k should store the number of components actually in 'rotation'
+  p$k <- k_effective 
   rotation <- fit$rotation[, seq_len(k_effective), drop = FALSE]
-  p$k <- k_effective
+  # The original p$k was updated above to k_effective, 
+  # so params_json will store k_effective.
   mean_vec <- if (isTRUE(center)) fit$center else NULL
   scale_vec <- if (isTRUE(scale)) fit$scale else NULL
 
@@ -141,7 +176,7 @@ forward_step.basis <- function(type, desc, handle) {
   matrix_path <- paste0("/basis/", base_name, "/matrix")
   center_path <- paste0("/basis/", base_name, "/center")
   scale_path <- paste0("/basis/", base_name, "/scale")
-  params_json <- jsonlite::toJSON(p, auto_unbox = TRUE)
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
   desc$params <- p
 
   desc$version <- "1.0"

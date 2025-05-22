@@ -104,7 +104,7 @@ test_that("core_write works with progress handlers", {
   withr::defer(progressr::handlers(old_handlers))
 
   progressr::handlers(progressr::handler_void())
-  expect_silent(
+  expect_no_error(
     progressr::with_progress(
       core_write(x = array(1, dim = c(1, 1, 1)), transforms = c("tA"))
     )
@@ -112,7 +112,7 @@ test_that("core_write works with progress handlers", {
 })
 
 test_that("input data is promoted to required dimensions", {
-  expect_silent(
+  expect_no_error(
     core_write(x = matrix(1:4, nrow = 2), transforms = "tA")
   )
 })

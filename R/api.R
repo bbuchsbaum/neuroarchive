@@ -54,7 +54,7 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
                       header = NULL, plugins = NULL, block_table = NULL,
                       run_id = NULL, checksum = c("none", "sha256")) {
-  cat("\n[write_lna] Entry\n")
+  
   cat(paste0("[write_lna] Input file arg: ", ifelse(is.null(file), "NULL", file), "\n"))
   checksum <- match.arg(checksum)
 
@@ -62,10 +62,8 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   file_to_use <- file # Will be updated if file is NULL
 
   if (is.null(file)) {
-    cat("[write_lna] file is NULL, preparing for in-memory HDF5.\n")
     # Ensure tmp is uniquely named to avoid clashes if this function is called multiple times with file=NULL
     tmp_for_mem <- tempfile(fileext = ".h5") 
-    cat(paste0("[write_lna] Temporary file for in-memory mode: ", tmp_for_mem, "\n"))
     file_to_use <- tmp_for_mem
     in_memory <- TRUE
   } else {
@@ -77,8 +75,7 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   result <- core_write(x = x, transforms = transforms,
                        transform_params = transform_params,
                        mask = mask, header = header, plugins = plugins, run_id = run_id)
-  cat("[write_lna] core_write returned. Plan object: ", class(result$plan), " Handle object: ", class(result$handle), "\n")
-
+ 
   if (!is.null(block_table)) {
     if (!is.data.frame(block_table)) {
       abort_lna(
@@ -143,15 +140,13 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
      # But if it should stop, this is a place.
   }
 
-  cat("[write_lna] Setting up on.exit handler to close HDF5 file.\n")
+  
   on.exit({
-    cat(paste0("[write_lna] on.exit: Attempting to close HDF5 file: ", file_to_use, "\n"))
-    cat(paste0("[write_lna] on.exit: Is h5 object NULL? ", is.null(h5), "\n"))
     if (!is.null(h5)) {
       cat(paste0("[write_lna] on.exit: Is h5 valid before close? ", h5$is_valid, "\n"))
     }
     neuroarchive:::close_h5_safely(h5)
-    cat(paste0("[write_lna] on.exit: close_h5_safely completed for ", file_to_use, "\n"))
+
     # Check if file exists after attempted close, especially if in_memory was false
     if (!in_memory && !is.null(file_to_use)) {
         cat(paste0("[write_lna] on.exit: Checking file existence for ", file_to_use, " after close: ", file.exists(file_to_use), "\n"))

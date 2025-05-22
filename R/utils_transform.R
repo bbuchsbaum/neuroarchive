@@ -74,7 +74,6 @@ handle_missing_methods <- function(missing_types, allow_plugins, location = NULL
 #' @return Updated DataHandle.
 #' @keywords internal
 run_transform_step <- function(direction, type, desc, handle, step_idx) {
-  print(direction)
   
   stopifnot(is.character(direction), length(direction) == 1)
   stopifnot(is.character(type), length(type) == 1)
@@ -105,10 +104,6 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
     abort_lna(msg, .subclass = "lna_error_no_method",
               location = sprintf("%s:%s", fun_name, type))
   } else if (!is.function(method_specific_fun)) {
-    message(sprintf("S3 method %s.%s found by getS3method but is not a function.", fun_name, type))
-    message(sprintf("Object class: %s", paste(class(method_specific_fun), collapse=", ")))
-    message("Attempting to print the object:")
-    try(print(method_specific_fun), silent = TRUE)
     abort_lna(
       sprintf("S3 method %s.%s found but is not a function. Object class: %s",
               fun_name, type, class(method_specific_fun)[1]),
@@ -138,7 +133,6 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
       parent = e
     )
   })
-  message(sprintf("[run_transform_step] AFTER tryCatch, result_handle Stash keys: %s. Is input NULL? %s", paste(names(result_handle$stash), collapse=", "), is.null(result_handle$stash$input)))
 
   if (!inherits(result_handle, "DataHandle")) {
     abort_lna(
@@ -148,6 +142,5 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
       location = sprintf("%s:%s", fun_name, type)
     )
   }
-  message(sprintf("[run_transform_step] Returning result_handle. Stash keys: %s. Is input NULL? %s", paste(names(result_handle$stash), collapse=", "), is.null(result_handle$stash$input)))
   result_handle
 }

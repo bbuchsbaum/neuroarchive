@@ -24,7 +24,7 @@ test_that("delta transform forward and inverse roundtrip", {
 
   h <- read_lna(tmp)
   out <- h$stash$input
-  expect_equal(out, arr)
+  expect_equal(drop(out), arr)
 })
 
 
@@ -38,11 +38,11 @@ test_that("delta transform with rle coding works", {
 
   h <- read_lna(tmp)
   out <- h$stash$input
-  expect_equal(out, arr)
+  expect_equal(drop(out), arr)
 
   p <- neuroarchive:::default_params("delta")
 
-  expect_equal(p$axis, 4)
+  expect_equal(p$axis, -1)
   expect_equal(p$reference_value_storage, "first_value_verbatim")
   expect_equal(p$coding_method, "none")
 

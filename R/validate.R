@@ -237,7 +237,11 @@ runtime_validate_step <- function(type, desc, h5) {
 
   req <- required_params(type)
   params <- desc$params %||% list()
-  missing <- setdiff(req, names(params))
+  
+  # Check both top-level descriptor keys and params sublist for required parameters
+  all_keys <- unique(c(names(desc), names(params)))
+  missing <- setdiff(req, all_keys)
+  
   if (length(missing) > 0) {
     abort_lna(
       paste0(

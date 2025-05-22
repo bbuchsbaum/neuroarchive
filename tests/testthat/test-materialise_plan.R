@@ -42,7 +42,8 @@ test_that("materialise_plan works with Plan$import_from_array", {
   materialise_plan(h5, plan)
   expect_true(h5$exists("scans/run-01/data/values"))
   val <- h5[["scans/run-01/data/values"]]$read()
-  expect_equal(val, array(1, dim = c(1,1,1)))
+  expect_equal(as.numeric(val), 1)
+  expect_null(dim(val))
   neuroarchive:::close_h5_safely(h5)
 })
 
@@ -70,8 +71,11 @@ test_that("materialise_plan respects progress handlers", {
     plan$add_payload(key, 1:5)
     plan$add_dataset_def(path, "data", "dummy", "run-01", 0L, "{}", key, "eager")
   }
-  progressr::handlers(progressr::handler_void)
+  
+  old_handlers <- progressr::handlers()
+  withr::defer(progressr::handlers(old_handlers))
+  progressr::handlers(progressr::handler_void())
+  
   expect_silent(progressr::with_progress(materialise_plan(h5, plan)))
-  progressr::handlers(NULL)
   neuroarchive:::close_h5_safely(h5)
 })

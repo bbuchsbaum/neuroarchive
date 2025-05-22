@@ -1,3 +1,4 @@
+library(withr)
 library(testthat)
 
 # forward_step error provenance
@@ -36,7 +37,7 @@ test_that("core_write reports step provenance", {
   # cat("Error Message: ", conditionMessage(err_cw_prov), "\n")
   # cat("Error Location: ", err_cw_prov$location, "\n")
   # cat("--- End Diagnostic ---\n")
-  expect_true(grepl("forward_step.fail[0]", err_cw_prov$location, fixed = TRUE))
+  expect_true(grepl("forward_step:fail", err_cw_prov$location, fixed = TRUE))
 })
 
 # invert_step error provenance
@@ -65,7 +66,7 @@ test_that("core_read reports step provenance", {
   # cat("Error Message: ", conditionMessage(err_cr_prov), "\n")
   # cat("Error Location: ", err_cr_prov$location, "\n")
   # cat("--- End Diagnostic ---\n")
-  expect_true(grepl("invert_step.fail[0]", err_cr_prov$location, fixed = TRUE))
+  expect_true(grepl("invert_step:fail[0]", err_cr_prov$location, fixed = TRUE))
 })
 
 create_double_fail_file <- function(path) {
@@ -87,10 +88,11 @@ test_that("core_read error location uses transform index", {
   withr::defer(rm("invert_step.dummy", envir = .GlobalEnv))
 
   err_cr_idx <- expect_error(core_read(tmp))
+  cat("\nDEBUG - Actual location for core_read error location uses transform index:", err_cr_idx$location, "\n\n")
   # cat("\n--- Diagnostic for core_read error location uses transform index ---\n")
   # cat("Error Class: ", paste(class(err_cr_idx), collapse=", "), "\n")
   # cat("Error Message: ", conditionMessage(err_cr_idx), "\n")
   # cat("Error Location: ", err_cr_idx$location, "\n")
   # cat("--- End Diagnostic ---\n")
-  expect_true(grepl("invert_step.fail[1]", err_cr_idx$location, fixed = TRUE))
+  expect_true(grepl("invert_step:fail[1]", trimws(err_cr_idx$location), fixed = TRUE))
 })

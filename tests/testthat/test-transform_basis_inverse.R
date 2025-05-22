@@ -14,7 +14,7 @@ test_that("invert_step.basis reconstructs dense data for both storage orders", {
     tmp <- local_tempfile(fileext = ".h5")
     h5 <- H5File$new(tmp, mode = "w")
     mat <- if (identical(ord, "component_x_voxel")) base_mat_cxv else base_mat_vxc
-    neuroarchive:::h5_write_dataset(h5, "/basis/test/matrix", mat)
+    neuroarchive:::h5_write_dataset(h5[["/"]], "/basis/test/matrix", mat)
 
     desc <- list(
       type = "basis",
@@ -26,24 +26,25 @@ test_that("invert_step.basis reconstructs dense data for both storage orders", {
 
     handle <- DataHandle$new(initial_stash = list(coef = coef_mat), h5 = h5)
     h <- invert_step.basis("basis", desc, handle)
-    expect_true(h$exists("dense_mat"))
-    expect_false(h$exists("coef"))
+    expect_true(h$has_key("dense_mat"))
+    expect_false(h$has_key("coef"))
     expected <- if (identical(ord, "component_x_voxel"))
       coef_mat %*% base_mat_cxv else coef_mat %*% t(base_mat_vxc)
     expect_equal(h$stash$dense_mat, expected)
     h5$close_all()
   }
 
-  handle <- DataHandle$new(initial_stash = list(coef = coef_mat), h5 = h5)
-
-  h <- invert_step.basis("basis", desc, handle)
-
-  expect_true(h$has_key("dense_mat"))
-  expect_false(h$has_key("coef"))
-  expected <- tcrossprod(coef_mat, basis_mat)
-  expect_equal(h$stash$dense_mat, expected)
-
-  h5$close_all()
+  # Commenting out this potentially problematic block for now
+  # handle <- DataHandle$new(initial_stash = list(coef = coef_mat), h5 = h5)
+  # 
+  # h <- invert_step.basis("basis", desc, handle)
+  # 
+  # expect_true(h$has_key("dense_mat"))
+  # expect_false(h$has_key("coef"))
+  # expected <- tcrossprod(coef_mat, basis_mat) # basis_mat not defined here
+  # expect_equal(h$stash$dense_mat, expected)
+  # 
+  # h5$close_all()
 
 })
 
@@ -57,7 +58,7 @@ test_that("invert_step.basis applies subset", {
     tmp <- local_tempfile(fileext = ".h5")
     h5 <- H5File$new(tmp, mode = "w")
     mat <- if (identical(ord, "component_x_voxel")) base_mat_cxv else base_mat_vxc
-    neuroarchive:::h5_write_dataset(h5, "/basis/test/matrix", mat)
+    neuroarchive:::h5_write_dataset(h5[["/"]], "/basis/test/matrix", mat)
     desc <- list(
       type = "basis",
       params = list(storage_order = ord),
