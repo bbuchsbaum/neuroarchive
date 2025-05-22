@@ -2,6 +2,7 @@
 #'
 #' Computes first-order differences along a specified axis and optionally
 #' run-length encodes the result.
+#' @importFrom rle as.rle compress.rle inverse.rle
 #' @keywords internal
 forward_step.delta <- function(type, desc, handle) {
   p <- desc$params %||% list()
