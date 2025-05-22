@@ -112,7 +112,8 @@ forward_step.quant <- function(type, desc, handle) {
   scale_path <- paste0("/scans/", run_id, "/quant_scale")
   offset_path <- paste0("/scans/", run_id, "/quant_offset")
 
-  if (identical(scope, "voxel") && !is.null(handle$h5) && handle$h5$is_valid) {
+  blockwise <- identical(scope, "voxel") && !is.null(handle$h5) && handle$h5$is_valid
+  if (blockwise) {
     dims <- dim(x)
     bs <- auto_block_size(dims[1:3],
                           element_size_bytes = if (bits <= 8) 1L else 2L)
@@ -123,15 +124,44 @@ forward_step.quant <- function(type, desc, handle) {
     h5_create_empty_dataset(root, data_path, dims,
                             dtype = storage_type_str,
                             chunk_dims = data_chunk)
-    dset_tmp <- root[[data_path]]
-    h5_attr_write(dset_tmp, "quant_bits", as.integer(bits))
-    dset_tmp$close()
+    dset_q <- root[[data_path]]
+    h5_attr_write(dset_q, "quant_bits", as.integer(bits))
     h5_create_empty_dataset(root, scale_path, dims[1:3],
                             dtype = "float32",
                             chunk_dims = param_chunk)
     h5_create_empty_dataset(root, offset_path, dims[1:3],
                             dtype = "float32",
                             chunk_dims = param_chunk)
+    dset_scale <- root[[scale_path]]
+    dset_offset <- root[[offset_path]]
+
+    slab <- bs$slab_dims
+    n_clipped_total <- 0L
+    for (z in seq(1, dims[3], by = slab[3])) {
+      zi <- z:min(z + slab[3] - 1, dims[3])
+      for (y in seq(1, dims[2], by = slab[2])) {
+        yi <- y:min(y + slab[2] - 1, dims[2])
+        for (x0 in seq(1, dims[1], by = slab[1])) {
+          xi <- x0:min(x0 + slab[1] - 1, dims[1])
+          block <- x[xi, yi, zi, , drop = FALSE]
+          res <- .quantize_voxel_block(block, bits, method, center)
+          idx <- list(xi, yi, zi, seq_len(dims[4]))
+          dset_q$write(args = idx, res$q)
+          dset_scale$write(args = idx[1:3], res$scale)
+          dset_offset$write(args = idx[1:3], res$offset)
+          n_clipped_total <- n_clipped_total + res$n_clipped_total
+        }
+      }
+    }
+    dset_q$close(); dset_scale$close(); dset_offset$close()
+    clip_pct <- if (length(x) > 0) 100 * n_clipped_total / length(x) else 0
+    handle$meta$quant_stats <- list(
+      n_clipped_total = as.integer(n_clipped_total),
+      clip_pct = clip_pct
+    )
+    q <- NULL
+    scale <- NULL
+    offset <- NULL
   }
 
   plan <- handle$plan
@@ -139,18 +169,27 @@ forward_step.quant <- function(type, desc, handle) {
   params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
 
   plan$add_descriptor(plan$get_next_filename("quant"), list(type = "quant", params = p))
-  plan$add_payload(data_path, q)
+  payload_key_data <- data_path
+  payload_key_scale <- scale_path
+  payload_key_offset <- offset_path
+  if (blockwise) {
+    payload_key_data <- ""
+    payload_key_scale <- ""
+    payload_key_offset <- ""
+  } else {
+    plan$add_payload(data_path, q)
+    plan$add_payload(scale_path, scale)
+    plan$add_payload(offset_path, offset)
+  }
   plan$add_dataset_def(data_path, "quantized", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       data_path, "eager", dtype = storage_type_str)
-  plan$add_payload(scale_path, scale)
+                       payload_key_data, "eager", dtype = storage_type_str)
   plan$add_dataset_def(scale_path, "scale", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       scale_path, "eager", dtype = "float32")
-  plan$add_payload(offset_path, offset)
+                       payload_key_scale, "eager", dtype = "float32")
   plan$add_dataset_def(offset_path, "offset", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       offset_path, "eager", dtype = "float32")
+                       payload_key_offset, "eager", dtype = "float32")
 
   handle$plan <- plan
   handle$update_stash(keys = input_key, new_values = list())
@@ -337,4 +376,63 @@ invert_step.quant <- function(type, desc, handle) {
   list(q = arr_q,
        scale = array(scale, dim = dims[1:3]),
        offset = array(offset, dim = dims[1:3]))
+}
+
+#' Quantize a voxel block with clipping stats
+#'
+#' Helper used by block-wise processing to quantize a subset of voxels and
+#' return clipping information along with scale/offset parameters.
+#' @keywords internal
+.quantize_voxel_block <- function(x, bits, method, center) {
+  if (any(!is.finite(x))) {
+    abort_lna(
+      "non-finite values found in input",
+      .subclass = "lna_error_validation",
+      location = ".quantize_voxel_block"
+    )
+  }
+
+  dims <- dim(x)
+  vox <- prod(dims[1:3])
+  time <- dims[4]
+  mat <- matrix(as.numeric(x), vox, time)
+
+  m <- rowMeans(mat)
+  s <- apply(mat, 1, stats::sd)
+  rng_lo <- apply(mat, 1, min)
+  rng_hi <- apply(mat, 1, max)
+
+  if (center) {
+    max_abs <- if (identical(method, "sd")) 3 * s else pmax(abs(rng_hi - m), abs(rng_lo - m))
+    scale <- (2 * max_abs) / (2^bits - 1)
+    offset <- m - max_abs
+  } else {
+    if (identical(method, "sd")) {
+      lo <- m - 3 * s
+      hi <- m + 3 * s
+    } else {
+      lo <- rng_lo
+      hi <- rng_hi
+    }
+    scale <- (hi - lo) / (2^bits - 1)
+    offset <- lo
+  }
+
+  zero_idx <- scale == 0
+  q <- matrix(0L, vox, time)
+  nclip <- 0L
+  if (any(!zero_idx)) {
+    q_raw <- round((mat[!zero_idx, , drop = FALSE] - offset[!zero_idx]) / scale[!zero_idx])
+    nclip <- sum(q_raw < 0 | q_raw > 2^bits - 1)
+    q[!zero_idx, ] <- q_raw
+    q[q < 0] <- 0L
+    q[q > 2^bits - 1] <- 2^bits - 1L
+  }
+  scale[zero_idx] <- 1
+
+  arr_q <- array(as.integer(q), dim = dims)
+  list(q = arr_q,
+       scale = array(scale, dim = dims[1:3]),
+       offset = array(offset, dim = dims[1:3]),
+       n_clipped_total = as.integer(nclip))
 }

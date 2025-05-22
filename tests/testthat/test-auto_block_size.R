@@ -11,3 +11,13 @@ test_that("auto_block_size reduces slab to target", {
   expect_equal(res$iterate_slabs, ceiling(c(64, 64, 32) / res$slab_dims))
 })
 
+test_that("auto_block_size works across varied dimensions", {
+  dims <- list(c(128, 64, 16), c(50, 50, 50), c(10, 5, 3))
+  for (d in dims) {
+    res <- auto_block_size(d, element_size_bytes = 2, target_slab_bytes = 1e6)
+    expect_equal(length(res$slab_dims), 3)
+    expect_true(prod(res$slab_dims) * 2 <= 1e6)
+    expect_equal(res$iterate_slabs, ceiling(d / res$slab_dims))
+  }
+})
+
