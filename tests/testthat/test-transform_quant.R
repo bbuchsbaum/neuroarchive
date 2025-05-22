@@ -250,8 +250,11 @@ test_that("forward_step.quant warns or errors based on clipping thresholds", {
   )
 })
 
+
 test_that("forward_step.quant hard clips output range", {
   arr <- c(rep(0, 98), 10, -10)
+
+
   tmp <- local_tempfile(fileext = ".h5")
   write_lna(arr, file = tmp, transforms = "quant",
             transform_params = list(quant = list(method = "sd")))
@@ -260,4 +263,17 @@ test_that("forward_step.quant hard clips output range", {
   qvals <- dset$read()
   expect_true(all(qvals >= 0 & qvals <= 255))
   dset$close(); h5$close_all()
+})
+
+test_that("quant roundtrip fidelity for bits=1 and bits=16", {
+  arr <- array(runif(20), dim = c(4,5))
+  for (b in c(1L, 16L)) {
+    tmp <- local_tempfile(fileext = ".h5")
+    write_lna(arr, file = tmp, transforms = "quant",
+              transform_params = list(quant = list(bits = b)))
+    h <- read_lna(tmp)
+    out <- h$stash$input
+    expect_equal(dim(out), dim(arr))
+    expect_lt(mean(abs(out - arr)), 1)
+  }
 })
