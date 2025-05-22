@@ -65,7 +65,7 @@ test_that("temporal transform rejects unsupported kind", {
     class = "lna_error_validation",
     regexp = "temporal kind"
   )
-}
+})
           
 test_that("temporal transform dpss roundtrip", {
   set.seed(1)
