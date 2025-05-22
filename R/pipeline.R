@@ -465,6 +465,80 @@ lna_pipeline <- R6::R6Class(
       }
 
       if (length(issues) == 0) TRUE else issues
+    },
+
+    #' @description
+    #' Produce a diagram of the pipeline.
+    #' @param engine Output engine: one of "grViz", "ascii", or "dot".
+    #' @return DOT string, a `DiagrammeR` graph object, or ASCII text.
+    diagram = function(engine = c("grViz", "ascii", "dot")) {
+      engine <- match.arg(engine)
+
+      clip_text <- function(x, limit = 30) {
+        if (nchar(x) > limit) paste0(substr(x, 1, limit), "...") else x
+      }
+
+      param_summary <- function(params) {
+        if (length(params) == 0) return("")
+        kv <- vapply(names(params), function(nm) {
+          val <- params[[nm]]
+          if (is.atomic(val) && length(val) == 1) {
+            paste0(nm, "=", clip_text(as.character(val)))
+          } else {
+            paste0(nm, "=[...]")
+          }
+        }, character(1))
+        paste(kv, collapse = "\n")
+      }
+
+      nodes <- list(sprintf('n0 [label="Input\n%s"];', self$input_summary))
+      for (i in seq_along(self$steps)) {
+        step <- self$steps[[i]]
+        lbl <- sprintf("%d: %s", i, step$type)
+        psum <- param_summary(step$params %||% list())
+        if (nzchar(psum)) lbl <- paste(lbl, psum, sep = "\n")
+        nodes[[length(nodes) + 1]] <- sprintf("n%d [label=\"%s\"];", i, lbl)
+      }
+      out_idx <- length(self$steps) + 1L
+      nodes[[length(nodes) + 1]] <- sprintf("n%d [label=\"Output\"];", out_idx)
+
+      edges <- vapply(seq_len(out_idx), function(j) {
+        sprintf("n%d -> n%d;", j - 1L, j)
+      }, character(1))
+
+      dot <- paste(c(
+        "digraph pipeline {",
+        "  rankdir=LR;",
+        paste0("  ", unlist(nodes)),
+        paste0("  ", edges),
+        "}"), collapse = "\n")
+
+      if (engine == "dot") {
+        return(dot)
+      }
+
+      if (engine == "grViz") {
+        if (requireNamespace("DiagrammeR", quietly = TRUE)) {
+          return(DiagrammeR::grViz(dot))
+        } else {
+          warning("DiagrammeR not installed; returning DOT string.", call. = FALSE)
+          return(dot)
+        }
+      }
+
+      if (engine == "ascii") {
+        if (requireNamespace("DiagrammeR", quietly = TRUE) &&
+            requireNamespace("DiagrammeRsvg", quietly = TRUE) &&
+            requireNamespace("asciiSVG", quietly = TRUE)) {
+          gr <- DiagrammeR::grViz(dot)
+          svg <- DiagrammeRsvg::export_svg(gr)
+          asc <- asciiSVG::ascii_svg(svg)
+          return(paste(asc, collapse = "\n"))
+        } else {
+          warning("ASCII engine unavailable; returning DOT string.", call. = FALSE)
+          return(dot)
+        }
+      }
     }
   )
 )
