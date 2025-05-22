@@ -95,14 +95,17 @@ forward_step.temporal <- function(type, desc, handle) {
 #' @keywords internal
 invert_step.temporal <- function(type, desc, handle) {
   basis_path <- NULL
+  coeff_path <- NULL
   if (!is.null(desc$datasets)) {
-    idx <- which(vapply(desc$datasets, function(d) d$role, character(1)) ==
-                   "temporal_basis")
-    if (length(idx) > 0) basis_path <- desc$datasets[[idx[1]]]$path
+    roles <- vapply(desc$datasets, function(d) d$role, character(1))
+    idx_b <- which(roles == "temporal_basis")
+    if (length(idx_b) > 0) basis_path <- desc$datasets[[idx_b[1]]]$path
+    idx_c <- which(roles == "temporal_coefficients")
+    if (length(idx_c) > 0) coeff_path <- desc$datasets[[idx_c[1]]]$path
   }
-  if (is.null(basis_path)) {
+  if (is.null(basis_path) || is.null(coeff_path)) {
     abort_lna(
-      "temporal_basis path not found in descriptor",
+      "temporal_basis or coefficients path not found in descriptor",
       .subclass = "lna_error_descriptor",
       location = "invert_step.temporal"
     )
@@ -110,13 +113,14 @@ invert_step.temporal <- function(type, desc, handle) {
 
   coeff_key <- desc$outputs[[1]] %||% "temporal_coefficients"
   input_key  <- desc$inputs[[1]] %||% "input"
-  if (!handle$has_key(coeff_key)) {
-    return(handle)
-  }
 
   root <- handle$h5[["/"]]
   basis <- h5_read(root, basis_path)
-  coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
+  coeff <- if (handle$has_key(coeff_key)) {
+    handle$get_inputs(coeff_key)[[coeff_key]]
+  } else {
+    h5_read(root, coeff_path)
+  }
 
   dense <- basis %*% coeff
 
