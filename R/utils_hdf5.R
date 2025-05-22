@@ -158,6 +158,55 @@ reduce_chunk_dims <- function(chunk, dtype_size, target_bytes) {
   chunk
 }
 
+#' Create an empty HDF5 dataset
+#'
+#' Helper used when block-wise algorithms need a dataset skeleton to write
+#' slabs into. This mirrors \code{h5_write_dataset} but allocates the dataset
+#' without supplying data.
+#'
+#' @param h5_group An `H5Group` object used as the starting location for `path`.
+#' @param path Character string giving the dataset path relative to `h5_group`.
+#' @param dims Integer vector of dataset dimensions.
+#' @param dtype Character string naming the datatype (e.g. "uint8", "float32").
+#' @param chunk_dims Optional integer vector specifying chunk layout. When
+#'   `NULL`, [guess_chunk_dims()] is used.
+#' @return Invisibly returns `TRUE` on success.
+#' @keywords internal
+h5_create_empty_dataset <- function(h5_group, path, dims, dtype,
+                                    chunk_dims = NULL) {
+  stopifnot(inherits(h5_group, "H5Group"))
+  stopifnot(is.character(path), length(path) == 1)
+  stopifnot(is.numeric(dims))
+  stopifnot(is.character(dtype) || inherits(dtype, "H5T"))
+
+  parts <- strsplit(path, "/")[[1]]
+  parts <- parts[nzchar(parts)]
+  stopifnot(length(parts) > 0)
+  ds_name <- tail(parts, 1)
+
+  grp <- h5_group
+  if (length(parts) > 1) {
+    for (g in parts[-length(parts)]) {
+      grp <- if (!grp$exists(g)) grp$create_group(g) else grp[[g]]
+    }
+  }
+
+  if (is.null(chunk_dims)) {
+    size <- map_dtype(dtype)$get_size(variable_as_inf = FALSE)
+    chunk_dims <- guess_chunk_dims(as.integer(dims), size)
+  } else {
+    chunk_dims <- as.integer(chunk_dims)
+  }
+
+  dty <- map_dtype(dtype)
+  ds <- grp$create_dataset(ds_name,
+                           dims = as.integer(dims),
+                           dtype = dty,
+                           chunk_dims = chunk_dims)
+  if (inherits(ds, "H5D")) ds$close()
+  invisible(TRUE)
+}
+
 #' Write a dataset to an HDF5 group
 #'
 #' @description Creates or overwrites a dataset at `path`, optionally using

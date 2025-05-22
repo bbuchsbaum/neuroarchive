@@ -112,6 +112,28 @@ forward_step.quant <- function(type, desc, handle) {
   scale_path <- paste0("/scans/", run_id, "/quant_scale")
   offset_path <- paste0("/scans/", run_id, "/quant_offset")
 
+  if (identical(scope, "voxel") && !is.null(handle$h5) && handle$h5$is_valid) {
+    dims <- dim(x)
+    bs <- auto_block_size(dims[1:3],
+                          element_size_bytes = if (bits <= 8) 1L else 2L)
+    data_chunk <- c(bs$slab_dims, dims[4])
+    param_chunk <- bs$slab_dims
+
+    root <- handle$h5[["/"]]
+    h5_create_empty_dataset(root, data_path, dims,
+                            dtype = storage_type_str,
+                            chunk_dims = data_chunk)
+    dset_tmp <- root[[data_path]]
+    h5_attr_write(dset_tmp, "quant_bits", as.integer(bits))
+    dset_tmp$close()
+    h5_create_empty_dataset(root, scale_path, dims[1:3],
+                            dtype = "float32",
+                            chunk_dims = param_chunk)
+    h5_create_empty_dataset(root, offset_path, dims[1:3],
+                            dtype = "float32",
+                            chunk_dims = param_chunk)
+  }
+
   plan <- handle$plan
   step_index <- plan$next_index
   params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
