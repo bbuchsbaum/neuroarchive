@@ -178,7 +178,17 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
           next
         }
         if (!is.null(p)) p(message = row$path)
-        write_payload(row$path, payload, row$step_index, row$dtype)
+
+        write_payload(row$path, payload, row$step_index)
+        if (row$producer == "quant" && row$role == "quantized") {
+          bits_val <- tryCatch(jsonlite::fromJSON(row$params_json)$bits,
+                               error = function(e) NULL)
+          bits_val <- bits_val %||% 8L
+          dset_obj <- root[[row$path]]
+          h5_attr_write(dset_obj, "quant_bits", as.integer(bits_val))
+          dset_obj$close()
+        }
+        #write_payload(row$path, payload, row$step_index, row$dtype)
         plan$datasets$write_mode_effective[i] <- "eager"
         plan$mark_payload_written(key)
       }
