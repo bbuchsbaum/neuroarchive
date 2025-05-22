@@ -10,6 +10,7 @@ test_that("default_params for quant loads schema", {
   expect_equal(p$bits, 8)
   expect_equal(p$method, "range")
   expect_true(p$center)
+  expect_false(p$allow_clip)
 })
 
 
