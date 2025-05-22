@@ -89,3 +89,38 @@ lna_write <- function(pipeline_obj, file, ...,
   )
   invisible(result)
 }
+
+##' Quantization DSL verb
+#'
+#' Adds a quantization step to a pipeline. If `data_or_pipe`
+#' is not an `lna_pipeline`, a new pipeline is created via
+#' `as_pipeline()`.
+#'
+#' Parameter values are resolved by merging schema defaults,
+#' global `lna_options("quant")`, and user-supplied arguments.
+#'
+#' @param data_or_pipe Data object or `lna_pipeline`.
+#' @param bits Optional number of quantization bits.
+#' @param ... Additional parameters for the quant transform.
+#'
+#' @return An `lna_pipeline` object with the quant step appended.
+#' @export
+quant <- function(data_or_pipe, bits = NULL, ...) {
+  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
+    data_or_pipe
+  } else {
+    as_pipeline(data_or_pipe)
+  }
+
+  user_params <- c(list(bits = bits), list(...))
+  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
+
+  pars <- default_params("quant")
+  opts <- lna_options("quant")$quant %||% list()
+  pars <- utils::modifyList(pars, opts)
+  pars <- utils::modifyList(pars, user_params)
+
+  step_spec <- list(type = "quant", params = pars)
+  pipe$add_step(step_spec)
+  pipe
+}
