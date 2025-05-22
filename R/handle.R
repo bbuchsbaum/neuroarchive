@@ -155,6 +155,25 @@ DataHandle <- R6::R6Class("DataHandle",
     has_key = function(key) {
       stopifnot(is.character(key), length(key) == 1)
       return(key %in% names(self$stash))
+    },
+
+    #' @description
+    #' Return the first available value for a set of candidate keys.
+    #' @param keys Character vector of keys to search for in order.
+    #' @return List with elements `value` and `key` giving the retrieved
+    #'   object and the key that was found.
+    pull_first = function(keys) {
+      stopifnot(is.character(keys), length(keys) > 0)
+      for (k in keys) {
+        if (self$has_key(k)) {
+          return(list(value = self$stash[[k]], key = k))
+        }
+      }
+      abort_lna(
+        paste0("None of the candidate keys found: ", paste(keys, collapse = ", ")),
+        .subclass = "lna_error_contract",
+        location = "DataHandle$pull_first"
+      )
     }
   )
 )

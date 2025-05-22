@@ -8,5 +8,8 @@
 }
 \description{
 Reconstructs data from the sparse PCA coefficients and basis matrix.
+If singular values were written during the forward step they are
+applied before multiplying by the basis. The basis may be transposed
+when `storage_order = "voxel_x_component"`.
 }
 \keyword{internal}

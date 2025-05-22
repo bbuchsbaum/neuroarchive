@@ -7,6 +7,7 @@
     "k": {"type": "integer", "minimum": 1, "default": 50},
     "alpha": {"type": "number", "default": 0.001},
     "whiten": {"type": "boolean", "default": false},
+    "seed": {"type": "integer", "default": 42},
     "storage_order": {
       "type": "string",
       "enum": ["component_x_voxel", "voxel_x_component"],
