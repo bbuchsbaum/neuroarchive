@@ -99,6 +99,8 @@ forward_step.quant <- function(type, desc, handle) {
       n_clipped_total = params$n_clipped_total %||% 0L,
       clip_pct = params$clip_pct %||% 0
     )
+    q[q < 0] <- 0L
+    q[q > (2^bits - 1)] <- (2^bits - 1L)
   }
 
   storage.mode(q) <- "integer"

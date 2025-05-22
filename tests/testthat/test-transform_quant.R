@@ -249,3 +249,15 @@ test_that("forward_step.quant warns or errors based on clipping thresholds", {
     regexp = "Clipping"
   )
 })
+
+test_that("forward_step.quant hard clips output range", {
+  arr <- c(rep(0, 98), 10, -10)
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp, transforms = "quant",
+            transform_params = list(quant = list(method = "sd")))
+  h5 <- H5File$new(tmp, mode = "r")
+  dset <- h5[["scans/run-01/quantized"]]
+  qvals <- dset$read()
+  expect_true(all(qvals >= 0 & qvals <= 255))
+  dset$close(); h5$close_all()
+})
