@@ -11,3 +11,10 @@ expect_true(grepl("digraph", dot))
 expect_true(grepl("quant", dot))
 })
 
+
+test_that("diagram ascii falls back when packages missing", {
+  pipe <- as_pipeline(array(1))
+  res <- suppressWarnings(pipe$diagram("ascii"))
+  expect_true(is.character(res))
+  expect_true(grepl("digraph", res))
+})

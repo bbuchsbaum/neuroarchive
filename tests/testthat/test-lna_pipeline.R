@@ -178,3 +178,51 @@ test_that("steps() returns internal step list", {
   expect_identical(pipe$get_last_step_spec(), s3)
 })
 
+# Modification methods -------------------------------------------------------
+
+test_that("modify_step updates and resets parameters", {
+  pipe <- as_pipeline(array(1))
+  pipe$add_step(list(type = "quant", params = list(bits = 8)))
+
+  pipe$modify_step(1, list(bits = 12, method = "sd"))
+  step <- pipe$get_step(1)
+  expect_equal(step$params$bits, 12)
+  expect_equal(step$params$method, "sd")
+  expect_true(step$params$center)  # from defaults
+
+  pipe$modify_step(1, list(method = NULL))
+  step <- pipe$get_step(1)
+  expect_equal(step$params$method, "range")  # default restored
+})
+
+
+test_that("remove_step deletes specified step", {
+  pipe <- as_pipeline(array(1))
+  pipe$add_step(list(type = "quant", params = list(bits = 8)))
+  pipe$add_step(list(type = "basis", params = list(k = 2)))
+  pipe$remove_step(1)
+  expect_equal(length(pipe$steps()), 1L)
+  expect_identical(pipe$get_step(1)$type, "basis")
+})
+
+
+test_that("insert_step adds step at correct position", {
+  pipe <- as_pipeline(array(1))
+  pipe$add_step(list(type = "quant", params = list(bits = 8)))
+  pipe$insert_step(list(type = "basis", params = list(k = 2)), after_index_or_type = 1)
+  expect_equal(pipe$get_step(2)$type, "basis")
+  pipe$insert_step(list(type = "quant", params = list(bits = 4)), before_index_or_type = 1)
+  expect_equal(pipe$get_step(1)$params$bits, 4)
+})
+
+
+test_that("validate_params works with strict flag", {
+  pipe <- as_pipeline(array(1))
+  pipe$add_step(list(type = "quant", params = list(bits = 8)))
+  expect_true(pipe$validate_params(strict = TRUE))
+
+  pipe$modify_step(1, list(bits = 32))
+  expect_warning(res <- pipe$validate_params(strict = FALSE))
+  expect_true(is.character(res))
+  expect_error(pipe$validate_params(strict = TRUE), class = "lna_error_validation")
+})
