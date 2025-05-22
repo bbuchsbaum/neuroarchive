@@ -237,9 +237,28 @@ forward_step.quant <- function(type, desc, handle) {
 
   plan <- handle$plan
   step_index <- plan$next_index
+  fname <- plan$get_next_filename("quant")
+  base_name <- tools::file_path_sans_ext(fname)
+
+  report_path <- paste0("/transforms/", base_name, "_report.json")
+  p$report_path <- report_path
+  json_report_str <- jsonlite::toJSON(quant_report, auto_unbox = TRUE, pretty = TRUE)
+  gzipped_report <- memCompress(charToRaw(json_report_str), type = "gzip")
+
+  payload_key_report <- report_path
+  if (!is.null(handle$h5) && handle$h5$is_valid) {
+    root <- handle$h5[["/"]]
+    h5_write_dataset(root, report_path, gzipped_report, dtype = "uint8")
+    dset_rep <- root[[report_path]]
+    h5_attr_write(dset_rep, "compression", "gzip")
+    dset_rep$close()
+    payload_key_report <- ""
+  } else {
+    plan$add_payload(report_path, gzipped_report)
+  }
   params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
 
-  plan$add_descriptor(plan$get_next_filename("quant"), list(type = "quant", params = p))
+  plan$add_descriptor(fname, list(type = "quant", params = p))
   payload_key_data <- data_path
   payload_key_scale <- scale_path
   payload_key_offset <- offset_path
@@ -261,6 +280,9 @@ forward_step.quant <- function(type, desc, handle) {
   plan$add_dataset_def(offset_path, "offset", as.character(type), run_id,
                        as.integer(step_index), params_json,
                        payload_key_offset, "eager", dtype = "float32")
+  plan$add_dataset_def(report_path, "quant_report", as.character(type), run_id,
+                       as.integer(step_index), params_json,
+                       payload_key_report, "eager", dtype = "uint8")
 
   handle$plan <- plan
   handle$update_stash(keys = input_key, new_values = list())
