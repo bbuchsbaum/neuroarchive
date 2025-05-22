@@ -8,6 +8,13 @@ arrays using a sequence of transforms.  The simplest transform is
 `quant`, which performs integer quantisation, but Phase 2 adds
 `basis`/`embed` for PCA-style dimensionality reduction.
 
+Arrays fed to `write_lna()` should have the time dimension last
+(for example `dim = c(nx, ny, nz, nt)` for a 4D volume).  Before a
+transform runs, these arrays are reshaped into a matrix with rows
+corresponding to time points and columns corresponding to voxels.
+For instance a `10×4×1` array becomes a `10×4` matrix prior to
+applying the Sparse PCA transform.
+
 ```r
 library(neuroarchive)
 
