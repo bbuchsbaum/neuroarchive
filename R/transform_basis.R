@@ -191,18 +191,18 @@ forward_step.basis <- function(type, desc, handle) {
   plan$add_payload(matrix_path, basis_mat)
   plan$add_dataset_def(matrix_path, "basis_matrix", type,
                        plan$origin_label, as.integer(step_index),
-                       params_json, matrix_path, "eager")
+                       params_json, matrix_path, "eager", dtype = NA_character_)
   if (!is.null(mean_vec)) {
     plan$add_payload(center_path, mean_vec)
     plan$add_dataset_def(center_path, "center", type,
                          plan$origin_label, as.integer(step_index),
-                         params_json, center_path, "eager")
+                         params_json, center_path, "eager", dtype = NA_character_)
   }
   if (!is.null(scale_vec)) {
     plan$add_payload(scale_path, scale_vec)
     plan$add_dataset_def(scale_path, "scale", type,
                          plan$origin_label, as.integer(step_index),
-                         params_json, scale_path, "eager")
+                         params_json, scale_path, "eager", dtype = NA_character_)
   }
 
   handle$plan <- plan

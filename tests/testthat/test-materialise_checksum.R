@@ -14,7 +14,7 @@ test_that("materialise_plan writes sha256 checksum attribute that matches pre-at
     p <- Plan$new()
     p$add_descriptor("00_dummy.json", list(type = "dummy"))
     p$add_payload("payload", matrix(1:4, nrow = 2))
-    p$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "payload", "eager")
+    p$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "payload", "eager", dtype = NA_character_)
     p
   }
 

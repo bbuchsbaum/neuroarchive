@@ -92,13 +92,13 @@ test_that("materialise_plan retries with chunk heuristics using local copy", {
   # Need Plan to be the actual Plan object from the package
   plan <- neuroarchive:::Plan$new()
   plan$add_payload("p", matrix(1:10, nrow = 2))
-  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p", "eager")
+  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p", "eager", dtype = NA_character_)
 
   mock_env <- new.env()
   mock_env$calls <- list()
   
   # This is our mock, to be passed to materialise_plan_for_test
-  h5_write_dataset_for_test <- function(h5_group, path, data, chunk_dims = NULL, compression_level = 0) {
+  h5_write_dataset_for_test <- function(h5_group, path, data, chunk_dims = NULL, compression_level = 0, dtype = NULL) {
     mock_env$calls <- c(mock_env$calls, list(chunk_dims)) # New way to append
     
     if (length(mock_env$calls) < 3) {

@@ -158,7 +158,8 @@ core_write <- function(x, transforms, transform_params = list(),
         step_index = 0L,
         params_json = "{}",
         payload_key = payload_key,
-        write_mode = "eager"
+        write_mode = "eager",
+        dtype = NA_character_
       )
     }
 

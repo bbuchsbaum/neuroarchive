@@ -103,7 +103,7 @@ forward_step.temporal <- function(type, desc, handle) {
   
   plan$add_dataset_def(basis_path, "temporal_basis", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
-                       basis_path, "eager")
+                       basis_path, "eager", dtype = NA_character_)
 
   if (!is.null(knots_data)) {
     knots_payload <- knots_data
@@ -113,7 +113,7 @@ forward_step.temporal <- function(type, desc, handle) {
     plan$add_payload(knots_path, knots_payload)
     plan$add_dataset_def(knots_path, "knots", as.character(type), run_id,
                          as.integer(plan$next_index), params_json,
-                         knots_path, "eager")
+                         knots_path, "eager", dtype = NA_character_)
   }
   
   # Prepare coeff_payload for saving (ensure 3D)
@@ -125,7 +125,7 @@ forward_step.temporal <- function(type, desc, handle) {
   
   plan$add_dataset_def(coef_path, "temporal_coefficients", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
-                       coef_path, "eager")
+                       coef_path, "eager", dtype = NA_character_)
   handle$plan <- plan
 
   handle$update_stash(keys = c(input_key),
