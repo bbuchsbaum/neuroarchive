@@ -9,4 +9,10 @@
 \description{
 Reconstructs data from the sparse PCA coefficients and basis matrix.
 }
+\details{
+The orientation of the stored basis matrix is controlled by the
+\code{storage_order} parameter. The default is
+\code{"component_x_voxel"}, but \code{"voxel_x_component"} is also
+allowed.
+}
 \keyword{internal}
