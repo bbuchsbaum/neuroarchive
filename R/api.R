@@ -36,7 +36,12 @@
 #' arr <- array(rnorm(16), dim = c(4, 4, 1, 1))
 #' write_lna(arr, tmp, transforms = "quant")
 #' @export
-write_lna <- function(x, file = NULL, transforms = character(),
+write_lna <- function(x, ...) {
+  UseMethod("write_lna")
+}
+
+#' @export
+write_lna.default <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
                       header = NULL, plugins = NULL, block_table = NULL,
                       run_id = NULL, checksum = c("none", "sha256")) {
