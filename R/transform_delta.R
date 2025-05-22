@@ -1,5 +1,4 @@
 #' Delta Transform - Forward Step
-#'
 #' Computes first-order differences along a chosen axis. When
 #' `coding_method` is set to `'rle'`, the differences are compressed using
 #' the **rle** package and stored as a two column matrix with `lengths` and
@@ -74,7 +73,20 @@ forward_step.delta <- function(type, desc, handle) {
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
-  desc$outputs <- "delta_stream"
+
+  output_key <- NULL
+  if (!is.null(desc$outputs)) {
+    if (length(desc$outputs) > 0) {
+      output_key <- desc$outputs[[1]]
+      desc$outputs <- output_key
+    } else {
+      desc$outputs <- character()
+    }
+  } else {
+    output_key <- "delta_stream"
+    desc$outputs <- output_key
+  }
+
   desc$params <- p
   ds <- list(list(path = delta_path, role = "delta_stream"))
   if (identical(ref_store, "first_value_verbatim")) {
@@ -95,8 +107,14 @@ forward_step.delta <- function(type, desc, handle) {
   }
 
   handle$plan <- plan
-  handle$update_stash(keys = c(input_key), 
-                      new_values = list(delta_stream = delta_stream))
+  if (!is.null(output_key)) {
+    handle$update_stash(
+      keys = c(input_key),
+      new_values = setNames(list(delta_stream), output_key)
+    )
+  } else {
+    handle$update_stash(keys = c(input_key), new_values = list())
+  }
 }
 
 #' Delta Transform - Inverse Step
@@ -156,9 +174,7 @@ invert_step.delta <- function(type, desc, handle) {
   }
   dim(first_vals) <- c(1, expected_ncols)
 
-  # Calculate expected number of columns for the 2D representation of deltas/cums
-  # Number of rows for deltas is one less than the original dimension along the axis
-  expected_nrows_deltas <- max(0, dims[axis]-1)
+  expected_nrows_deltas <- max(0, dims[axis] - 1L)
 
   if (identical(coding, "rle")) {
     # Reconstruct the delta vector from run-length encoding stored in the
@@ -168,81 +184,30 @@ invert_step.delta <- function(type, desc, handle) {
     r_obj <- structure(list(lengths = lengths, values = values), class = "rle")
     delta_vec <- rle::inverse.rle(r_obj)
     if (expected_nrows_deltas > 0 && length(delta_vec) != expected_nrows_deltas * expected_ncols) {
-        abort_lna(sprintf("RLE decoded data length (%d) mismatch. Expected %d elements for %dx%d deltas matrix.",
-                        length(delta_vec), expected_nrows_deltas * expected_ncols,
-                        expected_nrows_deltas, expected_ncols),
-                  .subclass = "lna_error_runtime", location="invert_step.delta:rle_decode")
+      abort_lna(
+        sprintf(
+          "RLE decoded data length (%d) mismatch. Expected %d elements for %dx%d deltas matrix.",
+          length(delta_vec), expected_nrows_deltas * expected_ncols,
+          expected_nrows_deltas, expected_ncols
+        ),
+        .subclass = "lna_error_runtime",
+        location = "invert_step.delta:rle_decode"
+      )
     }
     deltas <- matrix(delta_vec, nrow = expected_nrows_deltas, ncol = expected_ncols)
   } else {
-    deltas <- delta_stream
-    # Ensure deltas is reshaped correctly. Total elements must match.
-    if (length(as.vector(deltas)) != expected_nrows_deltas * expected_ncols) {
-        abort_lna(sprintf("Delta stream data length (%d) mismatch. Expected %d elements for %dx%d deltas matrix.",
-                        length(as.vector(deltas)), expected_nrows_deltas * expected_ncols,
-                        expected_nrows_deltas, expected_ncols),
-                  .subclass = "lna_error_runtime", location="invert_step.delta:delta_stream_shape")
-    }
-    dim(deltas) <- c(expected_nrows_deltas, expected_ncols)
+    deltas <- matrix(delta_stream, nrow = expected_nrows_deltas, ncol = expected_ncols)
   }
 
-  # Ensure first_vals also has expected_ncols for sweep compatibility
-  if (ncol(first_vals) != expected_ncols) {
-     # This should ideally not happen if forward step saved it correctly (1 x prod(dims[-axis]))
-     # and prod(dims[-axis]) is expected_ncols.
-     dim(first_vals) <- c(1, expected_ncols) # Attempt to fix, assuming length(first_vals) == expected_ncols
-  }
-
-  cums <- apply(deltas, 2, cumsum)
-  # apply on 0-row matrix results in 0-row matrix with same ncols
-  # apply on 0-col matrix results in list() if simplify=T, or error if simplify=F 
-  # expected_ncols cannot be 0 if dims is not empty.
-  
-  # Ensure cums has correct dimensions before sweep, esp. if deltas was empty
-  if (nrow(deltas) == 0 && ncol(deltas) > 0) { # If deltas was 0xM
-      dim(cums) <- c(0, ncol(deltas)) # apply might return list() or different shape
-  } else if (nrow(deltas) > 0 && ncol(deltas) == 0) {
-      # This case (Mx0 deltas) should not occur with current logic
-      dim(cums) <- c(nrow(deltas),0)
-  }
-  # If deltas was 0x0, cums will be 0x0 (from matrix(...,0,0))
-
+  cums <- matrix(apply(deltas, 2, cumsum), nrow = expected_nrows_deltas, ncol = expected_ncols)
   recon <- rbind(first_vals, sweep(cums, 2, first_vals, "+"))
 
-  # Reshape 'recon' back to original permuted dimensions
-  if (length(dims) == 1) {
-    # Original data was a vector. recon is N x 1 (or 1 x N if first_vals was row).
-    # first_vals dim is c(1, prod(dims[-axis])), but if dims is 1D, prod(dims[-axis]) is prod(empty)=1.
-    # So first_vals is 1x1. deltas is (N-1)x1. cums is (N-1)x1. recon is Nx1.
-    out <- as.vector(recon)
+  perm <- c(axis, setdiff(seq_along(dims), axis))
+  recon_perm <- array(recon, dim = dims[perm])
+  if (length(dims) > 1) {
+    out <- aperm(recon_perm, order(perm))
   } else {
-    # Original data was multi-dimensional array.
-    # Target shape before inverse permutation is (dim_along_diff_axis, other_dim1, other_dim2, ...)
-    # These are: retrieved_orig_dims[effective_axis], followed by retrieved_orig_dims[-effective_axis]
-    
-    current_shape_of_recon <- c(dims[axis], prod(dims[-axis]))
-    # Ensure recon actually has this 2D shape. It should from rbind/sweep.
-    dim(recon) <- current_shape_of_recon
-
-    # The shape for aperm needs to match the permuted version from forward step
-    # which was (dim_of_diff_axis, other_dims_collapsed_then_expanded...)
-    # The actual dimensions for array() call prior to aperm should be:
-    # retrieved_orig_dims but with effective_axis first.
-    # e.g., if orig_dims = c(D1, D2, D3) and effective_axis = 2,
-    # then permuted_dims_for_array = c(D2, D1, D3)
-    
-    permuted_dims_order <- c(axis, setdiff(seq_along(dims), axis))
-    shape_before_aperm <- dims[permuted_dims_order]
-    
-    # Total elements in recon must match total elements in shape_before_aperm
-    # numel_recon = prod(current_shape_of_recon)
-    # numel_target = prod(shape_before_aperm)
-    # These must be equal. They are, as both are prod(dims).
-    
-    dim(recon) <- shape_before_aperm # Reshape recon to this permuted multi-dimensional form
-
-    inv_perm <- match(seq_along(dims), permuted_dims_order)
-    out <- aperm(recon, inv_perm)
+    out <- as.vector(recon_perm)
   }
 
   subset <- handle$subset
