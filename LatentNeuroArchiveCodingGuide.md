@@ -626,4 +626,98 @@ lna::scaffold_transform("myorg.octree_pca")
 	4.	Document the new transform in a vignette snippet.
 	5.	Submit a PR or keep it in your own extension package—both coexist happily thanks to the plugin model.
 
-Happy compressing!
+This is a superb set of "belt-and-suspenders" refinements! Each point adds significant practical value for developers of LNA extensions, users, and the long-term health of the LNA ecosystem. The sanity-matrix for package layering is also a very clear and useful way to conceptualize the different components.
+
+Let's integrate these directly into the revised Addendum.
+
+---
+
+## Addendum to LNA R Package Implementation Specification (v1.4)
+
+**12. Extensibility: Add-on Packages & Custom Transforms**
+
+The LNA R package and file format are designed to be extensible, allowing researchers and developers to integrate custom data processing steps (transforms) and analysis modules. This addendum outlines the philosophy and mechanisms for creating and using such extensions.
+
+**12.1. Core Philosophy for Extensions**
+
+*   **Modularity:** New transforms should be self-contained, typically requiring only S3 methods for `forward_step()` and `invert_step()`, a JSON schema, and optional default parameter helpers.
+*   **No Core Changes Required:** Well-designed extensions SHOULD NOT necessitate modifications to the core LNA reader/writer machinery, `Plan`, or `DataHandle` classes.
+*   **Schema-Driven:** Custom transforms MUST provide a JSON schema (`<type>.schema.json`) defining parameters, enabling validation, default extraction (via `lna:::default_params()`), and documentation.
+*   **Adherence to LNA Contracts:** Extensions must respect `DataHandle$stash` data flow and HDF5 layout conventions.
+*   **Reproducibility:** Critical parameters (RNG seeds, algorithmic choices, versions of key external tools if output is sensitive) SHOULD be stored in the transform's JSON descriptor. Transforms SHOULD include a `version` field (e.g., `"version": "0.1.0"`) in their descriptor, following semantic versioning principles (major bump for backward-incompatible changes).
+
+**12.2. Implementing a Custom Transform in an Add-on Package**
+
+1.  **Package Structure & Dependencies:**
+    *   Logic resides in its own R package (e.g., `myLNAExtensions`).
+    *   **S3 Methods:** Implement `forward_step.my_transform_type` and `invert_step.my_transform_type` in `R/`.
+    *   **JSON Schema:** Place `<my_transform_type>.schema.json` in `inst/schemas/`. *(Note: `system.file("schemas", package="pkg_name")` is an efficient way to locate these.)*
+    *   **Default Parameters (Optional):** Export `lna_default.my_transform_type()`.
+    *   **Namespace Collisions:** Add-on packages SHOULD check for name collisions with core LNA transforms in their `.onLoad()` function:
+        ```R
+        # In .onLoad() of the extension package
+        if (exists("my_transform_type", where = "package:lna", inherits = FALSE)) {
+          stop("Transform 'my_transform_type' conflicts with a core LNA transform name.")
+        }
+        ```
+    *   **Dependencies:** Declare external R package dependencies (including Rcpp/compiled code) in the add-on's `DESCRIPTION`. This allows the core `lna` package to remain header-only and lightweight for CRAN.
+
+2.  **Transform Naming Convention:**
+    *   RECOMMENDED: Reverse domain notation (e.g., `org.my_lab.fmri.custom_pca`).
+    *   Core LNA reserves unqualified and simple prefixed names. `lna::check_transform_implementation()` can check collisions.
+
+3.  **HDF5 Path Conventions for Add-on Transforms:**
+    *   Store outputs in uniquely named subdirectories (e.g., `/basis/plugins/org.my_lab/custom_pca/matrix`).
+    *   All HDF5 paths written or referenced in parameters (e.g., `hrbf_dictionary_descriptor_path`) MUST be absolute HDF5 paths (starting with `/`) to avoid ambiguity when transforms are nested or LNA files are moved.
+
+**12.3. Discovery and Usage of Extensions by LNA Core**
+
+*   **Transform Logic & Schema:** Discovered via S3 dispatch and `lna:::default_params()` (which searches loaded namespaces).
+*   **`allow_plugins` Argument & Global Option:**
+    *   `read_lna()` argument controls behavior for missing S3 methods ("installed", "prompt", "none").
+    *   A global option `options(lna.allow_plugins = "installed")` (or "prompt", "none") can set the default behavior for batch pipelines, mirroring patterns like `ggplot2.discrete.fill`. `read_lna` should respect this option if its own `allow_plugins` argument is not explicitly set.
+
+**12.4. Capabilities Declaration for Extensions**
+
+*   Custom transforms MAY include a `capabilities` object in their JSON descriptor.
+    ```json
+    "capabilities": {
+      "supports_spatial_subsetting": "block-aware" | "full" | "none",
+      "supports_temporal_subsetting": true | false,
+      "x_my_experimental_flag": true // Experimental flags prefixed with "x_"
+    }
+    ```
+*   The LNA core reader may use standard flags. Experimental flags (prefixed with `x_`) allow extensions to declare features that core LNA can ignore initially but may formalize later.
+
+**12.5. Analysis-Only Transforms**
+
+*   Extensions can define reader-side analysis modules.
+*   These consume data from stash or HDF5, produce derived results to stash, and typically do not write primary datasets during a standard read.
+*   Their JSON descriptors SHOULD include `"writes_datasets": false` (a new, optional boolean field) to allow LNA core or tooling to optimize pipeline analysis (e.g., skip certain HDF5 write-related safety checks if this transform is at the end of a read-only chain).
+*   A core `analysis.identity` transform (which is a no-op, simply passing data through the stash) will be provided. This is useful for bookmarking pipeline checkpoints for debugging, timing, or profiling without altering data.
+
+**12.6. Documentation, Testing, and Large Data in Extensions**
+
+*   **Documentation:** Add-on authors are responsible for thorough documentation. Use `@concept "LNA-extension"` in roxygen2 man pages for discoverability via `help.search()`.
+*   **Testing:** Provide comprehensive unit tests. Use `testthat::skip_if_not_installed("lna", minimum_version = "1.4.0")` (or current LNA version) in extension tests to ensure graceful skipping on CI systems if the core LNA version is insufficient.
+*   **Large Data/Template Banks (>5MB):** For extension packages shipping large template data (e.g., pre-computed eigenmode banks):
+    *   Use `LazyData: true` and `Compression: xz` in the `DESCRIPTION` file.
+    *   Provide a helper function (e.g., `download_my_extension_templates()`) that downloads the large data file(s) from a stable repository (e.g., GitHub Releases, Zenodo, Figshare) if not found locally. This keeps the CRAN-submitted package tarball small.
+
+**12.7. Sanity-Matrix for LNA Ecosystem Layering (Illustrative)**
+
+| Layer          | Example Package(s)              | Typical Dependencies               | Purpose                                            |
+| :------------- | :------------------------------ | :--------------------------------- | :------------------------------------------------- |
+| **Core**       | `lna`                           | base R, hdf5r, digest, jsonlite... | File contract, I/O, basic analytic transforms      |
+| **Heavy Maths**| `lna.ext.hkwp`, `lna.ext.hodge`   | igraph, RSpectra, RcppArmadillo... | Sophisticated bases, advanced algorithms           |
+| **Data Banks** | `lna.data.mni_laplacians` (≈20MB) | Minimal (downloads data)           | Pre-computed template data (e.g., Laplacian modes) |
+| **Viz Tools**  | `lna.viz.viewer`                | shiny, plotly, rgl...              | Optional interactive LNA dashboards & viewers      |
+| **Private/Org**| `myOrg.lna.customQC`            | Lab-specific libraries             | Internal QC, proprietary transforms/analyses       |
+
+This layered approach keeps the core `lna` package lean and maintainable, CRAN submissions manageable, and allows users to install only the specialized extensions they need, fostering a rich and flexible ecosystem.
+
+**12.8. Future Considerations for the Extension Ecosystem**
+
+*   (As in previous draft: Central Registry, Inter-Transform Contracts, "LNA Contrib")
+
+This revised addendum provides a robust and forward-looking framework for LNA extensions, encouraging community contribution while maintaining core stability and interoperability.
