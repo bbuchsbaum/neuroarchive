@@ -42,6 +42,7 @@ forward_step.delta <- function(type, desc, handle) {
   dim(xp) <- c(dims[axis], prod(dims[-axis]))
 
   first_vals <- xp[1, , drop = FALSE]
+  dim(first_vals) <- c(1, prod(dims[-axis]))
   deltas <- xp[-1, , drop = FALSE] - xp[-nrow(xp), , drop = FALSE]
 
   if (identical(coding, "rle")) {
@@ -124,23 +125,27 @@ invert_step.delta <- function(type, desc, handle) {
 
   root <- handle$h5[["/"]]
   delta_stream <- h5_read(root, delta_path)
+  expected_ncols <- if (length(dims) == 1) 1 else prod(dims[-axis])
+
   if (identical(ref_store, "first_value_verbatim")) {
     first_vals <- h5_read(root, first_path)
   } else {
-    first_vals <- array(0, dim = prod(dims[-axis]))
-  }
-  if (is.null(dim(first_vals))) {
-    dim(first_vals) <- c(1, length(first_vals))
-  } else if (length(dims) > 1 && length(dim(first_vals)) == length(dims) - 1) {
-    # If original was >1D and first_vals is N-1 D, make it 1 x prod(other_dims)
-    dim(first_vals) <- c(1, prod(dims[-axis]))
-  } else if (length(dims) == 1 && length(dim(first_vals)) == 1) {
-    # Original was 1D, first_vals is 1D (should be length 1)
-    dim(first_vals) <- c(1,1)
+    first_vals <- array(0, dim = expected_ncols)
   }
 
+  if (length(first_vals) != expected_ncols) {
+    abort_lna(
+      sprintf(
+        "first_vals length (%d) mismatch, expected %d",
+        length(first_vals), expected_ncols
+      ),
+      .subclass = "lna_error_runtime",
+      location = "invert_step.delta:first_vals_length"
+    )
+  }
+  dim(first_vals) <- c(1, expected_ncols)
+
   # Calculate expected number of columns for the 2D representation of deltas/cums
-  expected_ncols <- if(length(dims) == 1) 1 else prod(dims[-axis])
   # Number of rows for deltas is one less than the original dimension along the axis
   expected_nrows_deltas <- max(0, dims[axis]-1)
 
