@@ -178,3 +178,110 @@ pca <- function(data_or_pipe, k = NULL, ...) {
   pipe$add_step(step_spec)
   pipe
 }
+##' Finite Difference (Delta) DSL verb
+#'
+#' Adds a delta encoding step to a pipeline. If `data_or_pipe`
+#' is not an `lna_pipeline`, a new pipeline is created via
+#' `as_pipeline()`.
+#'
+#' Parameter values are resolved by merging schema defaults for
+#' the `delta` transform, global `lna_options("delta")`, and any
+#' user-supplied arguments.
+#'
+#' @param data_or_pipe Data object or `lna_pipeline`.
+#' @param order Optional difference order.
+#' @param ... Additional parameters for the delta transform.
+#'
+#' @return An `lna_pipeline` object with the delta step appended.
+#' @export
+delta <- function(data_or_pipe, order = NULL, ...) {
+  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
+    data_or_pipe
+  } else {
+    as_pipeline(data_or_pipe)
+  }
+
+  user_params <- c(list(order = order), list(...))
+  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
+
+  pars <- default_params("delta")
+  opts <- lna_options("delta")$delta %||% list()
+  pars <- utils::modifyList(pars, opts)
+  pars <- utils::modifyList(pars, user_params)
+
+  step_spec <- list(type = "delta", params = pars)
+  pipe$add_step(step_spec)
+  pipe
+}
+
+##' Temporal Basis Projection DSL verb
+#'
+#' Adds a temporal basis transform step to a pipeline. If
+#' `data_or_pipe` is not an `lna_pipeline`, a new pipeline is
+#' created via `as_pipeline()`.
+#'
+#' Parameter values are resolved by merging schema defaults for
+#' the `temporal` transform, global `lna_options("temporal")`, and
+#' any user-supplied arguments.
+#'
+#' @param data_or_pipe Data object or `lna_pipeline`.
+#' @param kind Optional temporal basis type (e.g., "dct").
+#' @param ... Additional parameters for the temporal transform.
+#'
+#' @return An `lna_pipeline` object with the temporal step appended.
+#' @export
+temporal <- function(data_or_pipe, kind = NULL, ...) {
+  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
+    data_or_pipe
+  } else {
+    as_pipeline(data_or_pipe)
+  }
+
+  user_params <- c(list(kind = kind), list(...))
+  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
+
+  pars <- default_params("temporal")
+  opts <- lna_options("temporal")[["temporal"]] %||% list()
+  pars <- utils::modifyList(pars, opts)
+  pars <- utils::modifyList(pars, user_params)
+
+  step_spec <- list(type = "temporal", params = pars)
+  pipe$add_step(step_spec)
+  pipe
+}
+
+##' Hierarchical Radial Basis Function DSL verb
+#'
+#' Adds a spatial HRBF basis generation step to a pipeline. If
+#' `data_or_pipe` is not an `lna_pipeline`, a new pipeline is
+#' created via `as_pipeline()`.
+#'
+#' Parameter values are resolved by merging schema defaults for
+#' the `spat.hrbf` transform, global `lna_options("spat.hrbf")`, and
+#' any user-supplied arguments.
+#'
+#' @param data_or_pipe Data object or `lna_pipeline`.
+#' @param levels Optional number of HRBF resolution levels.
+#' @param ... Additional parameters for the HRBF transform.
+#'
+#' @return An `lna_pipeline` object with the HRBF step appended.
+#' @export
+hrbf <- function(data_or_pipe, levels = NULL, ...) {
+  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
+    data_or_pipe
+  } else {
+    as_pipeline(data_or_pipe)
+  }
+
+  user_params <- c(list(levels = levels), list(...))
+  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
+
+  pars <- default_params("spat.hrbf")
+  opts <- lna_options("spat.hrbf")[["spat.hrbf"]] %||% list()
+  pars <- utils::modifyList(pars, opts)
+  pars <- utils::modifyList(pars, user_params)
+
+  step_spec <- list(type = "spat.hrbf", params = pars)
+  pipe$add_step(step_spec)
+  pipe
+}
