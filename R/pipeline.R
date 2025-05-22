@@ -249,6 +249,167 @@ lna_pipeline <- R6::R6Class(
       } else {
         NULL
       }
+    },
+
+    #' @description
+    #' Modify parameters of an existing step.
+    #' @param index_or_type Integer index or type string identifying the step.
+    #' @param new_params_list Named list of parameter updates. `NULL` values
+    #'   remove parameters and revert them to defaults/options.
+    modify_step = function(index_or_type, new_params_list) {
+      if (!is.list(new_params_list)) {
+        abort_lna(
+          "new_params_list must be a list",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:modify_step"
+        )
+      }
+
+      find_idx <- function(key) {
+        if (is.numeric(key)) {
+          idx <- as.integer(key[1])
+          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
+          idx
+        } else if (is.character(key)) {
+          typ <- as.character(key[1])
+          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
+          if (length(matches) == 0) return(NA_integer_)
+          matches[length(matches)]
+        } else {
+          abort_lna(
+            "index_or_type must be numeric or character",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:modify_step"
+          )
+        }
+      }
+
+      idx <- find_idx(index_or_type)
+      if (is.na(idx)) {
+        abort_lna(
+          "Specified step not found",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:modify_step"
+        )
+      }
+
+      step <- self$steps[[idx]]
+      merged <- utils::modifyList(step$params, new_params_list)
+      merged <- merged[!vapply(merged, is.null, logical(1))]
+
+      base <- utils::modifyList(
+        default_params(step$type),
+        lna_options(step$type)[[step$type]] %||% list()
+      )
+      step$params <- utils::modifyList(base, merged)
+
+      self$steps[[idx]] <- step
+      invisible(self)
+    },
+
+    #' @description
+    #' Remove a step from the pipeline.
+    #' @param index_or_type Integer index or type string identifying the step.
+    remove_step = function(index_or_type) {
+      find_idx <- function(key) {
+        if (is.numeric(key)) {
+          idx <- as.integer(key[1])
+          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
+          idx
+        } else if (is.character(key)) {
+          typ <- as.character(key[1])
+          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
+          if (length(matches) == 0) return(NA_integer_)
+          matches[length(matches)]
+        } else {
+          abort_lna(
+            "index_or_type must be numeric or character",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:remove_step"
+          )
+        }
+      }
+
+      idx <- find_idx(index_or_type)
+      if (is.na(idx)) {
+        abort_lna(
+          "Specified step not found",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:remove_step"
+        )
+      }
+
+      self$steps[[idx]] <- NULL
+      invisible(self)
+    },
+
+    #' @description
+    #' Insert a new step at a specific position.
+    #' @param step_spec Step specification list with `type` and `params`.
+    #' @param after_index_or_type Insert after this step. Mutually exclusive with
+    #'   `before_index_or_type`.
+    #' @param before_index_or_type Insert before this step.
+    insert_step = function(step_spec,
+                           after_index_or_type = NULL,
+                           before_index_or_type = NULL) {
+      if (!is.null(after_index_or_type) && !is.null(before_index_or_type)) {
+        abort_lna(
+          "Specify only one of after_index_or_type or before_index_or_type",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:insert_step"
+        )
+      }
+      if (!is.list(step_spec) || is.null(step_spec$type)) {
+        abort_lna(
+          "step_spec must be a list with element `type`",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:insert_step"
+        )
+      }
+
+      find_idx <- function(key) {
+        if (is.numeric(key)) {
+          idx <- as.integer(key[1])
+          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
+          idx
+        } else if (is.character(key)) {
+          typ <- as.character(key[1])
+          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
+          if (length(matches) == 0) return(NA_integer_)
+          matches[length(matches)]
+        } else {
+          abort_lna(
+            "index_or_type must be numeric or character",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:insert_step"
+          )
+        }
+      }
+
+      if (!is.null(after_index_or_type)) {
+        idx <- find_idx(after_index_or_type)
+        if (is.na(idx)) {
+          abort_lna(
+            "Specified step not found",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:insert_step"
+          )
+        }
+        self$steps <- append(self$steps, list(step_spec), after = idx)
+      } else if (!is.null(before_index_or_type)) {
+        idx <- find_idx(before_index_or_type)
+        if (is.na(idx)) {
+          abort_lna(
+            "Specified step not found",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:insert_step"
+          )
+        }
+        self$steps <- append(self$steps, list(step_spec), after = idx - 1L)
+      } else {
+        self$steps <- append(self$steps, list(step_spec), after = length(self$steps))
+      }
+      invisible(self)
     }
   )
 )
