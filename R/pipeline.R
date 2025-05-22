@@ -410,6 +410,61 @@ lna_pipeline <- R6::R6Class(
         self$steps <- append(self$steps, list(step_spec), after = length(self$steps))
       }
       invisible(self)
+    },
+
+    #' @description
+    #' Validate all step parameters against their JSON schemas.
+    #' @param strict Logical flag. If `TRUE`, abort on the first validation
+    #'   failure. If `FALSE` (default), collect all issues and return them.
+    validate_params = function(strict = FALSE) {
+      stopifnot(is.logical(strict), length(strict) == 1)
+
+      issues <- character()
+
+      fail <- function(msg, type) {
+        loc <- sprintf("lna_pipeline:validate_params:%s", type)
+        if (strict) {
+          abort_lna(msg, .subclass = "lna_error_validation", location = loc)
+        } else {
+          warning(msg, call. = FALSE)
+          issues <<- c(issues, msg)
+        }
+      }
+
+      pkgs <- unique(c("neuroarchive", loadedNamespaces()))
+
+      for (i in seq_along(self$steps)) {
+        step <- self$steps[[i]]
+        type <- step$type
+        params <- step$params %||% list()
+
+        schema_path <- ""
+        for (pkg in pkgs) {
+          p <- system.file("schemas", paste0(type, ".schema.json"), package = pkg)
+          if (nzchar(p) && file.exists(p)) {
+            schema_path <- p
+            break
+          }
+        }
+
+        if (!nzchar(schema_path)) {
+          fail(sprintf("Schema for transform '%s' not found", type), type)
+          next
+        }
+
+        json <- jsonlite::toJSON(params, auto_unbox = TRUE)
+        valid <- tryCatch(
+          jsonvalidate::json_validate(json, schema_path, verbose = TRUE),
+          error = function(e) e
+        )
+
+        if (!isTRUE(valid)) {
+          msg <- sprintf("Step %d (type='%s') parameters failed schema validation", i, type)
+          fail(msg, type)
+        }
+      }
+
+      if (length(issues) == 0) TRUE else issues
     }
   )
 )
