@@ -33,12 +33,14 @@ test_that("quant transform supports sd method and voxel scope", {
 
   res <- write_lna(arr, file = tmp, transforms = "quant",
                    transform_params = list(quant = list(method = "sd",
-                                                         scale_scope = "voxel")))
+                                                         scale_scope = "voxel",
+                                                         snr_sample_frac = 0.5)))
   expect_equal(nrow(res$plan$datasets), 3)
 
   h <- read_lna(tmp)
   out <- h$stash$input
   expect_equal(dim(out), dim(arr))
+  expect_true(is.numeric(res$handle$meta$quant_report$estimated_snr_db))
   expect_lt(mean(abs(out - arr)), 1)
 })
 
