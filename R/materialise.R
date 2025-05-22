@@ -10,8 +10,10 @@
 #' @param plugins Optional named list of plugin metadata.
 
 #' @return Invisibly returns the `H5File` handle. When `checksum = "sha256"`
-#'   the handle is closed as part of computing the digest and the returned
-#'   handle will be invalid.
+#'   the file is first written with a placeholder checksum attribute, the
+#'   SHA256 digest is computed on that file, and then the attribute is updated
+#'   with the final value.  The handle is closed during digest calculation and
+#'   is therefore invalid when the function returns.
 #' @import hdf5r
 #' @keywords internal
 materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
@@ -212,6 +214,9 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 
   if (checksum == "sha256") {
     file_path <- h5$filename
+    placeholder <- paste(rep("0", 64), collapse = "")
+    root <- h5[["/"]]
+    h5_attr_write(root, "lna_checksum", placeholder)
     neuroarchive:::close_h5_safely(h5)
     if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
       hash_val <- digest::digest(file = file_path, algo = "sha256")
