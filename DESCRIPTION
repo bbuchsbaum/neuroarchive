@@ -9,7 +9,7 @@ Description: Tools for reading and writing Latent NeuroArchive (LNA) files.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
     hdf5r,
     jsonlite,
     Matrix,
@@ -20,6 +20,7 @@ Imports:
     digest,
     jsonvalidate,
     withr,
+    rle,
     wavelets
 Suggests:
     sparsepca,
