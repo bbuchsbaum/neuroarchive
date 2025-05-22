@@ -101,7 +101,7 @@ test_that("temporal transform wavelet roundtrip", {
   tmp <- local_tempfile(fileext = ".h5")
   write_lna(X, file = tmp, transforms = "temporal",
             transform_params = list(temporal = list(kind = "wavelet",
-                                                    wavelet = "db4")))
+                                                    wavelet = "d4")))
   h <- read_lna(tmp)
   out <- h$stash$input
   expect_equal(dim(out), dim(X))
