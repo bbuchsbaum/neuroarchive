@@ -11,6 +11,10 @@
 #' @param checksum Logical. If `TRUE` (default) verify the `lna_checksum`
 #'   attribute when present.
 #'
+#' When a checksum is present it was computed on the file with the attribute
+#' temporarily set to a 64 character placeholder of zeros.  Validation
+#' reproduces that state and compares the digest to the stored value.
+#'
 #' @return `TRUE` if validation succeeds. If `strict = FALSE` and problems are
 #'   found, a character vector of issue messages is returned instead.
 #' @seealso write_lna, read_lna
@@ -57,8 +61,11 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
 
   if (checksum && h5_attr_exists(root, "lna_checksum")) {
     stored_checksum_value <- h5_attr_read(root, "lna_checksum")
-    # To validate correctly, we need the hash of the file *without* the checksum attribute itself.
-    # So, we close the current file, make a temp copy, remove the attribute from the copy, then hash the copy.
+    placeholder <- paste(rep("0", 64), collapse = "")
+    # The checksum was computed on the file when this attribute contained
+    # a placeholder string of the same length. To reproduce that state,
+    # close the file, copy it, overwrite the attribute in the copy with the
+    # placeholder, then hash the copy.
     current_file_path <- h5$filename
     neuroarchive:::close_h5_safely(h5) # Close the original file handle
 
@@ -72,7 +79,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
       h5_temp_copy <- open_h5(temp_copy_path, mode = "r+")
       root_temp_copy <- h5_temp_copy[["/"]]
       if (h5_attr_exists(root_temp_copy, "lna_checksum")) {
-        h5_attr_delete(root_temp_copy, "lna_checksum")
+        h5_attr_write(root_temp_copy, "lna_checksum", placeholder)
       }
       # Important: close the temp file *before* hashing it
       neuroarchive:::close_h5_safely(h5_temp_copy)

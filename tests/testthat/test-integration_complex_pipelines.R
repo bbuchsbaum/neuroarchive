@@ -147,16 +147,17 @@ test_that("checksum validation on complex pipeline", {
   stored_checksum <- neuroarchive:::h5_attr_read(root_orig, "lna_checksum")
   neuroarchive:::close_h5_safely(h5_orig)
 
-  # 4. Calculate checksum of the file *as it is now* (i.e., including the lna_checksum attribute)
-  # This hash should NOT match the stored_checksum if stored_checksum was of the file *before* attr was added.
-  # However, our materialise_plan writes the hash of the file *before* attribute is added.
-  # So, we need a way to get the hash of the file *without* the attribute.
-  # The easiest way is to trust validate_lna handled it, or re-implement the pre-attr hash calculation here for certainty.
-  # For now, we trust validate_lna (step 2). The following is more of a sanity check on the process.
-  
-  # To confirm the stored_checksum is the hash of the file *before* the attribute was added,
-  # we would need to: remove attr, hash, then compare. This is too complex for this test now.
-  # Instead, we just confirm validate_lna (which does this logic) passed.
+  # 4. Independently reproduce the hashing procedure used by materialise_plan
+  placeholder <- paste(rep("0", 64), collapse = "")
+  temp_copy <- tempfile(fileext = ".h5")
+  file.copy(tmp, temp_copy, overwrite = TRUE)
+  h5_tmp <- neuroarchive:::open_h5(temp_copy, mode = "r+")
+  root_tmp <- h5_tmp[["/"]]
+  neuroarchive:::h5_attr_write(root_tmp, "lna_checksum", placeholder)
+  neuroarchive:::close_h5_safely(h5_tmp)
+  computed <- digest::digest(file = temp_copy, algo = "sha256")
+  unlink(temp_copy)
+  expect_identical(computed, stored_checksum)
 
   # 5. Corrupt file and check validate_lna failure
   h5_corrupt <- neuroarchive:::open_h5(tmp, mode = "r+")
