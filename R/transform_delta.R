@@ -145,10 +145,13 @@ invert_step.delta <- function(type, desc, handle) {
   expected_nrows_deltas <- max(0, dims[axis]-1)
 
   if (identical(coding, "rle")) {
-    delta_vec <- rep(delta_stream[,2], delta_stream[,1])
+    lengths <- delta_stream[, 1]
+    values <- delta_stream[, 2]
+    r_obj <- structure(list(lengths = lengths, values = values), class = "rle")
+    delta_vec <- rle::inverse.rle(r_obj)
     if (expected_nrows_deltas > 0 && length(delta_vec) != expected_nrows_deltas * expected_ncols) {
-        abort_lna(sprintf("RLE decoded data length (%d) mismatch. Expected %d elements for %dx%d deltas matrix.", 
-                        length(delta_vec), expected_nrows_deltas * expected_ncols, 
+        abort_lna(sprintf("RLE decoded data length (%d) mismatch. Expected %d elements for %dx%d deltas matrix.",
+                        length(delta_vec), expected_nrows_deltas * expected_ncols,
                         expected_nrows_deltas, expected_ncols),
                   .subclass = "lna_error_runtime", location="invert_step.delta:rle_decode")
     }
