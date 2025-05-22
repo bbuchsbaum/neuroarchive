@@ -7,6 +7,7 @@
 \method{invert_step}{quant}(type, desc, handle)
 }
 \description{
-Reconstructs data from quantized representation stored in HDF5.
+Reads quantised values, validates the \code{quant_bits} attribute and
+reconstructs the original data using stored scale and offset.
 }
 \keyword{internal}

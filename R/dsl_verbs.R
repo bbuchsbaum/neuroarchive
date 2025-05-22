@@ -100,10 +100,25 @@ lna_write <- function(pipeline_obj, file, ...,
 #' global `lna_options("quant")`, and user-supplied arguments.
 #'
 #' @param data_or_pipe Data object or `lna_pipeline`.
-#' @param bits Optional number of quantization bits.
+#' @param bits Number of quantization bits (1-16). If `NULL`, the
+#'   schema default is used.
+#' @param method Method for determining scale/offset (`"range"` or
+#'   `"sd"`).
+#' @param center Logical indicating whether the data should be
+#'   effectively centered before quantisation.
+#' @param scale_scope Either `"global"` for one scale/offset or
+#'   `"voxel"` for per-voxel parameters.
+#' @param allow_clip If `TRUE`, quantisation proceeds even when the
+#'   clipping percentage exceeds `lna.quant.clip_abort_pct`.
 #' @param ... Additional parameters for the quant transform.
 #'
 #' @return An `lna_pipeline` object with the quant step appended.
+#'
+#' @examples
+#' # allow over 5% clipping without error
+#' pipe <- as_pipeline(matrix(rnorm(10), 5, 2))
+#' pipe <- quant(pipe, bits = 4, allow_clip = TRUE)
+#'
 #' @export
 quant <- function(data_or_pipe, bits = NULL, ...) {
   pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {

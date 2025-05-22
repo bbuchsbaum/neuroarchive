@@ -7,6 +7,8 @@
 \method{forward_step}{quant}(type, desc, handle)
 }
 \description{
-Applies simple min-max quantization to numeric data.
+Implements the writer-side quantisation step. Parameters follow the
+quant schema and clipping beyond thresholds aborts unless
+\code{allow_clip} is \code{TRUE}.
 }
 \keyword{internal}

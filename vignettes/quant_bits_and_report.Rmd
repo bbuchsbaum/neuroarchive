@@ -1,0 +1,48 @@
+---
+title: "Choosing Bits and Interpreting the Quantization Report"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Choosing Bits and Interpreting the Quantization Report}
+  %\VignetteEngine{rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette demonstrates how to pick an appropriate number of
+quantisation bits and how to inspect the diagnostics produced by the
+`quant` transform.
+
+```r
+library(neuroarchive)
+```
+
+## Writing data with quantisation
+
+```r
+set.seed(1)
+x <- array(rnorm(200), dim = c(10, 10, 2))
+file <- tempfile(fileext = ".h5")
+write_lna(x, file, transforms = "quant",
+          transform_params = list(quant = list(bits = 6,
+                                               allow_clip = TRUE)))
+```
+
+## Reading the quantisation report
+
+```r
+rep <- lna_get_quant_report(file, 0)
+print(rep)
+```
+
+A simple histogram of the quantised values can be created from the
+`histogram_quantized_values` entry of the report:
+
+```r
+hist(rep$histogram_quantized_values$breaks[-1],
+     rep$histogram_quantized_values$counts,
+     main = "Quantised value distribution",
+     xlab = "Quant level", ylab = "Count",
+     type = "h")
+```
+
+The report also contains the estimated signal-to-noise ratio (SNR) in dB
+which can help decide whether more bits are required.
