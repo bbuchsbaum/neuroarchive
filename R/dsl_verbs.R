@@ -58,6 +58,34 @@ lna_write <- function(pipeline_obj, file, ...,
 
   args$checksum <- .checksum
 
-  result <- do.call(write_lna, args)
+  result <- tryCatch(
+    {
+      do.call(write_lna, args)
+    },
+    lna_error = function(e) {
+      step_idx_core <- attr(e, "step_index", exact = TRUE)
+      ttype_core <- attr(e, "transform_type", exact = TRUE)
+
+      bullet <- "Pipeline execution failed."
+      if (!is.null(step_idx_core) && !is.null(ttype_core)) {
+        bullet <- sprintf(
+          "Pipeline failure in step %d (type='%s')",
+          step_idx_core + 1, ttype_core
+        )
+      }
+
+      rlang::abort(
+        message = c(bullet, "i" = conditionMessage(e)),
+        parent = e,
+        .subclass = class(e)
+      )
+    },
+    error = function(e) {
+      rlang::abort(
+        message = c("Pipeline execution failed.", "i" = conditionMessage(e)),
+        parent = e
+      )
+    }
+  )
   invisible(result)
 }
