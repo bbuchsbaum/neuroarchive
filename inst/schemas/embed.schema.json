@@ -4,7 +4,7 @@
   "type": "object",
   "properties": {
     "type": { "const": "embed" },
-    "basis_path": {"type": "string"},
+    "basis_path": {"type": "string", "default": ""},
     "center_data_with": {"type": ["string", "null"], "default": null},
     "scale_data_with": {"type": ["string", "null"], "default": null}
   },

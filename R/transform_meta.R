@@ -5,19 +5,27 @@
 #' The default requirement is 3 dimensions.
 #'
 #' @param type Character transform type.
-#' @keywords internal
+#' @export
 transform_min_dims <- function(type) {
   UseMethod("transform_min_dims", type)
 }
 
 #' @export
-#' @keywords internal
 transform_min_dims.default <- function(type) {
   3L
 }
 
 #' @export
-#' @keywords internal
 transform_min_dims.quant <- function(type) {
   1L
+}
+
+#' @export
+transform_min_dims.basis <- function(type) {
+  2L
+}
+
+#' @export
+transform_min_dims.embed <- function(type) {
+  2L # Embed also typically works on 2D (time x features) or (time x voxels)
 }

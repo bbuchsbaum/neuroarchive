@@ -2,8 +2,6 @@
 % Please edit documentation in R/transform_meta.R
 \name{transform_min_dims}
 \alias{transform_min_dims}
-\alias{transform_min_dims.default}
-\alias{transform_min_dims.quant}
 \title{Minimum input dimensionality for a transform}
 \usage{
 transform_min_dims(type)
@@ -12,7 +10,7 @@ transform_min_dims(type)
 \item{type}{Character transform type.}
 }
 \description{
-Returns the minimum number of dimensions required by the given transform's
-forward step. The default is 3.
+Provides the minimum number of dimensions required by a transform's
+forward step. Packages can define methods for their own transforms.
+The default requirement is 3 dimensions.
 }
-\keyword{internal}
