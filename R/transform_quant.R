@@ -71,6 +71,30 @@ forward_step.quant <- function(type, desc, handle) {
   scale <- params$scale
   offset <- params$offset
   if (identical(scope, "global")) {
+    clip_warn_pct <- lna_options("quant.clip_warn_pct")[[1]]
+    if (is.null(clip_warn_pct)) clip_warn_pct <- 0.5
+    clip_abort_pct <- lna_options("quant.clip_abort_pct")[[1]]
+    if (is.null(clip_abort_pct)) clip_abort_pct <- 5.0
+    allow_clip <- isTRUE(p$allow_clip)
+    clip_pct <- params$clip_pct %||% 0
+    if (clip_pct > clip_abort_pct && !allow_clip) {
+      abort_lna(
+        sprintf(
+          "Clipping %.2f%% exceeds abort threshold of %.1f%%",
+          clip_pct, clip_abort_pct
+        ),
+        .subclass = "lna_error_validation",
+        location = "forward_step.quant:clipping"
+      )
+    } else if (clip_pct > clip_warn_pct) {
+      warning(
+        sprintf(
+          "Clipping %.2f%% exceeds warning threshold %.1f%%",
+          clip_pct, clip_warn_pct
+        ),
+        call. = FALSE
+      )
+    }
     handle$meta$quant_stats <- list(
       n_clipped_total = params$n_clipped_total %||% 0L,
       clip_pct = params$clip_pct %||% 0

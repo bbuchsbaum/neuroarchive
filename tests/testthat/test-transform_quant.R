@@ -218,3 +218,34 @@ test_that("missing quant_bits attribute triggers warning", {
   dset$close(); h5$close_all()
   expect_warning(read_lna(tmp), regexp = "quant_bits")
 })
+
+test_that("forward_step.quant warns or errors based on clipping thresholds", {
+  opts_env <- get(".lna_opts", envir = neuroarchive:::lna_options_env)
+  withr::defer(rm(list = c("quant.clip_warn_pct", "quant.clip_abort_pct"),
+                  envir = opts_env))
+  lna_options(quant.clip_warn_pct = 0.5, quant.clip_abort_pct = 5)
+
+  arr_warn <- c(rep(0, 98), 100, -100)
+  tmp_warn <- local_tempfile(fileext = ".h5")
+  expect_warning(
+    write_lna(arr_warn, file = tmp_warn, transforms = "quant",
+              transform_params = list(quant = list(method = "sd"))),
+    regexp = "Clipping"
+  )
+
+  arr_err <- c(rep(0, 94), rep(100, 6))
+  tmp_err <- local_tempfile(fileext = ".h5")
+  expect_error(
+    write_lna(arr_err, file = tmp_err, transforms = "quant",
+              transform_params = list(quant = list(method = "sd"))),
+    class = "lna_error_validation"
+  )
+
+  tmp_allow <- local_tempfile(fileext = ".h5")
+  expect_warning(
+    write_lna(arr_err, file = tmp_allow, transforms = "quant",
+              transform_params = list(quant = list(method = "sd",
+                                                   allow_clip = TRUE))),
+    regexp = "Clipping"
+  )
+})
