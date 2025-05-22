@@ -32,11 +32,16 @@ test_that("materialise_plan writes sha256 checksum attribute that matches pre-at
   neuroarchive:::close_h5_safely(h5B)
   hashB <- digest::digest(file = tmp_for_expected_hash2, algo = "sha256")
 
-  expect_identical(hashA, hashB, info = "Checksums from two identical materialise_plan('none') calls should match.")
-  expected_hash_value <- hashA # Use the first one as the definitive expected value
+  expect_identical(hashA, hashB,
+                   info = "Checksums from two identical materialise_plan('none') calls should match.")
 
-  # --- Calculate Expected Checksum (already done via hashA) ---
-  # expected_hash_value is now set from the determinism check.
+  # --- Calculate Expected Checksum Matching materialise_plan("sha256") logic ---
+  placeholder <- paste(rep("0", 64), collapse = "")
+  h5_expected <- neuroarchive:::open_h5(tmp_for_expected_hash1, mode = "r+")
+  root_expected <- h5_expected[["/"]]
+  neuroarchive:::h5_attr_write(root_expected, "lna_checksum", placeholder)
+  neuroarchive:::close_h5_safely(h5_expected)
+  expected_hash_value <- digest::digest(file = tmp_for_expected_hash1, algo = "sha256")
 
   # --- Run materialise_plan with checksumming enabled on the main temp file ---
   plan2 <- create_test_plan() # Use a fresh plan object
