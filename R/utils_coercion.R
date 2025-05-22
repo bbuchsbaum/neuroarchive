@@ -22,6 +22,20 @@ as_dense_mat.default <- function(obj) {
   }
 }
 
+#' @export
+#' @keywords internal
+as_dense_mat.array <- function(obj) {
+  d <- dim(obj)
+  if (length(d) <= 2) {
+    return(as.matrix(obj))
+  }
+  time_dim <- d[length(d)]
+  vox_dim <- prod(d[-length(d)])
+  mat <- matrix(as.numeric(aperm(obj, c(length(d), seq_len(length(d) - 1)))),
+                nrow = time_dim, ncol = vox_dim)
+  mat
+}
+
 #' Coerce object to a 4-D array
 #'
 #' Provides a simple S3 generic used by write adapters when

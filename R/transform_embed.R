@@ -25,15 +25,7 @@ forward_step.embed <- function(type, desc, handle) {
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   X <- handle$get_inputs(input_key)[[1]]
-  if (is.array(X) && length(dim(X)) > 2) {
-    d <- dim(X)
-    tdim <- d[length(d)]
-    vdim <- prod(d[-length(d)])
-    X <- matrix(as.numeric(aperm(X, c(length(d), seq_len(length(d) - 1)))),
-                nrow = tdim, ncol = vdim)
-  } else {
-    X <- as.matrix(X)
-  }
+  X <- as_dense_mat(X)
 
 
   if (!is.numeric(X)) {

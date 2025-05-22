@@ -26,15 +26,7 @@ forward_step.temporal <- function(type, desc, handle) {
   }
 
   X <- handle$get_inputs(input_key)[[1]]
-  if (is.array(X) && length(dim(X)) > 2) {
-    d <- dim(X)
-    tdim <- d[length(d)]
-    fdim <- prod(d[-length(d)])
-    X <- matrix(as.numeric(aperm(X, c(length(d), seq_len(length(d) - 1)))),
-                nrow = tdim, ncol = fdim)
-  } else {
-    X <- as.matrix(X)
-  }
+  X <- as_dense_mat(X)
 
   n_time <- nrow(X)
   if (is.null(n_basis)) n_basis <- n_time

@@ -35,10 +35,7 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
 
   inp <- handle$pull_first(c("aggregated_matrix", "dense_mat", "input"))
   input_key <- inp$key
-  X <- inp$value
-  if (!is.matrix(X)) {
-    X <- as.matrix(X)
-  }
+  X <- as_dense_mat(inp$value)
   if (isTRUE(whiten)) {
     X <- scale(X, center = TRUE, scale = TRUE)
   }
