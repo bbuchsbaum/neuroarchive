@@ -31,6 +31,8 @@ lna_options_env <- new.env(parent = emptyenv())
 default_opts <- list(
   write.compression_level = 0L,
   write.chunk_target_mib = 1,
+  quant.clip_warn_pct = 0.5,
+  quant.clip_abort_pct = 5.0,
   quant = list(),
   delta = list()
 )
