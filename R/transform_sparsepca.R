@@ -5,12 +5,28 @@
 #' sparse loadings. Otherwise it falls back to a truncated SVD via `irlba`
 #' (or base `svd`). This example demonstrates how an external plugin transform
 #' might integrate with the LNA pipeline.
+#'
+#' @param storage_order Character string specifying the orientation of the
+#'   basis matrix. Either "component_x_voxel" (default) or
+#'   "voxel_x_component".
 #' @keywords internal
 forward_step.myorg.sparsepca <- function(type, desc, handle) {
   p <- desc$params %||% list()
   k <- p$k %||% 2
   alpha <- p$alpha %||% 0.001
   storage_order <- p$storage_order %||% "component_x_voxel"
+  allowed_orders <- c("component_x_voxel", "voxel_x_component")
+  if (!storage_order %in% allowed_orders) {
+    abort_lna(
+      sprintf(
+        "Invalid storage_order '%s'. Allowed values: %s",
+        storage_order,
+        paste(allowed_orders, collapse = ", ")
+      ),
+      .subclass = "lna_error_validation",
+      location = "forward_step.myorg.sparsepca:storage_order"
+    )
+  }
 
   input_key <- if (handle$has_key("aggregated_matrix")) {
     "aggregated_matrix"
@@ -80,6 +96,10 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
 #' Sparse PCA Transform - Inverse Step
 #'
 #' Reconstructs data from the sparse PCA coefficients and basis matrix.
+#'
+#' @param storage_order Character string specifying the orientation of the
+#'   basis matrix. Either "component_x_voxel" (default) or
+#'   "voxel_x_component".
 #' @keywords internal
 invert_step.myorg.sparsepca <- function(type, desc, handle) {
   ds <- desc$datasets
@@ -91,6 +111,18 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
   embed <- h5_read(root, embed_path)
   p <- desc$params %||% list()
   storage_order <- p$storage_order %||% "component_x_voxel"
+  allowed_orders <- c("component_x_voxel", "voxel_x_component")
+  if (!storage_order %in% allowed_orders) {
+    abort_lna(
+      sprintf(
+        "Invalid storage_order '%s'. Allowed values: %s",
+        storage_order,
+        paste(allowed_orders, collapse = ", ")
+      ),
+      .subclass = "lna_error_validation",
+      location = "invert_step.myorg.sparsepca:storage_order"
+    )
+  }
   if (identical(storage_order, "voxel_x_component")) {
     basis <- Matrix::t(basis)
   }
