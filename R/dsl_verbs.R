@@ -125,6 +125,7 @@ quant <- function(data_or_pipe, bits = NULL, ...) {
   pipe
 }
 
+
 ##' Principal Component Analysis DSL verb
 #'
 #' Adds a PCA basis computation step to a pipeline. If `data_or_pipe`
@@ -158,6 +159,7 @@ pca <- function(data_or_pipe, k = NULL, ...) {
   pars <- utils::modifyList(pars, user_params)
 
   step_spec <- list(type = "basis", params = pars)
+
   pipe$add_step(step_spec)
   pipe
 }
