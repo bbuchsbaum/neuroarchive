@@ -23,13 +23,14 @@ forward_step.delta <- function(type, desc, handle) {
               location = "forward_step.delta:order")
   }
 
-  # Determine input key based on previous transform's output
-  if (handle$has_key("sparsepca_embedding")) {
-    input_key <- "sparsepca_embedding"
-  } else if (handle$has_key("aggregated_matrix")) {
-    input_key <- "aggregated_matrix"
-  } else {
-    input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
+  # Determine input key primarily from the descriptor
+  input_key <- desc$inputs[[1]]
+  if (is.null(input_key)) {
+    warning(
+      "desc$inputs missing for delta forward step; defaulting to 'input'",
+      call. = FALSE
+    )
+    input_key <- "input"
   }
   x <- handle$get_inputs(input_key)[[1]]
   dims <- dim(x)
