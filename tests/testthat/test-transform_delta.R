@@ -27,6 +27,20 @@ test_that("delta transform forward and inverse roundtrip", {
   expect_equal(drop(out), arr)
 })
 
+test_that("forward_step.delta uses custom desc$outputs for stash", {
+  plan <- Plan$new()
+  handle <- DataHandle$new(initial_stash = list(input = matrix(1:4, nrow = 2)),
+                           plan = plan, run_ids = "run-01",
+                           current_run_id = "run-01")
+  desc <- list(type = "delta", params = list(), inputs = c("input"),
+               outputs = c("my_delta"))
+
+  h <- neuroarchive:::forward_step.delta("delta", desc, handle)
+
+  expect_true(h$has_key("my_delta"))
+  expect_false(h$has_key("delta_stream"))
+})
+
 
 test_that("delta transform with rle coding works", {
   arr <- matrix(rep(1:5, each = 2), nrow = 5, ncol = 2)
