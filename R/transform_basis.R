@@ -90,15 +90,7 @@ forward_step.basis <- function(type, desc, handle) {
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   X <- handle$get_inputs(input_key)[[1]]
-  if (is.array(X) && length(dim(X)) > 2) {
-    d <- dim(X)
-    time_dim <- d[length(d)]
-    vox_dim <- prod(d[-length(d)])
-    X <- matrix(as.numeric(aperm(X, c(length(d), seq_len(length(d) - 1)))),
-                nrow = time_dim, ncol = vox_dim)
-  } else {
-    X <- as.matrix(X)
-  }
+  X <- as_dense_mat(X)
 
   if (!is.numeric(X)) {
     abort_lna("basis transform requires numeric input matrix",
