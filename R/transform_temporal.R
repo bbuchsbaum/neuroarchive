@@ -161,11 +161,12 @@ invert_step.temporal <- function(type, desc, handle) {
     idx_c <- which(roles == "temporal_coefficients")
     if (length(idx_c) > 0) coeff_path <- desc$datasets[[idx_c[1]]]$path
   }
-  if (is.null(basis_path) || is.null(coeff_path)) {
+
+  if (is.null(basis_path)) {
     abort_lna(
-      "temporal_basis or coefficients path not found in descriptor",
+      "temporal_basis path not found in descriptor",
       .subclass = "lna_error_descriptor",
-      location = "invert_step.temporal"
+      location = "invert_step.temporal:basis_path"
     )
   }
   if (is.null(coeff_path)) {

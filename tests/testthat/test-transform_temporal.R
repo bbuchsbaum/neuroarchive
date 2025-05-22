@@ -96,10 +96,15 @@ test_that("temporal transform rejects unsupported kind", {
              dim = c(nrow(X_matrix_transposed), 1, ncol(X_matrix_transposed)))
   expect_error(
     core_write(X, transforms = "temporal",
-               transform_params = list(temporal = list(kind = "unsupported_kind"))), # Corrected to unsupported_kind
-    class = "lna_error_validation",
-    regexp = "temporal kind"
+               transform_params = list(temporal = list(kind = "unsupported_kind"))),
+    class = "lna_error_transform_step" # Expect the outer wrapping class from run_transform_step
   )
+  
+  # Check the parent error (the one thrown by temporal_basis.default)
+  expect_s3_class(err$parent, "lna_error_validation")
+  expect_match(conditionMessage(err$parent), "Unsupported temporal kind 'unsupported_kind'")
+  # Check the location from the original error source
+  expect_equal(err$parent$location, "temporal_basis:kind")
 })
           
 test_that("temporal transform dpss roundtrip", {
