@@ -1,11 +1,9 @@
 #' Delta Transform - Forward Step
+#' Computes first-order differences along a chosen axis. When
+#' `coding_method` is set to `'rle'`, the differences are compressed using
+#' the **rle** package and stored as a two column matrix with `lengths` and
+#' `values`.
 #'
-#' Computes first-order differences along a specified axis and optionally
-#' run-length encodes the result.
-#' The name stored in `desc$outputs` (if supplied) controls the key used to
-#' stash the resulting delta stream. If `desc$outputs` is `NULL`, the default
-#' key `"delta_stream"` is used. An empty character vector results in no
-#' stash update.
 #' @importFrom rle as.rle compress.rle inverse.rle
 #' @keywords internal
 forward_step.delta <- function(type, desc, handle) {
@@ -52,6 +50,8 @@ forward_step.delta <- function(type, desc, handle) {
   deltas <- xp[-1, , drop = FALSE] - xp[-nrow(xp), , drop = FALSE]
 
   if (identical(coding, "rle")) {
+    # Flatten the delta matrix to a vector for run-length encoding,
+    # compress it, and store the run lengths and values as a 2-column matrix.
     vec <- as.vector(deltas)
     r_obj <- rle::as.rle(vec)
     r_obj <- rle::compress.rle(r_obj)
@@ -119,7 +119,10 @@ forward_step.delta <- function(type, desc, handle) {
 
 #' Delta Transform - Inverse Step
 #'
-#' Reconstructs data from delta representation stored in HDF5.
+#' Decodes the delta representation written by
+#' \code{\link{forward_step.delta}}. When `coding_method` was
+#' `'rle'`, the stored matrix of run lengths and values is expanded back to
+#' the full set of differences before reconstruction.
 #' @keywords internal
 invert_step.delta <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -174,7 +177,11 @@ invert_step.delta <- function(type, desc, handle) {
   expected_nrows_deltas <- max(0, dims[axis] - 1L)
 
   if (identical(coding, "rle")) {
-    r_obj <- structure(list(lengths = delta_stream[, 1], values = delta_stream[, 2]), class = "rle")
+    # Reconstruct the delta vector from run-length encoding stored in the
+    # two-column matrix produced in the forward step.
+    lengths <- delta_stream[, 1]
+    values <- delta_stream[, 2]
+    r_obj <- structure(list(lengths = lengths, values = values), class = "rle")
     delta_vec <- rle::inverse.rle(r_obj)
     if (expected_nrows_deltas > 0 && length(delta_vec) != expected_nrows_deltas * expected_ncols) {
       abort_lna(

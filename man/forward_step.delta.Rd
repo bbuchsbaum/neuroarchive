@@ -7,7 +7,9 @@
 \method{forward_step}{delta}(type, desc, handle)
 }
 \description{
-Computes first-order differences along a specified axis and optionally
-run-length encodes the result.
+Computes first-order differences along a specified axis. When
+\code{coding_method = "rle"} the differences are compressed using the
+\code{rle} package and stored as a two column matrix of run lengths and
+values.
 }
 \keyword{internal}
