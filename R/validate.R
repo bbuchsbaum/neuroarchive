@@ -56,14 +56,53 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
   }
 
   if (checksum && h5_attr_exists(root, "lna_checksum")) {
-    stored <- h5_attr_read(root, "lna_checksum")
-    if (is.character(file) && file.exists(file)) {
-      calc <- digest::digest(file = file, algo = "sha256")
-      if (!identical(calc, stored)) {
-        fail("Checksum does not match")
+    stored_checksum_value <- h5_attr_read(root, "lna_checksum")
+    # To validate correctly, we need the hash of the file *without* the checksum attribute itself.
+    # So, we close the current file, make a temp copy, remove the attribute from the copy, then hash the copy.
+    current_file_path <- h5$filename
+    neuroarchive:::close_h5_safely(h5) # Close the original file handle
+
+    temp_copy_path <- tempfile(fileext = ".h5")
+    file.copy(current_file_path, temp_copy_path, overwrite = TRUE)
+
+    h5_temp_copy <- NULL
+    calculated_checksum_on_copy <- NULL
+    
+    tryCatch({
+      h5_temp_copy <- open_h5(temp_copy_path, mode = "r+")
+      root_temp_copy <- h5_temp_copy[["/"]]
+      if (h5_attr_exists(root_temp_copy, "lna_checksum")) {
+        h5_attr_delete(root_temp_copy, "lna_checksum")
       }
-    } else {
-      warning("Checksum requested but file path unavailable; skipping")
+      # Important: close the temp file *before* hashing it
+      neuroarchive:::close_h5_safely(h5_temp_copy)
+      h5_temp_copy <- NULL # Mark as closed for finally block
+      
+      calculated_checksum_on_copy <- digest::digest(file = temp_copy_path, algo = "sha256")
+    }, finally = {
+      if (!is.null(h5_temp_copy) && inherits(h5_temp_copy, "H5File") && h5_temp_copy$is_valid) {
+        neuroarchive:::close_h5_safely(h5_temp_copy)
+      }
+      if (file.exists(temp_copy_path)) {
+        unlink(temp_copy_path)
+      }
+    })
+
+    # Reopen the original file for subsequent validation steps if any
+    # (or let the main on.exit handle it if this was the last step)
+    # For simplicity, we'll just proceed assuming it's fine for now, or rely on on.exit.
+    # Re-assign h5 and root for subsequent checks in this function if needed.
+    # However, current structure of validate_lna doesn't immediately need it after checksum.
+    # The main on.exit(close_h5_safely(h5)) is for the h5 handle opened at the start of validate_lna.
+    # Since we closed it, we should reopen it if other checks were to follow that need `h5` or `root`.
+    # For now, let's assume this is the last major check using `h5` directly or subsequent checks re-evaluate.
+    # This part needs careful consideration if validate_lna does more with `h5` after this block.
+    # Re-opening here to be safe for any subsequent checks that might use `root` or `h5`.
+    h5 <- open_h5(file, mode = "r") # Re-open the original file
+    root <- h5[["/"]] # Re-assign root based on the new h5 handle
+
+    if (!is.null(calculated_checksum_on_copy) && !identical(calculated_checksum_on_copy, stored_checksum_value)) {
+      fail("Checksum does not match")
     }
   }
 

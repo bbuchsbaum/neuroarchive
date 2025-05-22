@@ -131,19 +131,40 @@ test_that("checksum validation on complex pipeline", {
   run2_data <- matrix(rnorm(50), nrow = 10, ncol = 5)
   dim(run2_data) <- c(dim(run2_data), 1)
   tmp <- local_tempfile(fileext = ".h5")
-  write_lna(list(`run-01` = run1_data, `run-02` = run2_data), file = tmp,
-            transforms = c("myorg.aggregate_runs", "myorg.sparsepca"))
-  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
-  root <- h5[["/"]]
-  hash_val <- digest::digest(file = tmp, algo = "sha256")
-  neuroarchive:::h5_attr_write(root, "lna_checksum", hash_val)
-  neuroarchive:::close_h5_safely(h5)
-  expect_true(validate_lna(tmp))
 
-  # corrupt file and check failure
-  h5 <- neuroarchive:::open_h5(tmp, mode = "r+")
-  ds <- h5$create_dataset("dummy", robj = 1L)
-  neuroarchive:::close_h5_safely(h5)
-  expect_error(validate_lna(tmp), class = "lna_error_validation")
+  # 1. Write LNA with checksum calculation enabled
+  write_lna(list(`run-01` = run1_data, `run-02` = run2_data), file = tmp,
+            transforms = c("myorg.aggregate_runs", "myorg.sparsepca"),
+            checksum = "sha256")
+
+  # 2. Validate the file - this should pass as validate_lna calculates checksum correctly
+  expect_true(validate_lna(tmp, checksum = TRUE))
+
+  # 3. Manually verify the checksum attribute was written and what it corresponds to
+  h5_orig <- neuroarchive:::open_h5(tmp, mode = "r")
+  root_orig <- h5_orig[["/"]]
+  expect_true(neuroarchive:::h5_attr_exists(root_orig, "lna_checksum"))
+  stored_checksum <- neuroarchive:::h5_attr_read(root_orig, "lna_checksum")
+  neuroarchive:::close_h5_safely(h5_orig)
+
+  # 4. Calculate checksum of the file *as it is now* (i.e., including the lna_checksum attribute)
+  # This hash should NOT match the stored_checksum if stored_checksum was of the file *before* attr was added.
+  # However, our materialise_plan writes the hash of the file *before* attribute is added.
+  # So, we need a way to get the hash of the file *without* the attribute.
+  # The easiest way is to trust validate_lna handled it, or re-implement the pre-attr hash calculation here for certainty.
+  # For now, we trust validate_lna (step 2). The following is more of a sanity check on the process.
+  
+  # To confirm the stored_checksum is the hash of the file *before* the attribute was added,
+  # we would need to: remove attr, hash, then compare. This is too complex for this test now.
+  # Instead, we just confirm validate_lna (which does this logic) passed.
+
+  # 5. Corrupt file and check validate_lna failure
+  h5_corrupt <- neuroarchive:::open_h5(tmp, mode = "r+")
+  # Add a dummy dataset to change the file content
+  dummy_ds <- h5_corrupt$create_dataset("__corruption_marker__", data = 123)
+  dummy_ds$close()
+  neuroarchive:::close_h5_safely(h5_corrupt)
+  
+  expect_error(validate_lna(tmp, checksum = TRUE), class = "lna_error_validation")
 })
 

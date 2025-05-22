@@ -5,7 +5,7 @@
 #'
 #' @import jsonlite
 #' @import hdf5r
-#' @importFrom hdf5r H5File H5Group H5S H5T H5T_CLASS H5D h5types H5T_C_S1 H5T_CSET_UTF8
+#' @importFrom hdf5r H5File H5Group H5S H5T H5D h5types
 #' @keywords internal
 
 #' Read a JSON descriptor from an HDF5 group.
@@ -114,10 +114,10 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
 
   # --- Define scalar, variable-length, UTF-8 string dataset ----
   # Use C-style string datatype and set to variable length
-  str_type <- hdf5r::H5T_C_S1$new()
+  str_type <- h5types$H5T_C_S1$copy()
   str_type$set_size(Inf)
-  str_type$set_cset("UTF-8")
-  space <- hdf5r::H5S$new("scalar")                   # scalar (0-dim) dataspace
+  str_type$set_cset(hdf5r::h5const$H5T_CSET_UTF8)
+  space <- H5S$new("scalar")
 
   # Create the dataset skeleton
   dset <- h5_group$create_dataset(name,

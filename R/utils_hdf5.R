@@ -4,6 +4,7 @@
 #'   and deleting attributes associated with HDF5 objects (groups or datasets).
 #'
 #' @import hdf5r
+#' @importFrom hdf5r H5P_DATASET_XFER H5P_FILE_CREATE
 #' @keywords internal
 
 # Check if the object is a valid hdf5r object that can hold attributes
@@ -253,8 +254,7 @@ open_h5 <- function(path, mode = "a", ...) {
   h5_args <- list(path, mode = mode)
 
   if (grepl("^w", mode)) {
-    fcpl <- hdf5r::H5P_FILE_CREATE$new()
-    fcpl$set_obj_track_times(FALSE)
+    fcpl <- H5P_FILE_CREATE$new()
     h5_args <- c(h5_args, file_create_pl = fcpl)
   }
 

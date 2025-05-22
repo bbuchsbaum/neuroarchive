@@ -20,6 +20,10 @@
 #'   1-based voxel indices in masked space when a mask is provided.
 #' @param run_id Character vector of run identifiers or glob patterns. Passed to
 #'   `core_write` for selection of specific runs.
+#' @param checksum Character string specifying checksum mode. One of `"none"`
+#'   (default) or `"sha256"`. If `"sha256"`, a checksum of the entire file
+#'   (after all data is written) is computed and stored as the `/lna_checksum`
+#'   attribute. Note that this involves closing and reopening the file.
 #' @return Invisibly returns a list with elements `file`, `plan`, and
 #'   `header` with class `"lna_write_result"`.
 #' @details For parallel workflows use a unique temporary file and
@@ -35,9 +39,10 @@
 write_lna <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
                       header = NULL, plugins = NULL, block_table = NULL,
-                      run_id = NULL) {
+                      run_id = NULL, checksum = c("none", "sha256")) {
   cat("\n[write_lna] Entry\n")
   cat(paste0("[write_lna] Input file arg: ", ifelse(is.null(file), "NULL", file), "\n"))
+  checksum <- match.arg(checksum)
 
   in_memory <- FALSE
   file_to_use <- file # Will be updated if file is NULL
@@ -154,6 +159,7 @@ write_lna <- function(x, file = NULL, transforms = character(),
 
   cat("[write_lna] Calling materialise_plan...\n")
   materialise_plan(h5, result$plan,
+                   checksum = checksum, # Pass the checksum argument
                    header = header_from_handle, # use safe version
                    plugins = plugins_from_handle) # use safe version
   cat("[write_lna] materialise_plan returned.\n")
