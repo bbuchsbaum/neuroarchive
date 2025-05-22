@@ -12,7 +12,13 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
   alpha <- p$alpha %||% 0.001
   storage_order <- p$storage_order %||% "component_x_voxel"
 
-  input_key <- if (handle$has_key("aggregated_matrix")) "aggregated_matrix" else "dense_mat"
+  input_key <- if (handle$has_key("aggregated_matrix")) {
+    "aggregated_matrix"
+  } else if (handle$has_key("dense_mat")) {
+    "dense_mat"
+  } else {
+    "input"
+  }
   X <- handle$get_inputs(input_key)[[1]]
   if (!is.matrix(X)) {
     X <- as.matrix(X)
@@ -99,7 +105,7 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
     Xhat <- Xhat[subset$time_idx, , drop = FALSE]
   }
 
-  output_key <- desc$inputs[[1]] %||% "dense_mat"
+  output_key <- desc$inputs[[1]] %||% "input"
   handle$update_stash(keys = character(),
                       new_values = setNames(list(Xhat), output_key))
 }
