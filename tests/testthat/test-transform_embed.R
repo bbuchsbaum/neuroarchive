@@ -23,8 +23,25 @@ test_that("embed transform errors when basis_path missing", {
 test_that("embed transform forward computes coefficients", {
   set.seed(1)
   X <- matrix(rnorm(20), nrow = 5, ncol = 4)
-  res <- core_write(X, transforms = c("basis", "embed"))
-  plan <- res$plan
+  pr <- prcomp(X, rank. = 3, center = TRUE, scale. = FALSE)
+  basis_mat <- t(pr$rotation[, seq_len(3), drop = FALSE])
+  center_vec <- pr$center
+
+  plan <- Plan$new()
+  plan$add_payload("/basis/mat", basis_mat)
+  plan$add_payload("/basis/center", center_vec)
+
+  desc <- list(
+    type = "embed",
+    params = list(
+      basis_path = "/basis/mat",
+      center_data_with = "/basis/center"
+    )
+  )
+  handle <- DataHandle$new(initial_stash = list(input = X), plan = plan)
+
+  res_handle <- forward_step.embed("embed", desc, handle)
+  plan <- res_handle$plan
   coeff_idx <- which(plan$datasets$role == "coefficients")
   expect_length(coeff_idx, 1)
   coeff_path <- plan$datasets$path[[coeff_idx]]
