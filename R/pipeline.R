@@ -147,6 +147,63 @@ lna_pipeline <- R6::R6Class(
 
       self$steps[[length(self$steps) + 1]] <- step_spec
       invisible(self)
+    },
+
+    #' @description
+    #' Print a human readable summary of the pipeline
+    print = function(...) {
+      cat("<lna_pipeline>\n")
+      if (nzchar(self$input_summary)) {
+        cat("  Input:", self$input_summary, "\n")
+      } else {
+        cat("  Input: (not set)\n")
+      }
+      step_count <- length(self$steps)
+      cat("  Steps:", step_count, "\n")
+
+      style_subtle <- function(x) {
+        if (requireNamespace("pillar", quietly = TRUE)) {
+          pillar::style_subtle(x)
+        } else {
+          x
+        }
+      }
+      style_bold <- function(x) {
+        if (requireNamespace("pillar", quietly = TRUE)) {
+          pillar::style_bold(x)
+        } else {
+          x
+        }
+      }
+
+      if (step_count > 0) {
+        for (i in seq_along(self$steps)) {
+          step <- self$steps[[i]]
+          type <- step$type
+          params <- step$params %||% list()
+
+          defaults <- utils::modifyList(
+            default_params(type),
+            lna_options(type)[[type]] %||% list()
+          )
+
+          param_text <- vapply(names(params), function(nm) {
+            val <- params[[nm]]
+            val_str <- paste0(nm, "=", format(val))
+            def <- defaults[[nm]]
+            if (!is.null(def) && identical(val, def)) {
+              style_subtle(val_str)
+            } else {
+              style_bold(val_str)
+            }
+          }, character(1))
+
+          cat(sprintf("  %d: %s [%s]\n", i, type,
+                      paste(param_text, collapse = ", ")))
+        }
+      }
+
+      invisible(self)
     }
   )
 )

@@ -151,3 +151,13 @@ test_that("lna_write surfaces core errors with context", {
   )
 })
 
+# Test print method summary
+test_that("print() summarises pipeline", {
+  pipe <- as_pipeline(array(1:4, dim = c(2,2)))
+  pipe$add_step(list(type = "quant", params = list(bits = 8)))
+  output <- capture.output(res <- pipe$print())
+  expect_invisible(res)
+  expect_true(any(grepl("quant", output)))
+  expect_true(any(grepl("1 run", output)))
+})
+
