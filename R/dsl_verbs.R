@@ -125,18 +125,20 @@ quant <- function(data_or_pipe, bits = NULL, ...) {
   pipe
 }
 
-##' PCA DSL verb
+
+##' Principal Component Analysis DSL verb
 #'
-#' Adds a PCA basis computation step to a pipeline. If
-#' `data_or_pipe` is not an `lna_pipeline`, a new pipeline is
-#' created via `as_pipeline()`.
+#' Adds a PCA basis computation step to a pipeline. If `data_or_pipe`
+#' is not an `lna_pipeline`, a new pipeline is created via
+#' `as_pipeline()`.
 #'
-#' Parameter values are resolved by merging schema defaults,
-#' global `lna_options("basis.pca")`, and user-supplied arguments.
+#' Parameter values are resolved by merging schema defaults for the
+#' `'basis'` transform, global `lna_options("basis")`, the forced
+#' `method = "pca"`, and any user-supplied arguments.
 #'
 #' @param data_or_pipe Data object or `lna_pipeline`.
-#' @param k Optional number of components to compute.
-#' @param ... Additional parameters for the PCA basis transform.
+#' @param k Optional number of principal components.
+#' @param ... Additional parameters for the basis transform.
 #'
 #' @return An `lna_pipeline` object with the PCA step appended.
 #' @export
@@ -150,12 +152,14 @@ pca <- function(data_or_pipe, k = NULL, ...) {
   user_params <- c(list(k = k), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  pars <- default_params("basis.pca")
-  opts <- lna_options("basis.pca")$`basis.pca` %||% list()
+  pars <- default_params("basis")
+  opts <- lna_options("basis")$basis %||% list()
   pars <- utils::modifyList(pars, opts)
+  pars <- utils::modifyList(pars, list(method = "pca"))
   pars <- utils::modifyList(pars, user_params)
 
-  step_spec <- list(type = "basis.pca", params = pars)
+  step_spec <- list(type = "basis", params = pars)
+
   pipe$add_step(step_spec)
   pipe
 }
