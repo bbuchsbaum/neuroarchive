@@ -1,5 +1,6 @@
 library(testthat)
 library(hdf5r)
+library(withr)
 
 # Simulate chunk size failures to test retry heuristics
 
