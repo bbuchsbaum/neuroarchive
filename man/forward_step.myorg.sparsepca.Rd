@@ -6,20 +6,18 @@
 \usage{
 \method{forward_step}{myorg.sparsepca}(type, desc, handle)
 }
+\arguments{
+\item{storage_order}{Character string specifying the orientation of the
+basis matrix. Either "component_x_voxel" (default) or
+"voxel_x_component".}
+}
 \description{
 Performs a sparse PCA on the input matrix. If the optional `sparsepca`
 package is available, the transform uses `sparsepca::spca()` to compute
 sparse loadings. Otherwise it falls back to a truncated SVD via `irlba`
-(or base `svd`). Columns can be whitened prior to fitting and the
-singular values of the fit are saved alongside the basis.
+(or base `svd`). Columns may be optionally whitened prior to fitting.
+The chosen backend and singular values are recorded for later use.
 This example demonstrates how an external plugin transform
 might integrate with the LNA pipeline.
-
-}
-\details{
-The orientation of the stored basis matrix is controlled by the
-\code{storage_order} parameter. The default is
-\code{"component_x_voxel"}, but \code{"voxel_x_component"} is also
-allowed.
 }
 \keyword{internal}

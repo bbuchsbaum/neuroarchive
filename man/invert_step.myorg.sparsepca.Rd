@@ -6,16 +6,12 @@
 \usage{
 \method{invert_step}{myorg.sparsepca}(type, desc, handle)
 }
+\arguments{
+\item{storage_order}{Character string specifying the orientation of the
+basis matrix. Either "component_x_voxel" (default) or
+"voxel_x_component".}
+}
 \description{
 Reconstructs data from the sparse PCA coefficients and basis matrix.
-If singular values were written during the forward step they are
-applied before multiplying by the basis. The basis may be transposed
-when `storage_order = "voxel_x_component"`.
-}
-\details{
-The orientation of the stored basis matrix is controlled by the
-\code{storage_order} parameter. The default is
-\code{"component_x_voxel"}, but \code{"voxel_x_component"} is also
-allowed.
 }
 \keyword{internal}

@@ -38,6 +38,7 @@ Represents the state during LNA read/write operations, holding
 \item \href{#method-DataHandle-update_stash}{\code{DataHandle$update_stash()}}
 \item \href{#method-DataHandle-with}{\code{DataHandle$with()}}
 \item \href{#method-DataHandle-has_key}{\code{DataHandle$has_key()}}
+\item \href{#method-DataHandle-pull_first}{\code{DataHandle$pull_first()}}
 \item \href{#method-DataHandle-clone}{\code{DataHandle$clone()}}
 }
 }
@@ -159,6 +160,27 @@ Check if a key exists in the stash.
 }
 \subsection{Returns}{
 Logical, TRUE if the key exists in the stash, FALSE otherwise.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DataHandle-pull_first"></a>}}
+\if{latex}{\out{\hypertarget{method-DataHandle-pull_first}{}}}
+\subsection{Method \code{pull_first()}}{
+Return the first available value for a set of candidate keys.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{DataHandle$pull_first(keys)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{keys}}{Character vector of keys to search for in order.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+List with elements `value` and `key` giving the retrieved
+  object and the key that was found.
 }
 }
 \if{html}{\out{<hr>}}

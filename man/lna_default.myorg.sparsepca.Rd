@@ -7,7 +7,6 @@
 lna_default.myorg.sparsepca()
 }
 \description{
-Default parameters for myorg.sparsepca including a default seed for
-reproducibility.
+Default parameters for myorg.sparsepca
 }
 \keyword{internal}

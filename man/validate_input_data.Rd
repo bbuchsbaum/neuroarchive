@@ -8,12 +8,12 @@ validate_input_data(x, min_dims = 3L)
 }
 \arguments{
 \item{x}{Input object for `core_write`.}
-\item{min_dims}{Integer minimum required number of dimensions.}
+
+\item{min_dims}{Integer, minimum required number of dimensions.}
 }
 \description{
 Ensures that `x` (or each element of a list `x`) has at least
-\code{min_dims} dimensions, adding trailing singleton dimensions when
-necessary. This avoids ambiguous orientation for vectors and matrices
-and lets transforms declare their own requirements.
+`min_dims` dimensions. This prevents ambiguous handling of 2D
+matrices when transforms expect 3D input.
 }
 \keyword{internal}

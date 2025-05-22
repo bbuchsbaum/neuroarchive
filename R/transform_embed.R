@@ -106,14 +106,27 @@ invert_step.embed <- function(type, desc, handle) {
   }
 
   root <- handle$h5[["/"]]
-  if (!root$exists(basis_path)) {
+
+  path_exists_safely <- function(group, path_name) {
+    if (is.null(path_name) || !nzchar(path_name)) return(FALSE)
+    tryCatch({
+      group$exists(path_name)
+    }, error = function(e) {
+      # If the error is specifically about the path not existing, treat as FALSE
+      # Otherwise, could re-throw if it's a more fundamental HDF5 issue.
+      # For now, any error in exists() implies we can't use the path.
+      FALSE
+    })
+  }
+
+  if (!path_exists_safely(root, basis_path)) {
     abort_lna(sprintf("dataset '%s' not found", basis_path),
               .subclass = "lna_error_contract",
               location = "invert_step.embed:basis")
   }
   basis <- h5_read(root, basis_path)
   mean_vec <- if (!is.null(p$center_data_with)) {
-    if (!root$exists(p$center_data_with)) {
+    if (!path_exists_safely(root, p$center_data_with)) {
       abort_lna(sprintf("dataset '%s' not found", p$center_data_with),
                 .subclass = "lna_error_contract",
                 location = "invert_step.embed:center")
@@ -121,7 +134,7 @@ invert_step.embed <- function(type, desc, handle) {
     h5_read(root, p$center_data_with)
   } else NULL
   scale_vec <- if (!is.null(p$scale_data_with)) {
-    if (!root$exists(p$scale_data_with)) {
+    if (!path_exists_safely(root, p$scale_data_with)) {
       abort_lna(sprintf("dataset '%s' not found", p$scale_data_with),
                 .subclass = "lna_error_contract",
                 location = "invert_step.embed:scale")

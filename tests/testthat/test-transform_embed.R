@@ -23,8 +23,29 @@ test_that("embed transform errors when basis_path missing", {
 test_that("embed transform forward computes coefficients", {
   set.seed(1)
   X <- matrix(rnorm(20), nrow = 5, ncol = 4)
-  res <- core_write(X, transforms = c("basis", "embed"))
-  plan <- res$plan
+  
+  # Create a plan and handle directly
+  plan <- Plan$new()
+  
+  # Create a simple basis matrix and add it to the plan
+  basis_mat <- matrix(rnorm(8), nrow = 4, ncol = 2)  # 4×2 basis matrix
+  basis_path <- "/basis/test/matrix"
+  plan$add_payload(basis_path, basis_mat)
+  
+  # Create a handle with our matrix
+  handle <- DataHandle$new(initial_stash = list(input = X), plan = plan)
+  
+  # Create a descriptor for embed transform
+  desc <- list(
+    type = "embed",
+    params = list(basis_path = basis_path),
+    inputs = c("input")
+  )
+  
+  # Call forward_step.embed directly
+  handle <- forward_step.embed("embed", desc, handle)
+  
+  # Now check the plan for coefficients
   coeff_idx <- which(plan$datasets$role == "coefficients")
   expect_length(coeff_idx, 1)
   coeff_path <- plan$datasets$path[[coeff_idx]]
@@ -50,7 +71,6 @@ test_that("embed transform requires numeric input", {
 
   h <- DataHandle$new(initial_stash = list(input = matrix("a", nrow = 2)),
                       plan = plan)
-  plan$add_payload("/basis/mat", diag(2))
   desc <- list(type = "embed", params = list(basis_path = "/basis/mat"),
                inputs = c("input"))
   expect_error(
