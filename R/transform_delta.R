@@ -2,6 +2,10 @@
 #'
 #' Computes first-order differences along a specified axis and optionally
 #' run-length encodes the result.
+#' The name stored in `desc$outputs` (if supplied) controls the key used to
+#' stash the resulting delta stream. If `desc$outputs` is `NULL`, the default
+#' key `"delta_stream"` is used. An empty character vector results in no
+#' stash update.
 #' @importFrom rle as.rle compress.rle inverse.rle
 #' @keywords internal
 forward_step.delta <- function(type, desc, handle) {
@@ -68,7 +72,20 @@ forward_step.delta <- function(type, desc, handle) {
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
-  desc$outputs <- "delta_stream"
+
+  output_key <- NULL
+  if (!is.null(desc$outputs)) {
+    if (length(desc$outputs) > 0) {
+      output_key <- desc$outputs[[1]]
+      desc$outputs <- output_key
+    } else {
+      desc$outputs <- character()
+    }
+  } else {
+    output_key <- "delta_stream"
+    desc$outputs <- output_key
+  }
+
   desc$params <- p
   ds <- list(list(path = delta_path, role = "delta_stream"))
   if (identical(ref_store, "first_value_verbatim")) {
@@ -89,8 +106,14 @@ forward_step.delta <- function(type, desc, handle) {
   }
 
   handle$plan <- plan
-  handle$update_stash(keys = c(input_key), 
-                      new_values = list(delta_stream = delta_stream))
+  if (!is.null(output_key)) {
+    handle$update_stash(
+      keys = c(input_key),
+      new_values = setNames(list(delta_stream), output_key)
+    )
+  } else {
+    handle$update_stash(keys = c(input_key), new_values = list())
+  }
 }
 
 #' Delta Transform - Inverse Step
