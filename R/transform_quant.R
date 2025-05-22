@@ -14,6 +14,11 @@ forward_step.quant <- function(type, desc, handle) {
   method <- p$method %||% "range"
   center <- p$center %||% TRUE
   scope <- p$scale_scope %||% "global"
+  snr_sample_frac <- p$snr_sample_frac
+  if (is.null(snr_sample_frac)) {
+    snr_sample_frac <- lna_options("quant")[[1]]$snr_sample_frac
+  }
+  if (is.null(snr_sample_frac)) snr_sample_frac <- 0.01
 
 
   if (!(is.numeric(bits) && length(bits) == 1 &&
@@ -45,6 +50,14 @@ forward_step.quant <- function(type, desc, handle) {
       sprintf("Invalid scale_scope '%s'", scope),
       .subclass = "lna_error_validation",
       location = "forward_step.quant:scale_scope"
+    )
+  }
+  if (!(is.numeric(snr_sample_frac) && length(snr_sample_frac) == 1 &&
+        snr_sample_frac > 0 && snr_sample_frac <= 1)) {
+    abort_lna(
+      "snr_sample_frac must be a number in (0,1]",
+      .subclass = "lna_error_validation",
+      location = "forward_step.quant:snr_sample_frac"
     )
   }
 
@@ -217,7 +230,12 @@ forward_step.quant <- function(type, desc, handle) {
       )
     )
   } else {
-    var_x <- stats::var(as.numeric(x))
+    dims <- dim(x)
+    vox <- prod(dims[1:3])
+    sample_n <- max(1L, floor(vox * snr_sample_frac))
+    mat <- matrix(as.numeric(x), vox, dims[4])
+    idx <- sample(vox, sample_n)
+    var_x <- stats::var(as.numeric(mat[idx, , drop = FALSE]))
     snr_db <- 10 * log10(var_x / ((qs$scale_mean)^2 / 12))
     quant_report <- list(
       report_version = "1.0",
