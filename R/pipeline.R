@@ -113,6 +113,40 @@ lna_pipeline <- R6::R6Class(
       }
 
       invisible(self)
+    },
+
+    #' @description
+    #' Append a transform step specification to the pipeline
+    #' @param step_spec A list with elements `type` and `params`
+    add_step = function(step_spec) {
+      if (!is.list(step_spec) || is.null(step_spec$type)) {
+        abort_lna(
+          "step_spec must be a list with element `type`",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:add_step"
+        )
+      }
+
+      if (!is.character(step_spec$type) || length(step_spec$type) != 1) {
+        abort_lna(
+          "step_spec$type must be a single character string",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:add_step"
+        )
+      }
+
+      if (!is.null(step_spec$params) && !is.list(step_spec$params)) {
+        abort_lna(
+          "step_spec$params must be a list or NULL",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline:add_step"
+        )
+      }
+
+      if (is.null(step_spec$params)) step_spec$params <- list()
+
+      self$steps[[length(self$steps) + 1]] <- step_spec
+      invisible(self)
     }
   )
 )
