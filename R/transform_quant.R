@@ -132,6 +132,18 @@ invert_step.quant <- function(type, desc, handle) {
   }, finally = {
     if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
   })
+  if (!is.null(desc$params$bits) && !is.na(desc$params$bits)) {
+    if (!is.na(attr_bits) && attr_bits != desc$params$bits) {
+      abort_lna(
+        sprintf(
+          "quant_bits attribute (%s) disagrees with descriptor bits (%s)",
+          attr_bits, desc$params$bits
+        ),
+        .subclass = "lna_error_validation",
+        location = "invert_step.quant:bits"
+      )
+    }
+  }
   scale <- as.numeric(h5_read(root, scale_path))
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset

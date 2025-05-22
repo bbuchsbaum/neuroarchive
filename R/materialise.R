@@ -179,7 +179,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         }
         if (!is.null(p)) p(message = row$path)
 
-        write_payload(row$path, payload, row$step_index)
+        write_payload(row$path, payload, row$step_index, row$dtype)
         if (row$producer == "quant" && row$role == "quantized") {
           bits_val <- tryCatch(jsonlite::fromJSON(row$params_json)$bits,
                                error = function(e) NULL)
