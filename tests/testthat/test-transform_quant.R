@@ -277,3 +277,19 @@ test_that("quant roundtrip fidelity for bits=1 and bits=16", {
     expect_lt(mean(abs(out - arr)), 1)
   }
 })
+
+test_that("quantization report written and path stored", {
+  arr <- array(runif(6), dim = c(2,3))
+  tmp <- local_tempfile(fileext = ".h5")
+  res <- write_lna(arr, file = tmp, transforms = "quant")
+  h5 <- H5File$new(tmp, mode = "r")
+  dset <- h5[["/transforms/00_quant_report.json"]]
+  comp <- h5_attr_read(dset, "compression")
+  raw_report <- dset$read()
+  dset$close(); h5$close_all()
+  expect_equal(comp, "gzip")
+  expect_type(raw_report, "raw")
+  desc <- res$plan$descriptors[["00_quant.json"]]
+  expect_equal(desc$params$report_path, "/transforms/00_quant_report.json")
+  expect_gt(length(raw_report), 0)
+})
