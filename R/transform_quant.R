@@ -84,11 +84,11 @@ forward_step.quant <- function(type, desc, handle) {
   plan$add_payload(scale_path, scale)
   plan$add_dataset_def(scale_path, "scale", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       scale_path, "eager", dtype = NA_character_)
+                       scale_path, "eager", dtype = "float32")
   plan$add_payload(offset_path, offset)
   plan$add_dataset_def(offset_path, "offset", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       offset_path, "eager", dtype = NA_character_)
+                       offset_path, "eager", dtype = "float32")
 
   handle$plan <- plan
   handle$update_stash(keys = input_key, new_values = list())
