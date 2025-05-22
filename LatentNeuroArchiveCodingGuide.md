@@ -8,7 +8,15 @@ Okay, this final feedback targets crucial details for implementation robustness 
 
 **1. Overview & Purpose**
 
+
 (No changes from v1.0 - goals remain the same)
+
+### Data shape convention
+
+Arrays supplied to `write_lna()` should store time in the final
+dimension.  Transforms operate on matrices with time along rows and
+voxels along columns.  Thus a `10×4×1` array is first reshaped to a
+`10×4` matrix before the Sparse PCA step.
 
 **2. Public API**
 
