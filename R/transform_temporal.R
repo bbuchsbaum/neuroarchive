@@ -2,6 +2,7 @@
 #'
 #' Projects data onto a temporal basis (DCT, B-spline, DPSS, polynomial, or wavelet).
 #' @keywords internal
+#' @S3method forward_step temporal
 forward_step.temporal <- function(type, desc, handle) {
   p <- desc$params %||% list()
   # Extract temporal-specific parameters and remove them from p to avoid duplication
@@ -93,6 +94,7 @@ forward_step.temporal <- function(type, desc, handle) {
 #'
 #' Reconstructs data from stored temporal basis coefficients.
 #' @keywords internal
+#' @S3method invert_step temporal
 invert_step.temporal <- function(type, desc, handle) {
   basis_path <- NULL
   coeff_path <- NULL
