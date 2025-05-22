@@ -19,6 +19,7 @@
 #' @keywords internal
 default_param_cache_clear <- function() {
   rm(list = ls(envir = .default_param_cache, all.names = TRUE), envir = .default_param_cache)
+  memoise::forget(default_params)
   invisible(NULL)
 }
 
@@ -76,7 +77,7 @@ required_param_cache_clear <- function() {
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
 
-default_params <- function(type) {
+default_params_impl <- function(type) {
   stopifnot(is.character(type), length(type) == 1)
 
   cache <- .default_param_cache
@@ -106,6 +107,10 @@ default_params <- function(type) {
   assign(type, defaults, envir = cache)
   defaults
 }
+
+# Memoised wrapper -----------------------------------------------------------
+
+default_params <- memoise::memoise(default_params_impl)
 
 #' Required parameters for a transform
 #'
