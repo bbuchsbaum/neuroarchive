@@ -250,6 +250,12 @@ open_h5 <- function(path, mode = "r", ...) {
   # Start with unnamed path, then named mode
   h5_args <- list(path, mode = mode)
 
+  if (grepl("^w", mode)) {
+    fcpl <- hdf5r::H5P_FILE_CREATE$new()
+    fcpl$set_obj_track_times(FALSE)
+    h5_args <- c(h5_args, file_create_pl = fcpl)
+  }
+
   additional_args <- list(...)
 
   if (!is.null(additional_args$driver) && additional_args$driver == "core") {
