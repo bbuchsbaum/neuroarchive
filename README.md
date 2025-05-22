@@ -34,6 +34,14 @@ r <- read_lna("example.lna.h5", lazy = TRUE)
 str(r$data())
 r$close()
 ```
+### Using LNAFacade
+
+```r
+facade <- LNAFacade$new()
+facade$compress(x, "facade_example.h5", transforms = "quant")
+facade$open("facade_example.h5")
+```
+
 
 ### PCA Compression Pipeline
 

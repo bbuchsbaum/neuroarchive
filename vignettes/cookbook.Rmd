@@ -29,6 +29,16 @@ r$subset(time_idx = 1)
 subset_data <- r$data()
 r$close()
 ```
+## Facade Helper
+
+The `LNAFacade` class exposes simple `compress()` and `open()` methods that wrap the standard API.
+
+```r
+f <- LNAFacade$new()
+f$compress(x, "cb_facade.h5", transforms = "quant")
+f$open("cb_facade.h5")
+```
+
 
 ## PCA Compression Pipeline
 
