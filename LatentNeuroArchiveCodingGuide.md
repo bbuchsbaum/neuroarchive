@@ -612,6 +612,7 @@ Default-param merge order	1. Schema defaults → 2. lna_options() → 3. User tr
 Error classes	Throw with lna:::abort_lna("message", class = "lna_error_contract", location = "myorg.octree_pca") so upstream code can catch/filter.	Spec v1.4 §6
 ROI / time sub-setting	Declare capabilities.supports_spatial_subsetting = "block-only" (oct-tree) and implement the fast path; fall back to full data if request outside capability.	Spec v1.4 §3.5
 Schema URI	The schema_uri in the descriptor does not need to be publicly reachable in early days—just set it to the canonical path you shipped under inst/schemas/.  Validation will load from the installed package.	Conversation answer
+Min dims for aggregator/SPCA  Provide `transform_min_dims.myorg.aggregate_runs` and `transform_min_dims.myorg.sparsepca` returning `2L`. Prevents `core_write()` from padding to 3-D when these are the first transforms.  Addendum
 
 
 ⸻
