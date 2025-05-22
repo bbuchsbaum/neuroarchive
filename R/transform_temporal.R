@@ -94,7 +94,7 @@ forward_step.temporal <- function(type, desc, handle) {
 #'
 #' Reconstructs data from stored temporal basis coefficients.
 #' @keywords internal
-#' @S3method invert_step temporal
+#' @export
 invert_step.temporal <- function(type, desc, handle) {
   basis_path <- NULL
   coeff_path <- NULL
@@ -112,8 +112,10 @@ invert_step.temporal <- function(type, desc, handle) {
       location = "invert_step.temporal"
     )
   }
+  if (is.null(coef_path_from_desc)) {
+    abort_lna("temporal_coefficients path not found in descriptor datasets", .subclass = "lna_error_descriptor", location = "invert_step.temporal")
+  }
 
-  coeff_key <- desc$outputs[[1]] %||% "temporal_coefficients"
   input_key  <- desc$inputs[[1]] %||% "input"
 
   root <- handle$h5[["/"]]
@@ -129,17 +131,25 @@ invert_step.temporal <- function(type, desc, handle) {
   subset <- handle$subset
   if (!is.null(subset$roi_mask)) {
     roi <- as.logical(subset$roi_mask)
-    if (length(roi) == ncol(dense)) {
+    if (length(roi) == ncol(dense)) { 
       dense <- dense[, roi, drop = FALSE]
     }
   }
   if (!is.null(subset$time_idx)) {
     idx <- as.integer(subset$time_idx)
-    dense <- dense[idx, , drop = FALSE]
+    if (nrow(dense) >= max(idx)) { 
+        dense <- dense[idx, , drop = FALSE]
+    }
   }
+  
+  if (is.null(dense)) {
+    abort_lna("Reconstructed data (dense) is NULL before stashing", .subclass="lna_error_internal", location="invert_step.temporal")
+  }
+  new_values_list <- setNames(list(dense), input_key)
 
-  handle$update_stash(keys = coeff_key,
-                      new_values = setNames(list(dense), input_key))
+  handle$update_stash(keys = character(), 
+                      new_values = new_values_list)
+  handle
 }
 
 #' Generate an orthonormal DCT basis matrix

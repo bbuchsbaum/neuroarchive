@@ -1,8 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Parameters for 'basis' transform",
+  "title": "Descriptor for 'basis' transform",
   "type": "object",
   "properties": {
+    "type": { "const": "basis" },
+    "basis_path": { "type": "string" },
     "method": {"type": "string", "enum": ["pca", "ica", "nmf"], "default": "pca"},
     "k": {"type": "integer", "minimum": 1, "default": 20},
     "center": {"type": "boolean", "default": true},
@@ -10,5 +12,6 @@
     "solver_params": {"type": "object", "default": {}},
     "storage_order": {"type": "string", "enum": ["component_x_voxel", "voxel_x_component"], "default": "component_x_voxel"}
   },
+  "required": [ "type", "basis_path" ],
   "additionalProperties": false
 }

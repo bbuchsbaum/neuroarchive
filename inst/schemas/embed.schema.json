@@ -1,12 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Parameters for 'embed' transform",
+  "title": "Descriptor for 'embed' transform",
   "type": "object",
   "properties": {
+    "type": { "const": "embed" },
     "basis_path": {"type": "string"},
     "center_data_with": {"type": ["string", "null"], "default": null},
     "scale_data_with": {"type": ["string", "null"], "default": null}
   },
-  "required": ["basis_path"],
+  "required": ["type", "basis_path"],
   "additionalProperties": false
 }

@@ -135,7 +135,7 @@ lna_reader <- R6::R6Class("lna_reader",
     #' @return A `DataHandle` object representing the loaded data
       data = function(...) {
         args <- list(...)
-        if (is.null(self$h5) || !self$h5$is_valid()) {
+        if (is.null(self$h5) || !self$h5$is_valid) {
           abort_lna(
             "lna_reader is closed",
             .subclass = "lna_error_closed_reader",

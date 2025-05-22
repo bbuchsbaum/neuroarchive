@@ -2,6 +2,7 @@
 
 S3method(forward_step,default)
 S3method(invert_step,default)
+S3method(invert_step,temporal)
 S3method(temporal_basis,bspline)
 S3method(temporal_basis,dct)
 S3method(temporal_basis,default)

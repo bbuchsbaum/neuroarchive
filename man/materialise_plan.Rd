@@ -25,8 +25,10 @@ materialise_plan(
 }
 \value{
 Invisibly returns the `H5File` handle. When `checksum = "sha256"`
-  the handle is closed as part of computing the digest and the returned
-  handle will be invalid.
+  the file is first written with a placeholder checksum attribute, the
+  SHA256 digest is computed on that file, and then the attribute is updated
+  with the final value.  The handle is closed during digest calculation and
+  is therefore invalid when the function returns.
 }
 \description{
 Writes transform descriptors and payload datasets to an open

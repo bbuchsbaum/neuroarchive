@@ -571,3 +571,9 @@ Flags can be combined using `bitwOr()`. Default is `getOption("hdf5r.h5tor_defau
 ---
 
 This cheatsheet covers common `hdf5r` functionality. For detailed API, consult the package documentation and the HDF5 Group's official documentation.
+
+---
+
+### Additional Mocking Nugget (2025-05-22)
+
+* When you need to mock functions from different packages in the same test, nest `testthat::with_mocked_bindings()` calls so that each invocation targets a single namespace with its `.package` argument. For example, first mock `rlang::is_interactive` with `.package = "rlang"`, and inside its `code = {}` block, call a second `with_mocked_bindings()` to mock `base::readline` with `.package = "base"`. This avoids the "Can't find binding for …" error that arises when trying to list multiple packages in one call.

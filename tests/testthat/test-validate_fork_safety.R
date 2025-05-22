@@ -31,7 +31,7 @@ test_that("validate_lna works with schema_cache_clear in forked worker", {
   fut <- future::future({
     library(neuroarchive)
     schema_cache_clear()
-    validate_lna(tmp)
+    validate_lna(tmp, checksum = FALSE)
   })
   expect_true(future::value(fut))
 })

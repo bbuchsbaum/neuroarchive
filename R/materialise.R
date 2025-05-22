@@ -213,6 +213,10 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   }
 
   if (checksum == "sha256") {
+    # Write a placeholder first, so the subsequent hash is of the file *with* this attribute present (as a placeholder)
+    placeholder_checksum <- paste(rep("0", 64), collapse = "")
+    h5_attr_write(root, "lna_checksum", placeholder_checksum)
+    
     file_path <- h5$filename
     # Ensure all data is written and file is closed BEFORE hashing
     neuroarchive:::close_h5_safely(h5) # IMPORTANT: h5 is closed here

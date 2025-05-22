@@ -2,23 +2,25 @@
 % Please edit documentation in R/utils_transform.R
 \name{run_transform_step}
 \alias{run_transform_step}
-\title{Execute a transform step with provenance}
+\title{Run a single transform step (forward or inverse)}
 \usage{
-run_transform_step(direction, type, desc, handle, step_index)
+run_transform_step(direction, type, desc, handle, step_idx)
 }
 \arguments{
-\item{direction}{Either "forward" or "invert".}
+\item{direction}{Character, either "forward" or "invert".}
 
-\item{type}{Transform type.}
+\item{type}{Character, the transform type name.}
 
-\item{desc}{Descriptor list.}
+\item{desc}{List, the transform descriptor.}
 
-\item{handle}{DataHandle object.}
+\item{handle}{DataHandle, the current data state.}
 
-\item{step_index}{Integer step index.}
+\item{step_idx}{Integer, the index of this step in the sequence.}
+}
+\value{
+Updated DataHandle.
 }
 \description{
-Helper used by `core_write` and `core_read` to ensure that errors
-include the step index and transform name in their location field.
+Run a single transform step (forward or inverse)
 }
 \keyword{internal}

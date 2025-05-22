@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dummy transform descriptor",
+  "description": "A permissive schema for the dummy transform used in tests.",
+  "type": "object",
+  "properties": {
+    "type": { "const": "dummy" },
+    "params": { "type": ["object", "null"] },
+    "datasets": { "type": ["array", "null"] }
+  },
+  "required": [ "type" ],
+  "additionalProperties": true
+} 
