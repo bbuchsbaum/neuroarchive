@@ -105,7 +105,24 @@ invert_step.quant <- function(type, desc, handle) {
   offset_path <- paste0("/scans/", run_id, "/quant_offset")
 
   root <- handle$h5[["/"]]
-  q <- h5_read(root, data_path)
+  dset <- NULL
+  q <- NULL
+  attr_bits <- desc$params$bits %||% NA
+  tryCatch({
+    dset <- root[[data_path]]
+    if (h5_attr_exists(dset, "quant_bits")) {
+      attr_bits <- h5_attr_read(dset, "quant_bits")
+    } else {
+      warning("quant_bits HDF5 attribute missing; using descriptor value.",
+              call. = FALSE)
+    }
+    q <- dset$read()
+  }, error = function(e) {
+    stop(paste0("Error reading dataset '", data_path, "': ",
+                conditionMessage(e)), call. = FALSE)
+  }, finally = {
+    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+  })
   scale <- as.numeric(h5_read(root, scale_path))
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset
