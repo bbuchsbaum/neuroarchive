@@ -74,10 +74,16 @@ test_that("core_read closes file if invert_step errors", {
   # Ensure invert_step generic exists for local registration
   if (!exists("invert_step", mode = "function", envir = .GlobalEnv)) {
     .GlobalEnv$invert_step <- function(type, ...) UseMethod("invert_step", type)
-    # Defer removal if we created it; assumes testthat runs in an env that can see .GlobalEnv for this
-    withr::defer(rm(invert_step, envir = .GlobalEnv), envir = testthat::get_test_environment())
+    withr::defer(rm(invert_step, envir = .GlobalEnv))
   }
-  withr::local_assign("invert_step.dummy", mock_invert_step_dummy_closes_file, envir = .GlobalEnv)
+  # Save current global invert_step.dummy if it exists, then assign mock, then defer restoration/removal
+  original_invert_step_dummy <- if(exists("invert_step.dummy", envir = .GlobalEnv, inherits = FALSE)) .GlobalEnv$invert_step.dummy else NA
+  .GlobalEnv$invert_step.dummy <- mock_invert_step_dummy_closes_file
+  if (identical(original_invert_step_dummy, NA)) {
+    withr::defer(rm(invert_step.dummy, envir = .GlobalEnv))
+  } else {
+    withr::defer(assign("invert_step.dummy", original_invert_step_dummy, envir = .GlobalEnv))
+  }
 
   expect_error(core_read(tmp), "mock error")
   expect_true(inherits(captured_h5, "H5File"))
@@ -125,7 +131,7 @@ test_that("core_read works with progress handlers", {
   create_lna_with_dummy_run_and_descriptor(tmp)
   
   old_handlers <- progressr::handlers()
-  withr::defer(progressr::handlers(old_handlers), envir = testthat::get_test_environment())
+  withr::defer(progressr::handlers(old_handlers))
   
   progressr::handlers(progressr::handler_void()) # Set the void handler for the test
   
@@ -267,9 +273,15 @@ test_that("core_read run_id globbing returns handles", {
   }
   if (!exists("invert_step", mode = "function", envir = .GlobalEnv)) {
     .GlobalEnv$invert_step <- function(type, ...) UseMethod("invert_step", type)
-    withr::defer(rm(invert_step, envir = .GlobalEnv), envir = testthat::get_test_environment())
+    withr::defer(rm(invert_step, envir = .GlobalEnv))
   }
-  withr::local_assign("invert_step.dummy", mock_invert_step_dummy_globbing, envir = .GlobalEnv)
+  original_invert_step_dummy_globbing <- if(exists("invert_step.dummy", envir = .GlobalEnv, inherits = FALSE)) .GlobalEnv$invert_step.dummy else NA
+  .GlobalEnv$invert_step.dummy <- mock_invert_step_dummy_globbing
+  if (identical(original_invert_step_dummy_globbing, NA)) {
+    withr::defer(rm(invert_step.dummy, envir = .GlobalEnv))
+  } else {
+    withr::defer(assign("invert_step.dummy", original_invert_step_dummy_globbing, envir = .GlobalEnv))
+  }
 
   res <- core_read(tmp, run_id = "run-0*")
   expect_true(is.list(res))
@@ -299,9 +311,15 @@ test_that("core_read run_id globbing lazy returns first", {
   }
   if (!exists("invert_step", mode = "function", envir = .GlobalEnv)) {
     .GlobalEnv$invert_step <- function(type, ...) UseMethod("invert_step", type)
-    withr::defer(rm(invert_step, envir = .GlobalEnv), envir = testthat::get_test_environment())
+    withr::defer(rm(invert_step, envir = .GlobalEnv))
   }
-  withr::local_assign("invert_step.dummy", mock_invert_step_dummy_lazy, envir = .GlobalEnv)
+  original_invert_step_dummy_lazy <- if(exists("invert_step.dummy", envir = .GlobalEnv, inherits = FALSE)) .GlobalEnv$invert_step.dummy else NA
+  .GlobalEnv$invert_step.dummy <- mock_invert_step_dummy_lazy
+  if (identical(original_invert_step_dummy_lazy, NA)) {
+    withr::defer(rm(invert_step.dummy, envir = .GlobalEnv))
+  } else {
+    withr::defer(assign("invert_step.dummy", original_invert_step_dummy_lazy, envir = .GlobalEnv))
+  }
 
   expect_warning(h <- core_read(tmp, run_id = "run-*", lazy = TRUE), "first match")
   expect_s3_class(h, "DataHandle")
@@ -333,9 +351,15 @@ test_that("core_read validate=TRUE checks dataset existence", {
   mock_invert_step_dummy_validate <- function(type, desc, handle) handle
   if (!exists("invert_step", mode = "function", envir = .GlobalEnv)) {
     .GlobalEnv$invert_step <- function(type, ...) UseMethod("invert_step", type)
-    withr::defer(rm(invert_step, envir = .GlobalEnv), envir = testthat::get_test_environment())
+    withr::defer(rm(invert_step, envir = .GlobalEnv))
   }
-  withr::local_assign("invert_step.dummy", mock_invert_step_dummy_validate, envir = .GlobalEnv)
+  original_invert_step_dummy_validate <- if(exists("invert_step.dummy", envir = .GlobalEnv, inherits = FALSE)) .GlobalEnv$invert_step.dummy else NA
+  .GlobalEnv$invert_step.dummy <- mock_invert_step_dummy_validate
+  if (identical(original_invert_step_dummy_validate, NA)) {
+    withr::defer(rm(invert_step.dummy, envir = .GlobalEnv))
+  } else {
+    withr::defer(assign("invert_step.dummy", original_invert_step_dummy_validate, envir = .GlobalEnv))
+  }
 
   expect_error(core_read(tmp, validate = TRUE),
                class = "lna_error_validation")
