@@ -94,7 +94,7 @@ test_that("temporal transform rejects unsupported kind", {
   X_matrix_transposed <- t(X_matrix) # Now Components x Time
   X <- array(X_matrix_transposed, 
              dim = c(nrow(X_matrix_transposed), 1, ncol(X_matrix_transposed)))
-  expect_error(
+  err <- expect_error(
     core_write(X, transforms = "temporal",
                transform_params = list(temporal = list(kind = "unsupported_kind"))),
     class = "lna_error_transform_step" # Expect the outer wrapping class from run_transform_step
