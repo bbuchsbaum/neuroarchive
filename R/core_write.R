@@ -23,8 +23,13 @@ core_write <- function(x, transforms, transform_params = list(),
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
 
+  # Determine required dimensionality from first transform
+  first_type <- if (length(transforms) > 0) transforms[[1]] else ""
+  req_dims <- transform_min_dims(first_type)
+  if (!is.null(mask)) req_dims <- max(req_dims, 3L)
+
   # cat("[core_write] Validating input data...\n")
-  x <- validate_input_data(x)  # Update x with potentially promoted arrays
+  x <- validate_input_data(x, min_dims = req_dims)
   # cat("[core_write] Input data validated.\n")
 
   # cat("[core_write] Validating mask...\n")
@@ -246,28 +251,21 @@ validate_input_data <- function(x, min_dims = 3L) {
   check_dims <- function(obj) {
     dims <- dim(obj)
     if (is.null(dims)) {
-      # Convert 1D vector to 3D array
-      x_array <- array(obj, dim = c(length(obj), 1, 1))
-      return(x_array)
-    } else if (length(dims) == 2) {
-      # Convert 2D matrix to 3D array
-      x_array <- array(obj, dim = c(dims[1], dims[2], 1))
-      return(x_array)
-    } else if (length(dims) < 3) {
-      abort_lna(
-        sprintf("input data must have at least %d dimensions", min_dims),
-        .subclass = "lna_error_validation",
-        location = "core_write:input"
-      )
+      base_dim <- length(obj)
+      new_dims <- c(base_dim, rep(1L, max(0L, min_dims - 1L)))
+      return(array(obj, dim = new_dims))
     }
-    return(obj)  # Return original object if it already has 3+ dimensions
+
+    if (length(dims) < min_dims) {
+      new_dims <- c(dims, rep(1L, min_dims - length(dims)))
+      obj <- array(obj, dim = new_dims)
+    }
+    obj
   }
 
   if (is.list(x)) {
-    result <- lapply(x, check_dims)
-    return(result)
+    lapply(x, check_dims)
   } else {
-    result <- check_dims(x)
-    return(result)
+    check_dims(x)
   }
 }

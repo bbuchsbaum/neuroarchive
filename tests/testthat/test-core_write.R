@@ -111,10 +111,9 @@ test_that("core_write works with progress handlers", {
   )
 })
 
-test_that("input data requires >=3 dimensions", {
-  expect_error(
-    core_write(x = matrix(1:4, nrow = 2), transforms = "tA"),
-    class = "lna_error_validation"
+test_that("input data is promoted to required dimensions", {
+  expect_silent(
+    core_write(x = matrix(1:4, nrow = 2), transforms = "tA")
   )
 })
 

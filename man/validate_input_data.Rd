@@ -12,7 +12,8 @@ validate_input_data(x, min_dims = 3L)
 }
 \description{
 Ensures that `x` (or each element of a list `x`) has at least
-\code{min_dims} dimensions. This prevents ambiguous handling of 2D
-matrices when transforms expect 3D input.
+\code{min_dims} dimensions, adding trailing singleton dimensions when
+necessary. This avoids ambiguous orientation for vectors and matrices
+and lets transforms declare their own requirements.
 }
 \keyword{internal}
