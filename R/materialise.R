@@ -98,14 +98,14 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   }
 
   # Helper to write a single payload dataset with retries
-  write_payload <- function(path, data, step_index) {
+  write_payload <- function(path, data, step_index, dtype_str = NA_character_) {
     comp_level <- lna_options("write.compression_level")[[1]]
     if (is.null(comp_level)) comp_level <- 0
     chunk_dims <- NULL
 
     attempt <- function(level, chunks) {
       h5_write_dataset(root, path, data, chunk_dims = chunks,
-                       compression_level = level)
+                       compression_level = level, dtype = dtype_str)
       NULL
     }
 
@@ -121,12 +121,12 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 
 
     # Determine datatype size for chunk heuristics
-    dtype <- guess_h5_type(data)
+    dtype <- if (!is.na(dtype_str)) map_dtype(dtype_str) else guess_h5_type(data)
     dtype_size <- dtype$get_size(variable_as_inf = FALSE)
     if (!is.finite(dtype_size) || dtype_size <= 0) {
       dtype_size <- 1L
     }
-    if (inherits(dtype, "H5T")) dtype$close()
+    if (inherits(dtype, "H5T") && is.na(dtype_str)) dtype$close()
     cdims <- if (is.null(chunk_dims)) guess_chunk_dims(dim(data), dtype_size) else as.integer(chunk_dims)
 
     if (inherits(res, "error")) {
@@ -178,6 +178,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
           next
         }
         if (!is.null(p)) p(message = row$path)
+
         write_payload(row$path, payload, row$step_index)
         if (row$producer == "quant" && row$role == "quantized") {
           bits_val <- tryCatch(jsonlite::fromJSON(row$params_json)$bits,
@@ -187,6 +188,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
           h5_attr_write(dset_obj, "quant_bits", as.integer(bits_val))
           dset_obj$close()
         }
+        #write_payload(row$path, payload, row$step_index, row$dtype)
         plan$datasets$write_mode_effective[i] <- "eager"
         plan$mark_payload_written(key)
       }

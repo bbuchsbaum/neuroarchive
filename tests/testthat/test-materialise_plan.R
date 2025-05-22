@@ -10,7 +10,7 @@ test_that("materialise_plan creates structure and updates plan", {
   plan <- Plan$new()
   plan$add_descriptor("00_dummy.json", list(type = "dummy"))
   plan$add_payload("payload", matrix(1:4, nrow = 2))
-  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "payload", "eager")
+  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "payload", "eager", dtype = NA_character_)
 
   materialise_plan(h5, plan)
 
@@ -69,7 +69,7 @@ test_that("materialise_plan respects progress handlers", {
     key <- paste0("p", i)
     path <- paste0("/scans/run-01/d", i)
     plan$add_payload(key, 1:5)
-    plan$add_dataset_def(path, "data", "dummy", "run-01", 0L, "{}", key, "eager")
+    plan$add_dataset_def(path, "data", "dummy", "run-01", 0L, "{}", key, "eager", dtype = NA_character_)
   }
   
   old_handlers <- progressr::handlers()

@@ -8,7 +8,7 @@ create_valid_lna <- function(path, checksum = TRUE) {
   plan$add_descriptor("00_dummy.json", list(type = "dummy"))
   plan$add_payload("payload", matrix(1:4, nrow = 2))
   plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}",
-                      "payload", "eager")
+                      "payload", "eager", dtype = NA_character_)
   materialise_plan(h5, plan, checksum = if (checksum) "sha256" else "none")
 }
 

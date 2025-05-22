@@ -98,12 +98,12 @@ forward_step.delta <- function(type, desc, handle) {
   plan$add_payload(delta_path, delta_stream)
   plan$add_dataset_def(delta_path, "delta_stream", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       delta_path, "eager")
+                       delta_path, "eager", dtype = NA_character_)
   if (identical(ref_store, "first_value_verbatim")) {
     plan$add_payload(first_path, first_vals)
     plan$add_dataset_def(first_path, "first_values", as.character(type), run_id,
                          as.integer(step_index), params_json,
-                         first_path, "eager")
+                         first_path, "eager", dtype = NA_character_)
   }
 
   handle$plan <- plan

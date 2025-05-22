@@ -64,6 +64,7 @@ forward_step.quant <- function(type, desc, handle) {
   offset <- params$offset
 
   storage.mode(q) <- "integer"
+  storage_type_str <- if (bits <= 8) "uint8" else "uint16"
 
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
@@ -79,15 +80,15 @@ forward_step.quant <- function(type, desc, handle) {
   plan$add_payload(data_path, q)
   plan$add_dataset_def(data_path, "quantized", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       data_path, "eager")
+                       data_path, "eager", dtype = storage_type_str)
   plan$add_payload(scale_path, scale)
   plan$add_dataset_def(scale_path, "scale", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       scale_path, "eager")
+                       scale_path, "eager", dtype = NA_character_)
   plan$add_payload(offset_path, offset)
   plan$add_dataset_def(offset_path, "offset", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       offset_path, "eager")
+                       offset_path, "eager", dtype = NA_character_)
 
   handle$plan <- plan
   handle$update_stash(keys = input_key, new_values = list())
@@ -105,7 +106,24 @@ invert_step.quant <- function(type, desc, handle) {
   offset_path <- paste0("/scans/", run_id, "/quant_offset")
 
   root <- handle$h5[["/"]]
-  q <- h5_read(root, data_path)
+  dset <- NULL
+  q <- NULL
+  attr_bits <- desc$params$bits %||% NA
+  tryCatch({
+    dset <- root[[data_path]]
+    if (h5_attr_exists(dset, "quant_bits")) {
+      attr_bits <- h5_attr_read(dset, "quant_bits")
+    } else {
+      warning("quant_bits HDF5 attribute missing; using descriptor value.",
+              call. = FALSE)
+    }
+    q <- dset$read()
+  }, error = function(e) {
+    stop(paste0("Error reading dataset '", data_path, "': ",
+                conditionMessage(e)), call. = FALSE)
+  }, finally = {
+    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+  })
   scale <- as.numeric(h5_read(root, scale_path))
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset

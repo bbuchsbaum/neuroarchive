@@ -251,9 +251,9 @@ test_that("core_read run_id globbing returns handles", {
   plan <- Plan$new()
   plan$add_descriptor("00_dummy.json", list(type = "dummy"))
   plan$add_payload("p1", 1L)
-  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p1", "eager")
+  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p1", "eager", dtype = NA_character_)
   plan$add_payload("p2", 2L)
-  plan$add_dataset_def("/scans/run-02/data", "data", "dummy", "run-02", 0L, "{}", "p2", "eager")
+  plan$add_dataset_def("/scans/run-02/data", "data", "dummy", "run-02", 0L, "{}", "p2", "eager", dtype = NA_character_)
   materialise_plan(h5, plan)
   neuroarchive:::close_h5_safely(h5)
 
@@ -293,9 +293,9 @@ test_that("core_read run_id globbing lazy returns first", {
   plan <- Plan$new()
   plan$add_descriptor("00_dummy.json", list(type = "dummy"))
   plan$add_payload("p1", 1L)
-  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p1", "eager")
+  plan$add_dataset_def("/scans/run-01/data", "data", "dummy", "run-01", 0L, "{}", "p1", "eager", dtype = NA_character_)
   plan$add_payload("p2", 2L)
-  plan$add_dataset_def("/scans/run-02/data", "data", "dummy", "run-02", 0L, "{}", "p2", "eager")
+  plan$add_dataset_def("/scans/run-02/data", "data", "dummy", "run-02", 0L, "{}", "p2", "eager", dtype = NA_character_)
   materialise_plan(h5, plan)
   neuroarchive:::close_h5_safely(h5)
 

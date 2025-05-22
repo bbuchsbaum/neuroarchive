@@ -133,3 +133,10 @@ test_that("quant transform errors on non-finite input", {
   )
 
 })
+
+test_that("invert_step.quant warns when quant_bits attribute missing", {
+  arr <- array(runif(6), dim = c(2,3))
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp, transforms = "quant")
+  expect_warning(read_lna(tmp), regexp = "quant_bits")
+})

@@ -175,7 +175,8 @@ reduce_chunk_dims <- function(chunk, dtype_size, target_bytes) {
 #' @param compression_level Integer 0–9 giving gzip compression level.
 #' @return Invisibly returns `TRUE` on success.
 h5_write_dataset <- function(h5_group, path, data,
-                             chunk_dims = NULL, compression_level = 0) {
+                             chunk_dims = NULL, compression_level = 0,
+                             dtype = NULL) {
   stopifnot(inherits(h5_group, "H5Group"))
   stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.numeric(compression_level), length(compression_level) == 1)
@@ -201,16 +202,25 @@ h5_write_dataset <- function(h5_group, path, data,
   }
 
   if (is.null(chunk_dims)) {
-    element_size <- if (is.integer(data)) 4L else 8L
+    element_size <- if (!is.null(dtype)) {
+      map_dtype(dtype)$get_size(variable_as_inf = FALSE)
+    } else if (is.integer(data)) {
+      4L
+    } else {
+      8L
+    }
     chunk_dims <- guess_chunk_dims(dim(data), element_size)
   } else {
     chunk_dims <- as.integer(chunk_dims)
   }
 
   create_fun <- function(level) {
+    dty <- if (!is.null(dtype)) map_dtype(dtype) else guess_h5_type(data)
+    on.exit(if (inherits(dty, "H5T") && is.null(dtype)) dty$close(), add = TRUE)
     grp$create_dataset(ds_name,
                        robj = data,
                        chunk_dims = chunk_dims,
+                       dtype = dty,
                        gzip_level = level)
   }
 
