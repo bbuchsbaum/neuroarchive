@@ -2,7 +2,7 @@
 #'
 #' Projects data onto a temporal basis (DCT, B-spline, DPSS, polynomial, or wavelet).
 #' @keywords internal
-#' @S3method forward_step temporal
+#' @export
 forward_step.temporal <- function(type, desc, handle) {
   p <- desc$params %||% list()
   # Extract temporal-specific parameters and remove them from p to avoid duplication
@@ -44,8 +44,42 @@ forward_step.temporal <- function(type, desc, handle) {
             p)
   basis <- do.call(temporal_basis, args)
 
+  if (identical(kind, "bspline")) {
+    # For b-splines, basis columns are not necessarily orthogonal.
+    # To get coefficients for orthogonal projection, use (B'B)^-1 B'X
+    # This ensures that basis %*% coeff is the true projection.
+    if (qr(crossprod(basis))$rank < ncol(basis)) {
+        message("[forward_step.temporal WARN] B-spline basis is rank deficient. Projection may be unstable.")
+        # Fallback to simple crossprod, or error, or use pseudo-inverse?
+        # For now, let it proceed, solve() might give an error or a solution.
+    }
+    coeff <- solve(crossprod(basis)) %*% crossprod(basis, X)
+  } else {
+    # For orthonormal bases (DCT, wavelet, polynomial, DPSS with good params)
+    coeff <- crossprod(basis, X) # X is time x features, basis is time x n_basis, coeff is n_basis x features
+  }
 
-  coeff <- crossprod(basis, X)
+  # DEBUG: Check reconstruction locally
+  if (is.matrix(basis) && is.matrix(coeff) && ncol(basis) == nrow(coeff)) {
+    if (identical(kind, "polynomial")) {
+      message("[forward_step.temporal POLY DEBUG] Checking orthogonality of basis (t(basis) %*% basis):")
+      # Ensure it's a plain matrix for printing, and round for clarity
+      t_basis_basis <- as.matrix(crossprod(basis))
+      print(round(t_basis_basis, 5))
+    }
+    X_reconstructed_debug <- basis %*% coeff # Should be time x features
+    if (!isTRUE(all.equal(X, X_reconstructed_debug, tolerance = 1e-7))) {
+      message("[forward_step.temporal DEBUG] Local reconstruction MISMATCH.")
+      if (identical(kind, "polynomial")) {
+         message("Sum of squared differences: ", sum((X - X_reconstructed_debug)^2))
+      }
+    } else {
+      message("[forward_step.temporal DEBUG] Local reconstruction MATCHES.")
+    }
+  } else {
+    message("[forward_step.temporal DEBUG] Could not perform local reconstruction check due to matrix non-conformance.")
+  }
+  # END DEBUG
 
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
@@ -70,17 +104,37 @@ forward_step.temporal <- function(type, desc, handle) {
   desc$datasets <- datasets
 
   plan$add_descriptor(fname, desc)
-  plan$add_payload(basis_path, basis)
+  
+  # Prepare basis_payload for saving (ensure 3D)
+  basis_payload <- basis # basis is time x n_basis (e.g. 10x10)
+  if (is.matrix(basis_payload)) {
+    dim(basis_payload) <- c(dim(basis_payload), 1)
+  }
+  plan$add_payload(basis_path, basis_payload)
+  
   plan$add_dataset_def(basis_path, "temporal_basis", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
                        basis_path, "eager")
+  
   if (identical(kind, "bspline")) {
-    plan$add_payload(knots_path, attr(basis, "knots"))
+    knots_data <- attr(basis, "knots") # Original basis is 2D here
+    knots_payload <- knots_data
+    if (!is.null(knots_payload)) { 
+        dim(knots_payload) <- c(length(knots_payload), 1, 1)
+    }
+    plan$add_payload(knots_path, knots_payload)
     plan$add_dataset_def(knots_path, "knots", as.character(type), run_id,
                          as.integer(plan$next_index), params_json,
                          knots_path, "eager")
   }
-  plan$add_payload(coef_path, coeff)
+  
+  # Prepare coeff_payload for saving (ensure 3D)
+  coeff_payload <- coeff # coeff is n_basis x features (e.g. 10x4)
+  if (is.matrix(coeff_payload)) {
+    dim(coeff_payload) <- c(dim(coeff_payload), 1)
+  }
+  plan$add_payload(coef_path, coeff_payload)
+  
   plan$add_dataset_def(coef_path, "temporal_coefficients", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
                        coef_path, "eager")
@@ -96,8 +150,10 @@ forward_step.temporal <- function(type, desc, handle) {
 #' @keywords internal
 #' @export
 invert_step.temporal <- function(type, desc, handle) {
+  message(sprintf("[invert_step.temporal ENTRY] Incoming handle stash keys: %s. Is input NULL? %s", paste(names(handle$stash), collapse=", "), is.null(handle$stash$input)))
   basis_path <- NULL
   coeff_path <- NULL
+  
   if (!is.null(desc$datasets)) {
     roles <- vapply(desc$datasets, function(d) d$role, character(1))
     idx_b <- which(roles == "temporal_basis")
@@ -112,21 +168,44 @@ invert_step.temporal <- function(type, desc, handle) {
       location = "invert_step.temporal"
     )
   }
-  if (is.null(coef_path_from_desc)) {
+  if (is.null(coeff_path)) {
     abort_lna("temporal_coefficients path not found in descriptor datasets", .subclass = "lna_error_descriptor", location = "invert_step.temporal")
   }
 
-  input_key  <- desc$inputs[[1]] %||% "input"
+  output_stash_key  <- desc$inputs[[1]] %||% "input"
 
   root <- handle$h5[["/"]]
   basis <- h5_read(root, basis_path)
-  coeff <- if (handle$has_key(coeff_key)) {
-    handle$get_inputs(coeff_key)[[coeff_key]]
-  } else {
-    h5_read(root, coeff_path)
+  
+  # Corrected: Directly read coefficients from HDF5 using coeff_path.
+  coeff <- h5_read(root, coeff_path)
+
+  # Reshape 3D arrays from HDF5 back to 2D matrices if necessary
+  message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D basis: %f", sum(basis)))
+  message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D coeff: %f", sum(coeff)))
+  if (length(dim(basis)) == 3 && dim(basis)[3] == 1) {
+    basis <- basis[,,1, drop=FALSE]
+  }
+  if (length(dim(coeff)) == 3 && dim(coeff)[3] == 1) {
+    coeff <- coeff[,,1, drop=FALSE]
+  }
+  message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D basis: %f", sum(basis)))
+  message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D coeff: %f", sum(coeff)))
+  message(sprintf("[invert_step.temporal] Basis dims after reshape: %s", paste(dim(basis), collapse="x")))
+  message(sprintf("[invert_step.temporal] Coeff dims after reshape: %s", paste(dim(coeff), collapse="x")))
+  
+  message("--- Invert Step Pre-Dense Calculation Debug ---")
+  if (nrow(basis) >=2 && ncol(basis) >=2) message("basis_loaded[1:2, 1:2]:"); print(basis[1:2, 1:2, drop=FALSE])
+  if (nrow(coeff) >=2 && ncol(coeff) >=2) message("coeff_loaded[1:2, 1:2]:"); print(coeff[1:2, 1:2, drop=FALSE])
+  
+  # Check for valid matrix dimensions before multiplication
+  if (!is.matrix(basis) || !is.matrix(coeff)) {
+    abort_lna("Invalid matrix dimensions for multiplication", .subclass="lna_error_internal", location="invert_step.temporal")
   }
 
   dense <- basis %*% coeff
+  message(sprintf("[invert_step.temporal] Dense dims after matmult: %s", paste(dim(dense), collapse="x")))
+  if (nrow(dense) >=2 && ncol(dense) >=2) message("dense[1:2, 1:2]:"); print(dense[1:2, 1:2, drop=FALSE])
 
   subset <- handle$subset
   if (!is.null(subset$roi_mask)) {
@@ -137,19 +216,26 @@ invert_step.temporal <- function(type, desc, handle) {
   }
   if (!is.null(subset$time_idx)) {
     idx <- as.integer(subset$time_idx)
-    if (nrow(dense) >= max(idx)) { 
+    # Ensure that idx is not empty and all indices are within bounds
+    if (length(idx) > 0 && nrow(dense) >= max(idx) && min(idx) > 0) { 
         dense <- dense[idx, , drop = FALSE]
+    } else if (length(idx) > 0) {
+        # Handle out-of-bounds or empty idx if necessary, or let it error if that's desired.
+        warning("time_idx for temporal subsetting is invalid or out of bounds.")
     }
   }
+  message(sprintf("[invert_step.temporal] Dense dims after subsetting: %s", paste(dim(dense), collapse="x")))
   
   if (is.null(dense)) {
     abort_lna("Reconstructed data (dense) is NULL before stashing", .subclass="lna_error_internal", location="invert_step.temporal")
   }
-  new_values_list <- setNames(list(dense), input_key)
+  message(sprintf("[invert_step.temporal] Stashing to key: '%s'. Is dense NULL? %s", output_stash_key, is.null(dense)))
+  new_values_list <- setNames(list(dense), output_stash_key)
 
-  handle$update_stash(keys = character(), 
-                      new_values = new_values_list)
-  handle
+  handle <- handle$update_stash(keys = character(), 
+                                new_values = new_values_list)
+  message(sprintf("[invert_step.temporal] invert_step.temporal IS RETURNING handle with Stash keys: %s. Is input NULL? %s", paste(names(handle$stash), collapse=", "), is.null(handle$stash$input)))
+  return(handle)
 }
 
 #' Generate an orthonormal DCT basis matrix
@@ -194,13 +280,25 @@ invert_step.temporal <- function(type, desc, handle) {
 #' Generate orthogonal polynomial basis matrix
 #' @keywords internal
 .polynomial_basis <- function(n_time, n_basis) {
-  degree <- max(n_basis - 1, 0)
-  const <- matrix(rep(1 / sqrt(n_time), n_time), ncol = 1)
-  if (degree > 0) {
-    P <- stats::poly(seq_len(n_time), degree = degree, simple = TRUE)
-    cbind(const, P)
+  if (n_basis <= 0) {
+    return(matrix(0, nrow = n_time, ncol = 0))
+  }
+  
+  # First column: constant (0-th order polynomial, scaled to norm 1)
+  col_const <- matrix(1 / sqrt(n_time), nrow = n_time, ncol = 1)
+  
+  if (n_basis == 1) {
+    return(col_const)
   } else {
-    const
+    # Higher order orthogonal polynomials (degrees 1 to n_basis-1)
+    # stats::poly(..., degree = k) gives k columns for degrees 1...k
+    # These are orthogonal to each other and to a constant intercept.
+    degree_for_poly <- n_basis - 1 
+    P_ortho <- stats::poly(seq_len(n_time), degree = degree_for_poly, raw = FALSE)
+    
+    # Combine the constant term with the higher-order orthogonal polynomials
+    # The columns of P_ortho are already orthogonal to an intercept.
+    return(cbind(col_const, P_ortho))
   }
 }
 

@@ -74,6 +74,8 @@ handle_missing_methods <- function(missing_types, allow_plugins, location = NULL
 #' @return Updated DataHandle.
 #' @keywords internal
 run_transform_step <- function(direction, type, desc, handle, step_idx) {
+  print(direction)
+  
   stopifnot(is.character(direction), length(direction) == 1)
   stopifnot(is.character(type), length(type) == 1)
   stopifnot(is.list(desc))
@@ -82,10 +84,11 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
 
   # Define fun_name based on direction
   fun_name <- if (identical(direction, "forward")) "forward_step" else "invert_step"
+  
 
   # Original call to S3 generic for dynamic dispatch
   # fun <- if (direction == "forward") forward_step else invert_step
-
+  
   method_specific_fun <- getS3method(fun_name, type, optional = TRUE)
 
   if (is.null(method_specific_fun)) {
@@ -119,12 +122,13 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
   # sees class c("mytransform", "character").
   # This is now handled by directly calling method_specific_fun
   # result_handle <- fun(structure(type, class = c(type, "character")), desc, handle)
-
+  
   # Call the resolved S3 method directly
   result_handle <- tryCatch({
     method_specific_fun(type = structure(type, class = c(type, "character")),
                         desc = desc, handle = handle)
   }, error = function(e) {
+    #browser()
     # Enhance error message with step context
     abort_lna(
       sprintf("Error in %s for transform '%s' (step %d): %s",
@@ -134,6 +138,7 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
       parent = e
     )
   })
+  message(sprintf("[run_transform_step] AFTER tryCatch, result_handle Stash keys: %s. Is input NULL? %s", paste(names(result_handle$stash), collapse=", "), is.null(result_handle$stash$input)))
 
   if (!inherits(result_handle, "DataHandle")) {
     abort_lna(
@@ -143,5 +148,6 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
       location = sprintf("%s:%s", fun_name, type)
     )
   }
+  message(sprintf("[run_transform_step] Returning result_handle. Stash keys: %s. Is input NULL? %s", paste(names(result_handle$stash), collapse=", "), is.null(result_handle$stash$input)))
   result_handle
 }

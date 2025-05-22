@@ -93,6 +93,9 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @param new_values Named list of new objects to add to the stash.
     #' @return A *new* DataHandle object with the updated stash.
     update_stash = function(keys, new_values) {
+      message(sprintf("[DataHandle$update_stash ENTRY] Self stash keys: %s. ", paste(names(self$stash), collapse=", ")))
+      message(sprintf("[DataHandle$update_stash ENTRY] new_values keys: %s. ", paste(names(new_values), collapse=", ")))
+  
       stopifnot(is.character(keys))
       stopifnot(is.list(new_values))
 
@@ -127,7 +130,7 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @param ... Named arguments corresponding to fields to update (e.g., meta = new_meta).
     #' @return A *new* DataHandle object with updated fields.
     with = function(...) {
-      new_obj <- self$clone(deep = TRUE) # Use deep clone for safety with lists
+      new_obj <- self$clone() # Use shallow clone; deep clone was causing issues with H5File objects
       updates <- list(...)
       # Get public field names from the R6 class generator
       class_generator <- get(class(self)[1])
@@ -141,6 +144,7 @@ DataHandle <- R6::R6Class("DataHandle",
         # TODO: Add validation specific to field types? (e.g., plan must be Plan)
         new_obj[[field_name]] <- updates[[field_name]]
       }
+      message(sprintf("[DataHandle$with] Returning new_obj. Stash keys: %s. Is input in stash NULL? %s", paste(names(new_obj$stash), collapse=", "), is.null(new_obj$stash$input)))
       return(new_obj)
     },
 
