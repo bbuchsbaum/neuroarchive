@@ -35,7 +35,8 @@ default_opts <- list(
   quant.clip_abort_pct = 5.0,
   quant = list(),
   delta = list(),
-  `basis.pca` = list()
+  `basis.pca` = list(),
+  read.strict_mask_hash_validation = FALSE
 )
 assign(".lna_opts", list2env(default_opts, parent = emptyenv()),
        envir = lna_options_env)
