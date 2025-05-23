@@ -84,3 +84,31 @@ test_that("forward_step.spat.hrbf computes coefficients", {
   C <- h2$stash$coefficients_hrbf
   expect_equal(nrow(C), nrow(X))
 })
+
+test_that("num_extra_fine_levels increases k_actual", {
+  mask <- array(TRUE, dim = c(3,3,3))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(3,3,3), c(1,1,1))
+
+  plan1 <- Plan$new()
+  h1 <- DataHandle$new(initial_stash = list(input = matrix(0, nrow = 1, ncol = 27)),
+                       plan = plan1, mask_info = list(mask = vol, active_voxels = 27))
+  desc1 <- list(type = "spat.hrbf",
+                params = list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                               kernel_type = "gaussian", seed = 1,
+                               num_extra_fine_levels = 0))
+  out1 <- neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc1, h1)
+  k1 <- out1$plan$descriptors[[1]]$params$k_actual
+
+  plan2 <- Plan$new()
+  h2 <- DataHandle$new(initial_stash = list(input = matrix(0, nrow = 1, ncol = 27)),
+                       plan = plan2, mask_info = list(mask = vol, active_voxels = 27))
+  desc2 <- list(type = "spat.hrbf",
+                params = list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                               kernel_type = "gaussian", seed = 1,
+                               num_extra_fine_levels = 1))
+  out2 <- neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc2, h2)
+  k2 <- out2$plan$descriptors[[1]]$params$k_actual
+
+  expect_gt(k2, k1)
+})

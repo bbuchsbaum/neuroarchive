@@ -233,6 +233,7 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
   levels <- params$levels %||% 3L
   radius_factor <- params$radius_factor %||% 2.5
   kernel_type <- params$kernel_type %||% "gaussian"
+  num_extra_fine_levels <- params$num_extra_fine_levels %||% 0L
   seed <- params$seed
   centres_path <- params$centres_path
   sigma_vec_path <- params$sigma_vec_path
@@ -259,6 +260,19 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
       if (nrow(vox_centres) > 0) {
         centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
         sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+      }
+    }
+    if (num_extra_fine_levels > 0L) {
+      for (j_extra in seq_len(num_extra_fine_levels)) {
+        sigma_new <- sigma0 / (2^(levels + j_extra))
+        r_new <- radius_factor * sigma_new
+        vox_centres <- poisson_disk_sample_neuroim2(
+          mask_neurovol, r_new, seed + levels + j_extra
+        )
+        if (nrow(vox_centres) > 0) {
+          centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
+          sigs <- c(sigs, rep(sigma_new, nrow(vox_centres)))
+        }
       }
     }
     C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list)
