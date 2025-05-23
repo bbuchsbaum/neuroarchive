@@ -64,7 +64,7 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   if (is.null(file)) {
     # Ensure tmp is uniquely named to avoid clashes if this function is called multiple times with file=NULL
     tmp_for_mem <- tempfile(fileext = ".h5") 
-    file_to_use <- tmp_for_mem
+    file_to_use <- tmp_for_mem # Used as the 'name' for H5File$new with core driver
     in_memory <- TRUE
   } else {
     cat(paste0("[write_lna] file is provided: ", file, ", preparing for disk-based HDF5.\n"))
@@ -116,13 +116,17 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   h5 <- NULL # Initialize h5 to NULL
   tryCatch({
     if (in_memory) {
-      cat("[write_lna] Opening HDF5 for in-memory via core driver.\n")
-      h5 <- open_h5(file_to_use, mode = "w", driver = "core", backing_store = FALSE)
+      message("[write_lna:debug] In-memory branch entered.")
+      warning(paste0("In-memory HDF5 file (core driver) requested. tempfile: ", file_to_use), call. = FALSE)
+      message("[write_lna:debug] Issued core driver warning. Attempting H5File$new with driver='core'.")
+      h5 <- hdf5r::H5File$new(name = file_to_use, mode = "w", driver = "core", backing_store = FALSE)
+      message("[write_lna:debug] H5File$new for core driver seemingly succeeded.")
+      cat("[write_lna] HDF5 core driver used for in-memory file.\n")
     } else {
-      cat("[write_lna] Opening HDF5 for disk-based write.\n")
-      h5 <- open_h5(file_to_use, mode = "w")
+      cat("[write_lna] Opening HDF5 for disk-based write using open_h5 utility.\n")
+      h5 <- open_h5(file_to_use, mode = "w") # Use the utility for standard disk files
     }
-    cat(paste0("[write_lna] open_h5 call completed. H5 object valid: ", ifelse(!is.null(h5) && h5$is_valid, "TRUE", "FALSE"), "\n"))
+    cat(paste0("[write_lna] open_h5 call or H5File$new (core) completed. H5 object valid: ", ifelse(!is.null(h5) && h5$is_valid, "TRUE", "FALSE"), "\n"))
   }, error = function(e) {
     cat(paste0("[write_lna] ERROR during open_h5: ", conditionMessage(e), "\n"))
     # To ensure h5 is NULL if open_h5 failed before assignment or with an invalid object

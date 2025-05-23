@@ -124,12 +124,32 @@ core_write <- function(x, transforms, transform_params = list(),
   progress_enabled <- is_progress_globally_enabled()
   loop <- function() {
     p <- if (progress_enabled) progressr::progressor(steps = length(transforms)) else NULL
-    for (type in transforms) {
+    current_input_key <- "input" # Initial data key
+
+    for (i in seq_along(transforms)) {
+      type <- transforms[i]
       # cat(paste0("[core_write] Applying transform: ", type, "\n"))
       if (!is.null(p)) p(message = type)
-      desc <- list(type = type, params = merged_params[[type]])
-      step_idx <- handle$plan$next_index
+      
+      step_idx <- handle$plan$next_index # Get index before it's potentially incremented by add_descriptor
+      
+      # Define output key for this step
+      # Ensure it's unique enough if a transform type is repeated, though full plan should handle this better.
+      output_key <- paste0(type, "_s", step_idx, "_out") 
+
+      desc <- list(
+        type = type, 
+        params = merged_params[[type]],
+        inputs = list(current_input_key),
+        outputs = list(output_key) # Define what this step will produce
+      )
+      
+      # The run_transform_step will use desc$inputs and should update the stash with desc$outputs
       handle <<- run_transform_step("forward", type, desc, handle, step_idx)
+      
+      # The output of this step becomes the input for the next
+      current_input_key <- output_key
+      
       # cat(paste0("[core_write] Finished transform: ", type, "\n"))
     }
   }

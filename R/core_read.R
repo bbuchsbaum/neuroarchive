@@ -146,6 +146,7 @@ core_read <- function(file, run_id = NULL,
     }
     handle$meta$output_dtype <- output_dtype
     handle$meta$allow_plugins <- allow_plugins
+    
     handle
   }
 

@@ -319,13 +319,6 @@ open_h5 <- function(path, mode = "a", ...) {
 
   additional_args <- list(...)
 
-  if (!is.null(additional_args$driver) && additional_args$driver == "core") {
-    warning("In-memory HDF5 file (core driver) requested. This specific mechanism may not be supported or easily configurable in your hdf5r version. Attempting to open as a standard file.", call. = FALSE)
-    additional_args$driver <- NULL
-    additional_args$backing_store <- NULL
-    additional_args$increment <- NULL
-  }
-  
   additional_args <- additional_args[!sapply(additional_args, is.null)]
 
   if (length(additional_args) > 0) {

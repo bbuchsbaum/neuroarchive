@@ -125,7 +125,6 @@ Plan <- R6::R6Class("Plan",
       if (transform_name %in% names(self$descriptors)) {
         stop(paste("Descriptor name '", transform_name, "' already exists in plan.", sep = ""))
       }
-
       self$descriptors[[transform_name]] <- desc_list
       self$next_index <- self$next_index + 1L
       invisible(self)

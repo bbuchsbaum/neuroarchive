@@ -2,6 +2,7 @@ library(testthat)
 library(hdf5r)
 library(tibble)
 library(withr)
+library(neuroarchive)
 
 # Source functions if not running via devtools::test()
 # source("../R/discover.R")

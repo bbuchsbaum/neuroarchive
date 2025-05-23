@@ -1,6 +1,7 @@
 library(testthat)
 library(hdf5r)
 library(withr)
+library(neuroarchive)
 
 # Test writing a simple numeric matrix with chunking and compression
 

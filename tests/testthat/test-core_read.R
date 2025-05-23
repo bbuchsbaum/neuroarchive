@@ -1,6 +1,7 @@
 library(testthat)
 library(hdf5r)
 library(withr)
+library(neuroarchive)
 
 # Ensure core_read and helpers are loaded
 # source("../R/core_read.R")

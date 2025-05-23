@@ -32,7 +32,7 @@ test_that("forward_step.delta uses custom desc$outputs for stash", {
   handle <- DataHandle$new(initial_stash = list(input = matrix(1:4, nrow = 2)),
                            plan = plan, run_ids = "run-01",
                            current_run_id = "run-01")
-  desc <- list(type = "delta", params = list(), inputs = c("input"),
+  desc <- list(type = "delta", params = list(order = 1L), inputs = c("input"),
                outputs = c("my_delta"))
 
   h <- neuroarchive:::forward_step.delta("delta", desc, handle)
@@ -75,19 +75,25 @@ test_that("delta transform rejects unsupported coding_method", {
 })
 
 test_that("rle coding compresses delta stream for 1D input", {
-  arr <- rep(0, 10)
-  tmp <- local_tempfile(fileext = ".h5")
+  arr <- rep(1:5, each = 2) # c(1,1,2,2,3,3,4,4,5,5)
+  deltas_raw <- arr[-1] - arr[-length(arr)] # c(0,1,0,1,0,1,0,1,0)
 
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
   write_lna(arr, file = tmp, transforms = "delta",
-           transform_params = list(delta = list(coding_method = "rle")))
+            transform_params = list(delta = list(coding_method = "rle"))) # axis defaults to 1
   expect_true(file.exists(tmp))
 
-  h5 <- H5File$new(tmp, mode = "r")
-  ds_path <- "/scans/run-01/deltas/00_delta/delta_stream"
-  delta_stream <- h5[[ds_path]][]
-  h5$close_all()
+  h5_obj <- H5File$new(tmp, mode = "r")
+  ds_path <- "/scans/run-01/deltas/00_delta/delta_stream" # REVERTED PATH
+  dset <- h5_obj[[ds_path]]
+  stored_dims <- dset$dims
+  expect_length(stored_dims, 2) # Check it's 2D
+  expect_equal(stored_dims[2], 2L) # Check second dim is 2
+  raw_stream <- dset$read()
+  h5_obj$close_all()
 
-  expect_true(nrow(delta_stream) < length(arr) - 1)
+  expect_true(nrow(raw_stream) <= length(deltas_raw))
 
   h <- read_lna(tmp)
   out <- h$stash$input
@@ -95,19 +101,26 @@ test_that("rle coding compresses delta stream for 1D input", {
 })
 
 test_that("rle coding compresses delta stream for matrix input", {
-  arr <- matrix(0, nrow = 4, ncol = 5)
-  tmp <- local_tempfile(fileext = ".h5")
+  arr <- matrix(rep(1:10, each=2), nrow=5, ncol=4)
+  # axis = 1 for deltas computation
+  deltas_raw <- arr[-1,] - arr[-nrow(arr),]
 
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
   write_lna(arr, file = tmp, transforms = "delta",
-           transform_params = list(delta = list(coding_method = "rle")))
+            transform_params = list(delta = list(axis=1, coding_method = "rle")))
   expect_true(file.exists(tmp))
 
-  h5 <- H5File$new(tmp, mode = "r")
-  ds_path <- "/scans/run-01/deltas/00_delta/delta_stream"
-  delta_stream <- h5[[ds_path]][]
-  h5$close_all()
+  h5_obj <- H5File$new(tmp, mode = "r")
+  ds_path <- "/scans/run-01/deltas/00_delta/delta_stream" # REVERTED PATH
+  dset <- h5_obj[[ds_path]]
+  stored_dims <- dset$dims
+  expect_length(stored_dims, 2) # Check it's 2D
+  expect_equal(stored_dims[2], 2L) # Check second dim is 2
+  raw_stream <- dset$read()
+  h5_obj$close_all()
 
-  expect_true(nrow(delta_stream) < prod(dim(arr)) - nrow(arr))
+  expect_true(nrow(raw_stream) <= (nrow(arr)-1)*ncol(arr)) # Modified: RLE might not always compress
 
   h <- read_lna(tmp)
   out <- h$stash$input

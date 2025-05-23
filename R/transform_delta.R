@@ -1,26 +1,45 @@
 #' Delta Transform - Forward Step
-#' Computes first-order differences along a chosen axis. When
-#' `coding_method` is set to `'rle'`, the differences are compressed using
-#' the **rle** package and stored as a two column matrix with `lengths` and
-#' `values`.
 #'
-#' @importFrom rle as.rle compress.rle inverse.rle
+#' Computes first-order differences along a specified axis and optionally
+#' run-length encodes the result.
+#' The name stored in `desc$outputs` (if supplied) controls the key used to
+#' stash the resulting delta stream. If `desc$outputs` is `NULL`, the default
+#' key `"delta_stream"` is used. An empty character vector results in no
+#' stash update.
 #' @keywords internal
 forward_step.delta <- function(type, desc, handle) {
-  p <- desc$params %||% list()
-  order <- p$order %||% 1
-  axis <- p$axis %||% -1
-  ref_store <- p$reference_value_storage %||% "first_value_verbatim"
-  coding <- p$coding_method %||% "none"
-  if (!coding %in% c("none", "rle")) {
+  # Get incoming params, or an empty list if NULL
+  incoming_params <- desc$params %||% list()
+
+  # Determine effective parameters, applying defaults
+  # These are the parameters that will be used for processing AND stored in the descriptor
+  p <- list()
+  p$order <- incoming_params$order %||% 1L
+  # Resolve actual axis for processing and storage in descriptor
+  # Keep original dims for use in axis resolution
+  temp_dims_for_axis_res <- dim(handle$get_inputs(desc$inputs[[1]] %||% "input")[[1]])
+  if (is.null(temp_dims_for_axis_res)) temp_dims_for_axis_res <- length(handle$get_inputs(desc$inputs[[1]] %||% "input")[[1]])
+  
+  p$axis <- incoming_params$axis %||% -1L
+  if (p$axis == -1L) {
+    p$axis <- length(temp_dims_for_axis_res)
+  }
+  p$axis <- as.integer(p$axis)
+
+  p$reference_value_storage <- incoming_params$reference_value_storage %||% "first_value_verbatim"
+  p$coding_method <- incoming_params$coding_method %||% "none"
+
+  # Validate coding_method
+  if (!p$coding_method %in% c("none", "rle")) {
     abort_lna(
-      sprintf("Unsupported coding_method '%s'", coding),
+      sprintf("Unsupported coding_method '%s'", p$coding_method),
       .subclass = "lna_error_validation",
       location = "forward_step.delta:coding_method"
     )
   }
 
-  if (!identical(order, 1L)) {
+  # Validate order
+  if (!identical(p$order, 1L)) {
     abort_lna("only order=1 supported", .subclass = "lna_error_validation",
               location = "forward_step.delta:order")
   }
@@ -35,27 +54,42 @@ forward_step.delta <- function(type, desc, handle) {
     input_key <- "input"
   }
   x <- handle$get_inputs(input_key)[[1]]
-  dims <- dim(x)
-  if (is.null(dims)) dims <- length(x)
-  if (axis == -1) axis <- length(dims)
-  axis <- as.integer(axis)
-  stopifnot(axis >= 1, axis <= length(dims))
+  dims <- dim(x) # These are the true dimensions of the input data for this step
+  if (is.null(dims)) {
+    # For a vector, treat it as a 1D array. Store its dimension as a vector.
+    dims <- c(length(x)) 
+  }
+  
+  # Store the true original dimensions of x in p, this is what invert_step needs
+  p$orig_dims <- dims 
 
-  perm <- c(axis, setdiff(seq_along(dims), axis))
+  # Ensure p$axis is valid for these true dims
+  stopifnot(p$axis >= 1, p$axis <= length(dims))
+
+  # Processing using values from p
+  perm <- c(p$axis, setdiff(seq_along(dims), p$axis))
   xp <- aperm(x, perm)
-  dim(xp) <- c(dims[axis], prod(dims[-axis]))
+  dim_xp_col <- if (length(dims[-p$axis]) > 0) prod(dims[-p$axis]) else 1L # Handle case where dims[-p$axis] is empty (e.g. 1D input)
+  dim(xp) <- c(dims[p$axis], dim_xp_col)
 
-  first_vals <- xp[1, , drop = FALSE]
-  dim(first_vals) <- c(1, prod(dims[-axis]))
-  deltas <- xp[-1, , drop = FALSE] - xp[-nrow(xp), , drop = FALSE]
+  if (dims[p$axis] == 0) {
+    first_vals <- array(numeric(0), dim = c(0, dim_xp_col))
+    deltas <- array(numeric(0), dim = c(0, dim_xp_col)) # For consistency, though deltas rows would be max(0, nrow-1)
+  } else {
+    first_vals <- xp[1, , drop = FALSE]
+    # Ensure dim is 1xN even if only 1 col after prod(dims[-p$axis])
+    dim(first_vals) <- c(1, dim_xp_col) 
+    deltas <- xp[-1, , drop = FALSE] - xp[-nrow(xp), , drop = FALSE]
+    if (nrow(xp) == 1) { # Special case: input has only 1 element along diff axis
+        deltas <- array(numeric(0), dim = c(0, dim_xp_col))
+    }
+  }
 
-  if (identical(coding, "rle")) {
-    # Flatten the delta matrix to a vector for run-length encoding,
-    # compress it, and store the run lengths and values as a 2-column matrix.
+  if (identical(p$coding_method, "rle")) {
     vec <- as.vector(deltas)
-    r_obj <- rle::as.rle(vec)
-    r_obj <- rle::compress.rle(r_obj)
-    delta_stream <- cbind(lengths = r_obj$lengths, values = r_obj$values)
+    r_obj <- rle(vec) # Use base R rle directly
+    delta_stream <- matrix(c(r_obj$lengths, r_obj$values), ncol = 2,
+                           dimnames = list(NULL, c("lengths", "values")))
   } else {
     delta_stream <- deltas
   }
@@ -68,38 +102,42 @@ forward_step.delta <- function(type, desc, handle) {
   delta_path <- paste0("/scans/", run_id, "/deltas/", base, "/delta_stream")
   first_path <- paste0("/scans/", run_id, "/deltas/", base, "/first_values")
   step_index <- plan$next_index
-  p$orig_dims <- dims
+  
+  # params_json uses the fully populated p
   params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
 
+  # Update desc with fully populated params and other fields
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
+  desc$params <- p # This ensures the descriptor stored has all resolved params
 
   output_key <- NULL
   if (!is.null(desc$outputs)) {
     if (length(desc$outputs) > 0) {
       output_key <- desc$outputs[[1]]
-      desc$outputs <- output_key
+      desc$outputs <- output_key # Ensure it's a single string if multiple were passed
     } else {
-      desc$outputs <- character()
+      desc$outputs <- character() # Empty string means no output key to stash
     }
   } else {
-    output_key <- "delta_stream"
+    output_key <- "delta_stream" # Default output key
     desc$outputs <- output_key
   }
-
-  desc$params <- p
-  ds <- list(list(path = delta_path, role = "delta_stream"))
-  if (identical(ref_store, "first_value_verbatim")) {
-    ds[[length(ds) + 1]] <- list(path = first_path, role = "first_values")
+  
+  ds_list <- list(list(path = delta_path, role = "delta_stream"))
+  if (identical(p$reference_value_storage, "first_value_verbatim")) {
+    ds_list[[length(ds_list) + 1]] <- list(path = first_path, role = "first_values")
   }
-  desc$datasets <- ds
+  desc$datasets <- ds_list
 
   plan$add_descriptor(fname, desc)
+  
   plan$add_payload(delta_path, delta_stream)
+  
   plan$add_dataset_def(delta_path, "delta_stream", as.character(type), run_id,
                        as.integer(step_index), params_json,
-                       delta_path, "eager", dtype = NA_character_)
-  if (identical(ref_store, "first_value_verbatim")) {
+                       delta_path, "eager")
+  if (identical(p$reference_value_storage, "first_value_verbatim")) {
     plan$add_payload(first_path, first_vals)
     plan$add_dataset_def(first_path, "first_values", as.character(type), run_id,
                          as.integer(step_index), params_json,
@@ -107,12 +145,14 @@ forward_step.delta <- function(type, desc, handle) {
   }
 
   handle$plan <- plan
-  if (!is.null(output_key)) {
+  if (!is.null(output_key) && nzchar(output_key)) {
     handle$update_stash(
       keys = c(input_key),
       new_values = setNames(list(delta_stream), output_key)
     )
   } else {
+    # If output_key is NULL or empty, effectively remove input_key from subsequent visibility
+    # Or, ensure no accidental new value is stashed if output_key is empty string
     handle$update_stash(keys = c(input_key), new_values = list())
   }
 }
@@ -154,35 +194,50 @@ invert_step.delta <- function(type, desc, handle) {
 
   root <- handle$h5[["/"]]
   delta_stream <- h5_read(root, delta_path)
+
   expected_ncols <- if (length(dims) == 1) 1 else prod(dims[-axis])
+
+  if (identical(coding, "rle") && !is.matrix(delta_stream)) {
+    # Handle case where RLE data might be read as a vector if it's empty or single row/col
+    if (length(delta_stream) == 0) {
+        delta_stream <- matrix(numeric(0), ncol = 2, dimnames = list(NULL, c("lengths", "values")))
+    } else if (length(delta_stream) > 0 && length(delta_stream) %% 2 == 0) {
+        delta_stream <- matrix(delta_stream, ncol = 2, dimnames = list(NULL, c("lengths", "values")))
+    } else {
+        abort_lna("RLE delta_stream has incorrect number of elements to form a 2-column matrix",
+                  .subclass="lna_error_runtime", location="invert_step.delta:rle_matrix_reshape")
+    }
+  }
+
+  expected_rows_first_vals <- if (dims[axis] == 0) 0L else 1L
 
   if (identical(ref_store, "first_value_verbatim")) {
     first_vals <- h5_read(root, first_path)
   } else {
-    first_vals <- array(0, dim = expected_ncols)
+    first_vals <- array(0, dim = c(expected_rows_first_vals, expected_ncols))
   }
 
-  if (length(first_vals) != expected_ncols) {
-    abort_lna(
-      sprintf(
-        "first_vals length (%d) mismatch, expected %d",
-        length(first_vals), expected_ncols
-      ),
-      .subclass = "lna_error_runtime",
-      location = "invert_step.delta:first_vals_length"
-    )
+  # Validate and ensure correct dimensions for first_vals
+  if (!is.matrix(first_vals) || ncol(first_vals) != expected_ncols || nrow(first_vals) != expected_rows_first_vals) {
+      if (length(first_vals) == (expected_rows_first_vals * expected_ncols)) {
+          dim(first_vals) <- c(expected_rows_first_vals, expected_ncols)
+      } else {
+          abort_lna(
+              sprintf(
+                  "first_vals dimensions are incorrect. Expected %dx%d, got length %d or dims %s",
+                  expected_rows_first_vals, expected_ncols, length(first_vals), paste(dim(first_vals), collapse="x")
+              ),
+              .subclass = "lna_error_runtime",
+              location = "invert_step.delta:first_vals_dim_check"
+          )
+      }
   }
-  dim(first_vals) <- c(1, expected_ncols)
 
   expected_nrows_deltas <- max(0, dims[axis] - 1L)
 
   if (identical(coding, "rle")) {
-    # Reconstruct the delta vector from run-length encoding stored in the
-    # two-column matrix produced in the forward step.
-    lengths <- delta_stream[, 1]
-    values <- delta_stream[, 2]
-    r_obj <- structure(list(lengths = lengths, values = values), class = "rle")
-    delta_vec <- rle::inverse.rle(r_obj)
+    r_obj <- structure(list(lengths = delta_stream[, 1], values = delta_stream[, 2]), class = "rle")
+    delta_vec <- inverse.rle(r_obj)
     if (expected_nrows_deltas > 0 && length(delta_vec) != expected_nrows_deltas * expected_ncols) {
       abort_lna(
         sprintf(
@@ -224,7 +279,7 @@ invert_step.delta <- function(type, desc, handle) {
       ind <- vector("list", length(dims))
       for (i in seq_along(ind)) ind[[i]] <- seq_len(dim(out)[i])
       ind[[axis]] <- idx
-      out <- do.call(`[`, c(list(out), ind, drop = FALSE))
+      out <- do.call('[', c(list(out), ind, drop = FALSE))
     }
   }
 

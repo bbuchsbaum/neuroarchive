@@ -2,40 +2,41 @@
 #'
 #' Provides the minimum number of dimensions required by a transform's
 #' forward step. Packages can define methods for their own transforms.
-#' The default requirement is 3 dimensions.
+#' The default requirement is 3 dimensions if a specific transform is not listed.
 #'
 #' @param type Character transform type.
 #' @export
 transform_min_dims <- function(type) {
-  UseMethod("transform_min_dims", type)
+  # message(paste0("[transform_min_dims] called for type: ", type))
+  switch(type,
+         delta = 1L,
+         quant = 1L,
+         basis = 2L,
+         embed = 2L,
+         # myorg.sparsepca would also be 2L if it had its own entry
+         3L # Default value if type is not matched
+  )
 }
 
-#' @export
-transform_min_dims.default <- function(type) {
-  3L
-}
+# Old S3 methods are now fully removed/commented correctly to avoid NAMESPACE issues.
+# No @export tags should remain for these.
 
-#' @export
-transform_min_dims.quant <- function(type) {
-  1L
-}
-
-#' @export
-transform_min_dims.basis <- function(type) {
-  2L
-}
-
-#' @export
-transform_min_dims.embed <- function(type) {
-  2L # Embed also typically works on 2D (time x features) or (time x voxels)
-}
-
-#' @export
-transform_min_dims.myorg.sparsepca <- function(type) {
-  2L
-}
-
-#' @export
-transform_min_dims.myorg.aggregate_runs <- function(type) {
-  2L
-}
+# # transform_min_dims.default <- function(type) {
+# #   3L
+# # }
+# 
+# # transform_min_dims.quant <- function(type) {
+# #  1L
+# # }
+# # 
+# # transform_min_dims.basis <- function(type) {
+# #  2L
+# # }
+# # 
+# # transform_min_dims.embed <- function(type) {
+# #  2L
+# # }
+# # 
+# # transform_min_dims.delta <- function(type) {
+# #  1L
+# # }

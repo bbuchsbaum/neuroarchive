@@ -21,7 +21,6 @@ Imports:
     memoise,
     jsonvalidate,
     withr,
-    rle,
     wavelets
 Suggests:
     sparsepca,

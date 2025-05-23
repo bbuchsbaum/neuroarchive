@@ -12,5 +12,5 @@ transform_min_dims(type)
 \description{
 Provides the minimum number of dimensions required by a transform's
 forward step. Packages can define methods for their own transforms.
-The default requirement is 3 dimensions.
+The default requirement is 3 dimensions if a specific transform is not listed.
 }

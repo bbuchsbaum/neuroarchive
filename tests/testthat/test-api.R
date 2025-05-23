@@ -1,11 +1,20 @@
+message("[test-api.R] Top of file reached before library calls")
+
 library(testthat)
 library(hdf5r)
 library(withr)
+library(neuroarchive)
+
+message("[test-api.R] Libraries loaded")
 
 # Basic functionality test using actual file
 
 test_that("write_lna with file=NULL uses in-memory HDF5", {
-  result <- write_lna(x = array(1, dim = c(1, 1, 1)), file = NULL, transforms = character(0))
+  message("[test-api.R] Inside test: write_lna with file=NULL")
+  expect_warning(
+    result <- write_lna(x = array(1, dim = c(1, 1, 1)), file = NULL, transforms = character(0)),
+    "In-memory HDF5 file \\(core driver\\) requested"
+  )
   expect_s3_class(result, "lna_write_result")
   expect_null(result$file)
   expect_true(inherits(result$plan, "Plan"))
