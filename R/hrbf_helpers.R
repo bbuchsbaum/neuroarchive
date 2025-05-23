@@ -1,3 +1,66 @@
+#' Label connected components in a logical 3D array
+#'
+#' Provides a minimal 6-neighbourhood connected component labeller used by the
+#' HRBF helpers. When available and enabled, a faster Rcpp implementation is
+#' utilised. Otherwise a pure-R fallback is employed.
+#'
+#' @param mask_arr_3d Logical array representing the mask.
+#' @return A list with elements `count` (number of components) and `labels`
+#'   (integer array of the same dimensions as `mask_arr_3d`).
+#' @keywords internal
+label_components <- function(mask_arr_3d) {
+  dims <- dim(mask_arr_3d)
+  use_rcpp <- isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
+    exists("label_components_6N_rcpp")
+
+  if (use_rcpp) {
+    labels_flat <- tryCatch(
+      label_components_6N_rcpp(as.logical(mask_arr_3d), dims),
+      error = function(e) NULL
+    )
+    if (!is.null(labels_flat)) {
+      label_arr <- array(labels_flat, dim = dims)
+      return(list(count = max(labels_flat), labels = label_arr))
+    }
+  }
+
+  visited <- array(FALSE, dim = dims)
+  labels <- array(0L, dim = dims)
+  comp_id <- 0L
+  neighbours <- matrix(c(1,0,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,0,-1),
+                       ncol = 3, byrow = TRUE)
+
+  for (i in seq_len(dims[1])) {
+    for (j in seq_len(dims[2])) {
+      for (k in seq_len(dims[3])) {
+        if (mask_arr_3d[i, j, k] && !visited[i, j, k]) {
+          comp_id <- comp_id + 1L
+          q <- list(c(i, j, k))
+          while (length(q) > 0) {
+            pt <- q[[1]]
+            q <- q[-1]
+            ii <- pt[1]; jj <- pt[2]; kk <- pt[3]
+            if (visited[ii, jj, kk]) next
+            visited[ii, jj, kk] <- TRUE
+            labels[ii, jj, kk] <- comp_id
+            for (n in seq_len(nrow(neighbours))) {
+              nn <- pt + neighbours[n, ]
+              ni <- nn[1]; nj <- nn[2]; nk <- nn[3]
+              if (ni >= 1 && ni <= dims[1] &&
+                  nj >= 1 && nj <= dims[2] &&
+                  nk >= 1 && nk <= dims[3] &&
+                  mask_arr_3d[ni, nj, nk] && !visited[ni, nj, nk]) {
+                q[[length(q) + 1L]] <- c(ni, nj, nk)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  list(count = comp_id, labels = labels)
+}
+
 #' Poisson-disk sampling for LogicalNeuroVol masks
 #'
 #' @description Internal helper implementing a basic Poisson-disk sampler for
@@ -28,46 +91,6 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
   mask_arr <- as.array(mask_neurovol)
   spc <- tryCatch(space(mask_neurovol), error = function(e) NULL)
   spacing_vec <- tryCatch(spacing(spc), error = function(e) c(1, 1, 1))
-
-  # Helper to label connected components (6-neighbourhood)
-  label_components <- function(arr) {
-    dims <- dim(arr)
-    visited <- array(FALSE, dim = dims)
-    labels <- array(0L, dim = dims)
-    comp_id <- 0L
-    neighbours <- matrix(c(1,0,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,0,-1),
-                         ncol = 3, byrow = TRUE)
-
-    for (i in seq_len(dims[1])) {
-      for (j in seq_len(dims[2])) {
-        for (k in seq_len(dims[3])) {
-          if (arr[i, j, k] && !visited[i, j, k]) {
-            comp_id <- comp_id + 1L
-            q <- list(c(i, j, k))
-            while (length(q) > 0) {
-              pt <- q[[1]]
-              q <- q[-1]
-              ii <- pt[1]; jj <- pt[2]; kk <- pt[3]
-              if (visited[ii, jj, kk]) next
-              visited[ii, jj, kk] <- TRUE
-              labels[ii, jj, kk] <- comp_id
-              for (n in seq_len(nrow(neighbours))) {
-                nn <- pt + neighbours[n, ]
-                ni <- nn[1]; nj <- nn[2]; nk <- nn[3]
-                if (ni >= 1 && ni <= dims[1] &&
-                    nj >= 1 && nj <= dims[2] &&
-                    nk >= 1 && nk <= dims[3] &&
-                    arr[ni, nj, nk] && !visited[ni, nj, nk]) {
-                  q[[length(q) + 1L]] <- c(ni, nj, nk)
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    list(count = comp_id, labels = labels)
-  }
 
   comp_info <- label_components(mask_arr)
 
