@@ -12,8 +12,11 @@ forward_step.temporal <- function(type, desc, handle) {
   p$n_basis <- NULL
   order <- p$order %||% 3
   p$order <- NULL
-  # Determine input key based on previous transform's output
-  if (handle$has_key("temporal_coefficients") && FALSE) { # avoid self-loop
+  # Determine input key based on previous transform's output.
+  # When temporal coefficients are already present we treat them as
+  # the input so additional temporal steps operate on the projected
+  # coefficients rather than reusing the raw matrix.
+  if (handle$has_key("temporal_coefficients")) {
     input_key <- "temporal_coefficients"
   } else if (handle$has_key("delta_stream")) {
     input_key <- "delta_stream"
