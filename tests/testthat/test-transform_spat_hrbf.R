@@ -40,3 +40,24 @@ test_that("forward_step.spat.hrbf generates centres and hash", {
   expect_true(startsWith(stored_desc$params$mask_hash, "sha256:"))
   expect_equal(stored_desc$params$k_actual, nrow(h2$stash$hrbf_centres))
 })
+
+test_that("forward_step.spat.hrbf stores basis matrix when requested", {
+  mask <- array(TRUE, dim=c(2,2,2))
+  vol <- structure(list(arr=mask), class="LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(2,2,2), c(1,1,1))
+
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash=list(input=matrix(0, nrow=1, ncol=8)),
+                      plan=plan, mask_info=list(mask=vol, active_voxels=8))
+  desc <- list(type="spat.hrbf",
+               params=list(sigma0=6, levels=0, radius_factor=2.5,
+                            kernel_type="gaussian", seed=42,
+                            store_dense_matrix=TRUE))
+  h2 <- neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h)
+
+  mat_path <- "/basis/hrbf/analytic/matrix"
+  expect_true(mat_path %in% names(h2$plan$payloads))
+  B <- h2$plan$payloads[[mat_path]]
+  expect_true(inherits(B, "Matrix"))
+  expect_equal(dim(B)[2], length(as.array(vol)))
+})
