@@ -108,9 +108,27 @@ guess_chunk_dims <- function(dims, dtype_size) {
   target_mib <- lna_options("write.chunk_target_mib")[[1]]
   if (is.null(target_mib)) target_mib <- 1
   target <- as.numeric(target_mib) * 1024^2
-  chunk <- hdf5r::guess_chunks(space_maxdims = dims,
-                               dtype_size = dtype_size,
-                               chunk_size = target)
+  
+  # Ensure dims is a valid integer vector
+  dims <- as.integer(dims)
+  if (length(dims) == 0 || any(dims < 1)) {
+    stop("Invalid dimensions for chunk calculation")
+  }
+  
+  chunk <- tryCatch({
+    hdf5r::guess_chunks(space_maxdims = dims,
+                        dtype_size = dtype_size,
+                        chunk_size = target)
+  }, error = function(e) {
+    # Fallback: use the dims themselves, but capped to reasonable values
+    pmin(dims, 1024L)
+  })
+  
+  # Ensure chunk is valid and has the right length
+  if (length(chunk) == 0 || length(chunk) != length(dims) || any(is.na(chunk)) || any(chunk < 1)) {
+    # Fallback: use the dims themselves, but capped to reasonable values
+    chunk <- pmin(dims, 1024L)
+  }
 
   data_bytes <- prod(dims) * dtype_size
   chunk_bytes <- prod(chunk) * dtype_size
@@ -132,6 +150,12 @@ guess_chunk_dims <- function(dims, dtype_size) {
 
   chunk <- pmin(as.integer(chunk), dims)
   chunk <- pmax(chunk, 1L)
+  
+  # Final validation
+  if (length(chunk) != length(dims)) {
+    chunk <- pmin(dims, 1024L)
+  }
+  
   return(chunk)
 }
 
@@ -237,6 +261,12 @@ h5_write_dataset <- function(h5_group, path, data,
       stop("`data` must be a matrix or array")
     }
   }
+  
+  # Ensure dim(data) is valid after conversion
+  data_dims <- dim(data)
+  if (is.null(data_dims) || length(data_dims) == 0 || any(data_dims < 1)) {
+    stop("Unable to determine valid dimensions for data")
+  }
 
   parts <- strsplit(path, "/")[[1]]
   parts <- parts[nzchar(parts)]
@@ -258,7 +288,7 @@ h5_write_dataset <- function(h5_group, path, data,
     } else {
       8L
     }
-    chunk_dims <- guess_chunk_dims(dim(data), element_size)
+    chunk_dims <- guess_chunk_dims(data_dims, element_size)
   } else {
     chunk_dims <- as.integer(chunk_dims)
   }
@@ -266,6 +296,13 @@ h5_write_dataset <- function(h5_group, path, data,
   create_fun <- function(level) {
     dty <- if (!is.null(dtype)) map_dtype(dtype) else guess_h5_type(data)
     on.exit(if (inherits(dty, "H5T") && is.null(dtype)) dty$close(), add = TRUE)
+    
+    # Handle raw vectors with uint8 dtype - convert to integer for hdf5r compatibility
+    data_to_write <- data
+    if (is.raw(data) && !is.null(dtype) && dtype == "uint8") {
+      data_to_write <- as.integer(data)
+      dim(data_to_write) <- dim(data)  # Preserve dimensions
+    }
     
     # Check if dataset already exists, and if so, delete it before creating
     if (grp$exists(ds_name)) {
@@ -280,7 +317,7 @@ h5_write_dataset <- function(h5_group, path, data,
     }
     
     grp$create_dataset(ds_name,
-                       robj = data,
+                       robj = data_to_write,
                        chunk_dims = chunk_dims,
                        dtype = dty,
                        gzip_level = level)

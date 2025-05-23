@@ -75,6 +75,15 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       }
     }
 
+    # Get data dimensions, handling vectors that don't have dim() set
+    data_dims <- dim(data)
+    if (is.null(data_dims)) {
+      if (is.vector(data)) {
+        data_dims <- length(data)
+      } else {
+        stop("Unable to determine dimensions for data")
+      }
+    }
 
     # Determine datatype size for chunk heuristics
     dtype <- if (!is.na(dtype_str)) map_dtype(dtype_str) else guess_h5_type(data)
@@ -83,7 +92,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
       dtype_size <- 1L
     }
     if (inherits(dtype, "H5T") && is.na(dtype_str)) dtype$close()
-    cdims <- if (is.null(chunk_dims)) guess_chunk_dims(dim(data), dtype_size) else as.integer(chunk_dims)
+    cdims <- if (is.null(chunk_dims)) guess_chunk_dims(data_dims, dtype_size) else as.integer(chunk_dims)
 
     if (inherits(res, "error")) {
       cdims1 <- reduce_chunk_dims(cdims, dtype_size, 1024^3)

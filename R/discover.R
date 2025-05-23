@@ -38,7 +38,10 @@ discover_transforms <- function(h5_group) {
     )
   })
 
-  # Handle empty group
+  # Filter out report files (which end with _report.json) to avoid pattern match conflicts
+  obj_names <- obj_names[!grepl("_report\\.json$", obj_names)]
+
+  # Handle empty group (after filtering)
   if (length(obj_names) == 0) {
     return(tibble::tibble(name = character(), type = character(), index = integer()))
   }
