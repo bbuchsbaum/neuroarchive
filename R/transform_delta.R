@@ -64,7 +64,11 @@ forward_step.delta <- function(type, desc, handle) {
   p$orig_dims <- dims 
 
   # Ensure p$axis is valid for these true dims
-  stopifnot(p$axis >= 1, p$axis <= length(dims))
+  if (p$axis < 1 || p$axis > length(dims)) {
+    abort_lna("axis out of bounds",
+              .subclass = "lna_error_validation",
+              location = "forward_step.delta:axis")
+  }
 
   # Processing using values from p
   perm <- c(p$axis, setdiff(seq_along(dims), p$axis))
