@@ -18,7 +18,7 @@ test_that("delta() merges parameters and executes", {
 
   captured <- list()
   local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id) {
+    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
       captured$transforms <<- transforms
       captured$transform_params <<- transform_params
       list(ok = TRUE)
@@ -41,7 +41,7 @@ test_that("temporal() verb adds step and executes", {
 
   captured <- list()
   local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id) {
+    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
       captured$transforms <<- transforms
       captured$transform_params <<- transform_params
       list(ok = TRUE)

@@ -310,9 +310,13 @@ forward_step.quant <- function(type, desc, handle) {
   plan$add_dataset_def(offset_path, "offset", as.character(type), run_id,
                        as.integer(step_index), params_json,
                        payload_key_offset, "eager", dtype = "float32")
-  plan$add_dataset_def(report_path, "quant_report", as.character(type), run_id,
-                       as.integer(step_index), params_json,
-                       payload_key_report, "eager", dtype = "uint8")
+  
+  # Only add report dataset definition if it wasn't written directly
+  if (nzchar(payload_key_report)) {
+    plan$add_dataset_def(report_path, "quant_report", as.character(type), run_id,
+                         as.integer(step_index), params_json,
+                         payload_key_report, "eager", dtype = "uint8")
+  }
 
   handle$plan <- plan
   handle$update_stash(keys = input_key, new_values = list())

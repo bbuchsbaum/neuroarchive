@@ -29,10 +29,18 @@ forward_step.delta <- function(type, desc, handle) {
   dims <- dim(x)
   if (is.null(dims)) dims <- c(length(x))
 
+  # Use original dimensions if available, otherwise fall back to current dimensions
+  orig_dims_attr <- attr(x, "lna.orig_dims")
+  if (!is.null(orig_dims_attr)) {
+    orig_dims <- orig_dims_attr
+  } else {
+    orig_dims <- dims
+  }
+
   # Resolve actual axis for processing and storage in descriptor
   p$axis <- incoming_params$axis %||% -1L
   if (p$axis == -1L) {
-    p$axis <- length(dims)
+    p$axis <- length(orig_dims)
   }
   p$axis <- as.integer(p$axis)
 
@@ -54,23 +62,36 @@ forward_step.delta <- function(type, desc, handle) {
               location = "forward_step.delta:order")
   }
 
-  # Store the true original dimensions of x in p, this is what invert_step needs
-  p$orig_dims <- dims
+  # Store the true original dimensions in p
+  p$orig_dims <- orig_dims
 
-  # Ensure p$axis is valid for these true dims
-  if (p$axis < 1 || p$axis > length(dims)) {
+  # Ensure p$axis is valid for these original dims
+  if (p$axis < 1 || p$axis > length(orig_dims)) {
     abort_lna("axis out of bounds",
               .subclass = "lna_error_validation",
               location = "forward_step.delta:axis")
   }
 
-  # Processing using values from p
+  # Processing: we need to handle axis based on original dimensions but work with current array
+  # For now, work with current dimensions but store original dimensions for invert step
   perm <- c(p$axis, setdiff(seq_along(dims), p$axis))
   xp <- aperm(x, perm)
-  dim_xp_col <- if (length(dims[-p$axis]) > 0) prod(dims[-p$axis]) else 1L # Handle case where dims[-p$axis] is empty (e.g. 1D input)
-  dim(xp) <- c(dims[p$axis], dim_xp_col)
+  
+  # Calculate dimensions for processing: use original dims for axis calculation
+  if (length(orig_dims) == 1) {
+    # 1D input: axis must be 1, and we have only 1 "column" in reshaped view
+    dim_xp_col <- 1L
+  } else {
+    # Multi-dimensional: calculate product of non-axis dimensions
+    non_axis_dims <- orig_dims[-p$axis]
+    dim_xp_col <- if (length(non_axis_dims) > 0) prod(non_axis_dims) else 1L
+  }
+  
+  # Reshape based on current array dimensions but using original axis logic
+  axis_len <- dims[p$axis]  # Use current array's axis length
+  dim(xp) <- c(axis_len, dim_xp_col)
 
-  if (dims[p$axis] == 0) {
+  if (axis_len == 0) {
     first_vals <- array(numeric(0), dim = c(0, dim_xp_col))
     deltas <- array(numeric(0), dim = c(0, dim_xp_col)) # For consistency, though deltas rows would be max(0, nrow-1)
   } else {

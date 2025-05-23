@@ -1,5 +1,5 @@
 library(testthat)
-library(neuroarchive)
+
 # Tests for check_transform_implementation
 
 test_that("warnings emitted for collisions", {

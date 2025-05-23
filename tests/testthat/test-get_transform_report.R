@@ -1,4 +1,5 @@
 library(hdf5r)
+library(withr)
 
 test_that("lna_get_transform_report retrieves report", {
   arr <- array(runif(6), dim = c(2,3))

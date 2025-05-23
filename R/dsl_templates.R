@@ -71,22 +71,35 @@ apply_template <- function(pipeline_obj, template_name, ...) {
   }
   fun <- get(template_name, envir = reg)
   args <- list(...)
-  pipe <- fun(pipeline_obj, ...)
-  if (length(args)) {
-    for (nm in names(args)) {
-      val <- args[[nm]]
+  
+  # Separate parameter overrides (with dots) from regular template arguments
+  param_overrides <- args[grepl("\\.", names(args))]
+  template_args <- args[!grepl("\\.", names(args))]
+  
+  # Call template function with only non-dotted arguments
+  pipe <- do.call(fun, c(list(pipeline_obj), template_args))
+  
+  # Apply parameter overrides
+  if (length(param_overrides)) {
+    for (nm in names(param_overrides)) {
+      val <- param_overrides[[nm]]
       if (is.null(nm) || nm == "") next
-      if (grepl("\\.", nm, fixed = TRUE)) {
-        parts <- strsplit(nm, ".", fixed = TRUE)[[1]]
-        if (length(parts) >= 2) {
-          type <- parts[1]
-          param <- parts[2]
-          pipe$modify_step(type, setNames(list(val), param))
-        }
-      } else if (is.list(val)) {
-        pipe$modify_step(nm, val)
+      parts <- strsplit(nm, ".", fixed = TRUE)[[1]]
+      if (length(parts) >= 2) {
+        type <- parts[1]
+        param <- parts[2]
+        pipe$modify_step(type, setNames(list(val), param))
       }
     }
   }
+  
+  # Apply remaining list-valued arguments
+  non_override_args <- args[!grepl("\\.", names(args)) & vapply(args, is.list, logical(1))]
+  if (length(non_override_args)) {
+    for (nm in names(non_override_args)) {
+      pipe$modify_step(nm, non_override_args[[nm]])
+    }
+  }
+  
   pipe
 }

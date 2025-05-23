@@ -294,15 +294,22 @@ validate_input_data <- function(x, min_dims = 3L) {
 #' Detects common `neuroim2` objects and converts them to 4D
 #' arrays expected by the LNA engine. If the object is a 3D array
 #' (or `DenseNeuroVol`), a singleton fourth dimension is appended and
-#' an attribute `lna.was_3d` is set to `TRUE`.
+#' an attribute `lna.was_3d` is set to `TRUE`. Lower-dimensional arrays
+#' (1D vectors and 2D matrices) are also supported and converted to 4D
+#' with appropriate singleton dimensions. The original dimensions are 
+#' preserved in an `lna.orig_dims` attribute.
 #'
 #' @param obj Input object.
-#' @return A 4D array with possible `lna.was_3d` attribute.
+#' @return A 4D array with possible `lna.was_3d` and `lna.orig_dims` attributes.
 #' @keywords internal
 ensure_lna_array_input <- function(obj) {
+  # Store the original dimensions before any conversion
+  orig_dims <- if (is.null(dim(obj))) c(length(obj)) else dim(obj)
+  
   if (methods::is(obj, "DenseNeuroVec")) {
     arr <- as.array(obj)
     attr(arr, "lna.was_3d") <- FALSE
+    attr(arr, "lna.orig_dims") <- orig_dims
     return(arr)
   }
 
@@ -310,24 +317,42 @@ ensure_lna_array_input <- function(obj) {
     arr <- as.array(obj)
     arr <- array(arr, dim = c(dim(arr), 1L))
     attr(arr, "lna.was_3d") <- TRUE
+    attr(arr, "lna.orig_dims") <- orig_dims
     return(arr)
   }
 
-  if (is.array(obj)) {
-    d <- dim(obj)
+  if (is.array(obj) || is.matrix(obj) || is.vector(obj)) {
+    d <- orig_dims
+    
     if (length(d) == 4) {
       attr(obj, "lna.was_3d") <- FALSE
+      attr(obj, "lna.orig_dims") <- orig_dims
       return(obj)
     }
     if (length(d) == 3) {
       arr <- array(obj, dim = c(d, 1L))
       attr(arr, "lna.was_3d") <- TRUE
+      attr(arr, "lna.orig_dims") <- orig_dims
+      return(arr)
+    }
+    if (length(d) == 2) {
+      # 2D matrix -> 4D array with shape (nrow, ncol, 1, 1)
+      arr <- array(obj, dim = c(d, 1L, 1L))
+      attr(arr, "lna.was_3d") <- FALSE
+      attr(arr, "lna.orig_dims") <- orig_dims
+      return(arr)
+    }
+    if (length(d) == 1) {
+      # 1D vector -> 4D array with shape (length, 1, 1, 1)
+      arr <- array(obj, dim = c(d, 1L, 1L, 1L))
+      attr(arr, "lna.was_3d") <- FALSE
+      attr(arr, "lna.orig_dims") <- orig_dims
       return(arr)
     }
   }
 
   abort_lna(
-    "input must be DenseNeuroVec, DenseNeuroVol, or 3D/4D array",
+    "input must be DenseNeuroVec, DenseNeuroVol, or 1D/2D/3D/4D array",
     .subclass = "lna_error_validation",
     location = "ensure_lna_array_input"
   )

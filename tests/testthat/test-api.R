@@ -3,7 +3,7 @@ message("[test-api.R] Top of file reached before library calls")
 library(testthat)
 library(hdf5r)
 library(withr)
-library(neuroarchive)
+
 
 message("[test-api.R] Libraries loaded")
 

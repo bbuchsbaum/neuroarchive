@@ -95,6 +95,7 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 
   lnaobj <- list(
     file = if (info$in_memory) NULL else info$file,
+    plan = result$plan,
     transform_params = header_from_handle$transform_params,
     header = header_from_handle
   )
