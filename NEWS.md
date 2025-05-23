@@ -10,3 +10,5 @@
 * A detailed quantization report is produced in JSON format and
   written to the file (compressed with GZIP). Retrieve it with
   `lna_get_quant_report()`.
+* Added `lna.debug.temporal` option. When `TRUE`, `forward_step.temporal` and
+  `invert_step.temporal` emit debug messages; defaults to `FALSE` for quiet runs.
