@@ -7,6 +7,21 @@
 #'
 #' @importFrom R6 R6Class
 #' @keywords internal
+style_subtle <- function(x) {
+  if (requireNamespace("pillar", quietly = TRUE)) {
+    pillar::style_subtle(x)
+  } else {
+    x
+  }
+}
+style_bold <- function(x) {
+  if (requireNamespace("pillar", quietly = TRUE)) {
+    pillar::style_bold(x)
+  } else {
+    x
+  }
+}
+
 lna_pipeline <- R6::R6Class(
   "lna_pipeline",
   public = list(
@@ -160,21 +175,6 @@ lna_pipeline <- R6::R6Class(
       }
       step_count <- length(self$steps)
       cat("  Steps:", step_count, "\n")
-
-      style_subtle <- function(x) {
-        if (requireNamespace("pillar", quietly = TRUE)) {
-          pillar::style_subtle(x)
-        } else {
-          x
-        }
-      }
-      style_bold <- function(x) {
-        if (requireNamespace("pillar", quietly = TRUE)) {
-          pillar::style_bold(x)
-        } else {
-          x
-        }
-      }
 
       if (step_count > 0) {
         for (i in seq_along(self$steps)) {
