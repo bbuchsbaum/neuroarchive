@@ -41,6 +41,84 @@ The primary performance bottlenecks in the pure-R implementation of HRBF centre 
 *   **RNG:** Use `Rcpp::RNGScope` at the beginning of the Rcpp function if any R random number generation is called from C++ (not strictly needed for basic flood-fill but good practice if extending).
 *   **R Wrapper:** The R function `lna:::label_components` will internally call `label_components_6N_rcpp(as.logical(mask_arr_3d), dim(mask_arr_3d))`. The returned flat vector is then reshaped to 3D in R: `array(labels_flat, dim = dims)`. The number of components is `max(labels_flat)`.
 
+Example implementation sketch:
+
+```cpp
+// [[Rcpp::export]]
+Rcpp::IntegerVector label_components_6N_rcpp(Rcpp::LogicalVector flat_mask,
+                                             Rcpp::IntegerVector dims) {
+  Rcpp::RNGScope scope;  // good practice even if we do not sample
+  const int nx = dims[0], ny = dims[1], nz = dims[2];
+  const int total = flat_mask.size();
+  Rcpp::IntegerVector labels(total);
+
+  auto to_1d = [nx, ny](int i, int j, int k) {
+    return i + j * nx + k * nx * ny;
+  };
+
+  std::deque<int> q;
+  int current = 0;
+
+  for (int idx = 0; idx < total; ++idx) {
+    if (flat_mask[idx] && labels[idx] == 0) {
+      q.push_back(idx);
+      labels[idx] = ++current;
+      while (!q.empty()) {
+        int p = q.front();
+        q.pop_front();
+        int i = p % nx;
+        int tmp = p / nx;
+        int j = tmp % ny;
+        int k = tmp / ny;
+        if (i > 0) {
+          int n1 = to_1d(i - 1, j, k);
+          if (flat_mask[n1] && labels[n1] == 0) {
+            labels[n1] = current;
+            q.push_back(n1);
+          }
+        }
+        if (i + 1 < nx) {
+          int n1 = to_1d(i + 1, j, k);
+          if (flat_mask[n1] && labels[n1] == 0) {
+            labels[n1] = current;
+            q.push_back(n1);
+          }
+        }
+        if (j > 0) {
+          int n1 = to_1d(i, j - 1, k);
+          if (flat_mask[n1] && labels[n1] == 0) {
+            labels[n1] = current;
+            q.push_back(n1);
+          }
+        }
+        if (j + 1 < ny) {
+          int n1 = to_1d(i, j + 1, k);
+          if (flat_mask[n1] && labels[n1] == 0) {
+            labels[n1] = current;
+            q.push_back(n1);
+          }
+        }
+        if (k > 0) {
+          int n1 = to_1d(i, j, k - 1);
+          if (flat_mask[n1] && labels[n1] == 0) {
+            labels[n1] = current;
+            q.push_back(n1);
+          }
+        }
+        if (k + 1 < nz) {
+          int n1 = to_1d(i, j, k + 1);
+          if (flat_mask[n1] && labels[n1] == 0) {
+            labels[n1] = current;
+            q.push_back(n1);
+          }
+        }
+      }
+    }
+  }
+  return labels;
+}
+```
+
 #### 2.2. Poisson-Disk Sampling per Component (`poisson_disk_sample_component_rcpp`)
 
 *   **Algorithm:** Sequential rejection, optimized.

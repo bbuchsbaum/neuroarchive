@@ -13,6 +13,7 @@ Imports:
     hdf5r,
     jsonlite,
     Matrix,
+    Rcpp,
     rlang,
     R6,
     tibble,
@@ -32,3 +33,5 @@ Suggests:
     multitaper
 Config/testthat/edition: 3
 RoxygenNote: 7.3.2.9000
+LinkingTo: Rcpp
+SystemRequirements: C++14
