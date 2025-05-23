@@ -10,6 +10,18 @@
 invert_step.basis <- function(type, desc, handle) {
   p <- desc$params %||% list()
   storage_order <- p$storage_order %||% "component_x_voxel"
+  allowed_orders <- c("component_x_voxel", "voxel_x_component")
+  if (!storage_order %in% allowed_orders) {
+    abort_lna(
+      sprintf(
+        "Invalid storage_order '%s'. Allowed values: %s",
+        storage_order,
+        paste(allowed_orders, collapse = ", ")
+      ),
+      .subclass = "lna_error_validation",
+      location = "invert_step.basis:storage_order"
+    )
+  }
 
   basis_path <- NULL
   if (!is.null(desc$datasets) && length(desc$datasets) > 0) {
@@ -38,16 +50,18 @@ invert_step.basis <- function(type, desc, handle) {
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 
   subset <- handle$subset
-  if (!is.null(subset$roi_mask)) {
-    vox_idx <- which(as.logical(subset$roi_mask))
+  roi_mask <- subset$roi_mask %||% subset$roi
+  if (!is.null(roi_mask)) {
+    vox_idx <- which(as.logical(roi_mask))
     if (identical(storage_order, "component_x_voxel")) {
       basis <- basis[, vox_idx, drop = FALSE]
     } else {
       basis <- basis[vox_idx, , drop = FALSE]
     }
   }
-  if (!is.null(subset$time_idx)) {
-    coeff <- coeff[subset$time_idx, , drop = FALSE]
+  time_idx <- subset$time_idx %||% subset$time
+  if (!is.null(time_idx)) {
+    coeff <- coeff[time_idx, , drop = FALSE]
   }
 
   if (identical(storage_order, "component_x_voxel")) {
@@ -71,6 +85,9 @@ invert_step.basis <- function(type, desc, handle) {
 forward_step.basis <- function(type, desc, handle) {
   p <- desc$params %||% list()
   method <- p$method %||% "pca"
+  if (!identical(method, "pca")) {
+    warning(sprintf("basis transform only implements PCA; ignoring method='%s'", method), call. = FALSE)
+  }
   k <- p$k %||% 20
   center <- p$center %||% TRUE
   scale <- p$scale %||% FALSE
@@ -101,44 +118,31 @@ forward_step.basis <- function(type, desc, handle) {
   original_k <- k
   min_dim <- min(dim(X))
 
-  if (requireNamespace("irlba", quietly = TRUE)) {
-    # For irlba, k must be < min_dim. Max k is min_dim - 1.
-    k_max_allowed <- max(1, min_dim - 1) 
-    if (k > k_max_allowed) {
-      warning(sprintf(
-        "Requested k=%d but irlba::prcomp_irlba can only compute %d components for %dx%d data; truncating k to %d.",
-        original_k, k_max_allowed, nrow(X), ncol(X), k_max_allowed
-      ), call. = FALSE)
-      k <- k_max_allowed
-    }
-    # Ensure k is not zero if min_dim was 1 (k_max_allowed would be 0)
-    k <- max(1, k) 
-    if (k >= min_dim) { # Final safety check if min_dim is 1 or 2
-        # This case should ideally not be hit if k_max_allowed is correct
-        # but prcomp_irlba errors if k is not strictly less than min_dim
-        k <- max(1, min_dim -1)
-         if (k == 0 && min_dim > 0) k <- 1 # if min_dim = 1, k becomes 0, fix to 1
-         if (k==0 && min_dim ==0) { # edge case of 0-dim input.
-            abort_lna("Input matrix for PCA has zero dimensions.", 
-                        .subclass="lna_error_validation", 
-                        location="forward_step.basis:input")
-         }
-    }
+  if (min_dim == 0) {
+    abort_lna("Input matrix for PCA has zero dimensions.",
+              .subclass = "lna_error_validation",
+              location = "forward_step.basis:input")
+  }
 
-    fit <- irlba::prcomp_irlba(X, n = k, center = center, scale. = scale)
+  use_irlba <- requireNamespace("irlba", quietly = TRUE)
+  k_max <- if (use_irlba) max(1, min_dim - 1) else max(1, min_dim)
+
+  if (k > k_max) {
+    warning(sprintf(
+      "Requested k=%d but %s can only compute %d components for %dx%d data; truncating k to %d.",
+      original_k,
+      if (use_irlba) "irlba::prcomp_irlba" else "stats::prcomp",
+      k_max, nrow(X), ncol(X), k_max
+    ), call. = FALSE)
+    k <- k_max
+  }
+
+  k <- max(1, k)
+
+  fit <- if (use_irlba) {
+    irlba::prcomp_irlba(X, n = k, center = center, scale. = scale)
   } else {
-    # For stats::prcomp, rank. can be <= min_dim. Max k is min_dim.
-    k_max_allowed <- max(1, min_dim)
-    if (k > k_max_allowed) {
-      warning(sprintf(
-        "Requested k=%d but stats::prcomp can only compute %d components for %dx%d data; truncating k to %d.",
-        original_k, k_max_allowed, nrow(X), ncol(X), k_max_allowed
-      ), call. = FALSE)
-      k <- k_max_allowed
-    }
-    # Ensure k is not zero
-    k <- max(1, k)
-    fit <- stats::prcomp(X, rank. = k, center = center, scale. = scale)
+    stats::prcomp(X, rank. = k, center = center, scale. = scale)
   }
 
   k_effective <- ncol(fit$rotation)
