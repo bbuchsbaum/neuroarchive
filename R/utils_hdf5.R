@@ -426,6 +426,7 @@ assert_h5_path <- function(h5, path) {
   invisible(NULL)
 }
 
+
 #' Safely check if an HDF5 path exists
 #'
 #' Wrapper around `$exists` that catches errors (e.g., invalid paths)
@@ -439,6 +440,7 @@ path_exists_safely <- function(h5, path) {
   if (is.null(path) || !nzchar(path)) return(FALSE)
   stopifnot(inherits(h5, c("H5File", "H5Group")))
   stopifnot(is.character(path), length(path) == 1)
+
 
   tryCatch({
     h5$exists(path)

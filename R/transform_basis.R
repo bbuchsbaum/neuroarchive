@@ -79,14 +79,19 @@ invert_step.basis <- function(type, desc, handle) {
 
 #' Basis Transform - Forward Step
 #'
-#' Computes a basis matrix (e.g., via PCA) from the input data and
-#' registers the datasets in the write plan.
+#' Computes a PCA basis matrix from the input data and registers the
+#' datasets in the write plan. Only the "pca" method is currently
+#' implemented; specifying any other `method` results in an error.
 #' @keywords internal
 forward_step.basis <- function(type, desc, handle) {
   p <- desc$params %||% list()
   method <- p$method %||% "pca"
   if (!identical(method, "pca")) {
-    warning(sprintf("basis transform only implements PCA; ignoring method='%s'", method), call. = FALSE)
+    abort_lna(
+      sprintf("method '%s' is not supported; only 'pca' is implemented", method),
+      .subclass = "lna_error_validation",
+      location = "forward_step.basis:method"
+    )
   }
   k <- p$k %||% 20
   center <- p$center %||% TRUE
@@ -116,33 +121,39 @@ forward_step.basis <- function(type, desc, handle) {
   }
 
   original_k <- k
-  min_dim <- min(dim(X))
-
-  if (min_dim == 0) {
-    abort_lna("Input matrix for PCA has zero dimensions.",
-              .subclass = "lna_error_validation",
-              location = "forward_step.basis:input")
+  dims <- dim(X)
+  if (any(dims == 0)) {
+    abort_lna(
+      "Input matrix for PCA has zero dimensions.",
+      .subclass = "lna_error_validation",
+      location = "forward_step.basis:input"
+    )
   }
+  min_dim <- min(dims)
 
-  use_irlba <- requireNamespace("irlba", quietly = TRUE)
-  k_max <- if (use_irlba) max(1, min_dim - 1) else max(1, min_dim)
 
-  if (k > k_max) {
-    warning(sprintf(
-      "Requested k=%d but %s can only compute %d components for %dx%d data; truncating k to %d.",
-      original_k,
-      if (use_irlba) "irlba::prcomp_irlba" else "stats::prcomp",
-      k_max, nrow(X), ncol(X), k_max
-    ), call. = FALSE)
-    k <- k_max
-  }
-
-  k <- max(1, k)
-
-  fit <- if (use_irlba) {
-    irlba::prcomp_irlba(X, n = k, center = center, scale. = scale)
+  if (requireNamespace("irlba", quietly = TRUE)) {
+    k_max_allowed <- max(1, min_dim - 1)
+    if (k > k_max_allowed) {
+      warning(sprintf(
+        "Requested k=%d but irlba::prcomp_irlba can only compute %d components for %dx%d data; truncating k to %d.",
+        original_k, k_max_allowed, nrow(X), ncol(X), k_max_allowed
+      ), call. = FALSE)
+      k <- k_max_allowed
+    }
+    k <- max(1, min(k, k_max_allowed))
+    fit <- irlba::prcomp_irlba(X, n = k, center = center, scale. = scale)
   } else {
-    stats::prcomp(X, rank. = k, center = center, scale. = scale)
+    k_max_allowed <- max(1, min_dim)
+    if (k > k_max_allowed) {
+      warning(sprintf(
+        "Requested k=%d but stats::prcomp can only compute %d components for %dx%d data; truncating k to %d.",
+        original_k, k_max_allowed, nrow(X), ncol(X), k_max_allowed
+      ), call. = FALSE)
+      k <- k_max_allowed
+    }
+    k <- max(1, min(k, k_max_allowed))
+    fit <- stats::prcomp(X, rank. = k, center = center, scale. = scale)
   }
 
   k_effective <- ncol(fit$rotation)
