@@ -184,3 +184,78 @@ generate_hrbf_atom <- function(mask_coords_world, mask_linear_indices,
 
   list(values = phi, indices = mask_linear_indices)
 }
+
+#' Regenerate an analytic HRBF basis matrix from descriptor parameters
+#'
+#' @param params List of HRBF parameters (as from a descriptor).
+#' @param mask_neurovol `LogicalNeuroVol` mask defining the voxel grid.
+#' @param h5_root Optional H5 group if centres are stored in the file.
+#' @return Sparse matrix with one row per HRBF atom and columns matching
+#'   mask voxels.
+#' @keywords internal
+hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
+  sigma0 <- params$sigma0 %||% 6
+  levels <- params$levels %||% 3L
+  radius_factor <- params$radius_factor %||% 2.5
+  kernel_type <- params$kernel_type %||% "gaussian"
+  seed <- params$seed
+  centres_path <- params$centres_path
+  sigma_vec_path <- params$sigma_vec_path
+  centres_stored <- isTRUE(params$centres_stored)
+
+  voxel_to_world <- function(vox_mat) {
+    spc <- tryCatch(space(mask_neurovol), error = function(e) NULL)
+    spacing_vec <- tryCatch(spacing(spc), error = function(e) c(1,1,1))
+    origin_vec <- tryCatch(origin(spc), error = function(e) c(0,0,0))
+    sweep(vox_mat - 1, 2, spacing_vec, `*`) +
+      matrix(origin_vec, nrow(vox_mat), 3, byrow = TRUE)
+  }
+
+  if (centres_stored && !is.null(centres_path) && !is.null(sigma_vec_path) &&
+      !is.null(h5_root)) {
+    C_total <- h5_read(h5_root, centres_path)
+    sigma_vec <- as.numeric(h5_read(h5_root, sigma_vec_path))
+  } else if (!is.null(seed)) {
+    centres_list <- list(); sigs <- numeric()
+    for (j in seq_len(levels + 1L) - 1L) {
+      sigma_j <- sigma0 / (2^j)
+      r_j <- radius_factor * sigma_j
+      vox_centres <- poisson_disk_sample_neuroim2(mask_neurovol, r_j, seed + j)
+      if (nrow(vox_centres) > 0) {
+        centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
+        sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+      }
+    }
+    C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list)
+               else matrix(numeric(0), ncol = 3)
+    sigma_vec <- sigs
+  } else {
+    abort_lna("Insufficient parameters to regenerate HRBF basis",
+              .subclass = "lna_error_descriptor",
+              location = "hrbf_basis_from_params")
+  }
+
+  mask_arr <- as.array(mask_neurovol)
+  mask_coords_vox <- which(mask_arr, arr.ind = TRUE)
+  mask_coords_world <- voxel_to_world(mask_coords_vox)
+  mask_linear_indices <- as.integer(which(mask_arr))
+  n_total_vox <- length(mask_arr)
+  k_actual <- nrow(C_total)
+
+  if (k_actual > 0) {
+    i_idx <- integer(); j_idx <- integer(); x_val <- numeric()
+    for (kk in seq_len(k_actual)) {
+      atom <- generate_hrbf_atom(mask_coords_world, mask_linear_indices,
+                                 C_total[kk,], sigma_vec[kk], kernel_type)
+      i_idx <- c(i_idx, rep.int(kk, length(atom$indices)))
+      j_idx <- c(j_idx, atom$indices)
+      x_val <- c(x_val, atom$values)
+    }
+    Matrix::sparseMatrix(i = i_idx, j = j_idx, x = x_val,
+                         dims = c(k_actual, n_total_vox))
+  } else {
+    Matrix::sparseMatrix(i = integer(), j = integer(), x = numeric(),
+                         dims = c(0, n_total_vox))
+  }
+}
+
