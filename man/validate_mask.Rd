@@ -4,10 +4,11 @@
 \alias{validate_mask}
 \title{Validate and normalise mask argument}
 \usage{
-validate_mask(mask)
+validate_mask(mask, input = NULL)
 }
 \arguments{
 \item{mask}{Optional mask object.}
+\item{input}{Optional input object used for space comparison.}
 }
 \value{
 List with `array` and `active_voxels` entries.

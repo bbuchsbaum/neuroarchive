@@ -21,6 +21,23 @@ abort_lna <- function(message, ..., .subclass, location = NULL, parent = NULL) {
   )
 }
 
+#' LNA Warning Helper
+#'
+#' Provides a thin wrapper around `warning` for package specific
+#' warnings. Mainly used for integration checks where execution should
+#' continue but the user ought to be informed.
+#'
+#' @param message A character string describing the warning.
+#' @param ... Additional named data stored in the condition object.
+#' @param .subclass Character string giving the LNA warning subclass.
+#' @return No return value. This function is called for its side effect of
+#'   signalling a warning.
+#' @keywords internal
+warn_lna <- function(message, ..., .subclass = "lna_warning", location = NULL) {
+  stopifnot(is.character(message), length(message) == 1)
+  warning(message, call. = FALSE)
+}
+
 #' Error thrown when `lna_reader` methods are called after the reader is closed.
 #'
 #' @keywords internal
