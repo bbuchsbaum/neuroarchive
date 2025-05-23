@@ -61,3 +61,26 @@ test_that("forward_step.spat.hrbf stores basis matrix when requested", {
   expect_true(inherits(B, "Matrix"))
   expect_equal(dim(B)[2], length(as.array(vol)))
 })
+
+test_that("forward_step.spat.hrbf computes coefficients", {
+  mask <- array(TRUE, dim = c(1,1,2))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(1,1,2), c(1,1,1))
+
+  X <- matrix(1:4, nrow = 2)
+
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = X),
+                      plan = plan, mask_info = list(mask = vol, active_voxels = 2))
+  desc <- list(type = "spat.hrbf",
+               params = list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                            kernel_type = "gaussian", seed = 1))
+
+  h2 <- neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h)
+
+  coef_path <- "/scans/run-01/embedding/coefficients_hrbf"
+  expect_true(coef_path %in% names(h2$plan$payloads))
+  expect_true(h2$has_key("coefficients_hrbf"))
+  C <- h2$stash$coefficients_hrbf
+  expect_equal(nrow(C), nrow(X))
+})

@@ -151,13 +151,32 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
       list(path = matrix_path, role = "basis_matrix")
   }
 
+  inp <- handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
+  input_key <- inp$key
+  X <- as_dense_mat(inp$value)
+  coeff <- tcrossprod(X, B_final)
+
+  run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
+  coef_path <- file.path("/scans", run_id, "embedding", "coefficients_hrbf")
+  desc$inputs <- c(desc$inputs, input_key)
+  desc$outputs <- c(desc$outputs, "coefficients_hrbf")
+  desc$datasets[[length(desc$datasets) + 1L]] <-
+    list(path = coef_path, role = "coefficients_hrbf")
+
   plan$add_descriptor(fname, desc)
+  plan$add_payload(coef_path, coeff)
+  plan$add_dataset_def(coef_path, "coefficients_hrbf", as.character(type), run_id,
+                       as.integer(step_index), params_json, coef_path,
+                       "eager", dtype = NA_character_)
+
   handle$plan <- plan
 
   handle$update_stash(keys = character(),
                       new_values = list(hrbf_centres = C_total,
                                          hrbf_sigmas = sigma_vec,
-                                         hrbf_basis = B_final))
+                                         hrbf_basis = B_final,
+                                         coefficients_hrbf = coeff))
 }
 
 #' Default parameters for the 'spat.hrbf' transform
