@@ -126,3 +126,16 @@ test_that("rle coding compresses delta stream for matrix input", {
   out <- h$stash$input
   expect_equal(drop(out), arr)
 })
+
+test_that("read_lna applies roi_mask and time_idx for delta", {
+  arr <- array(seq_len(40), dim = c(2,2,2,5))
+  tmp <- local_tempfile(fileext = ".h5")
+  write_lna(arr, file = tmp, transforms = "delta")
+  roi <- array(c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE), dim = c(2,2,2))
+  h <- read_lna(tmp, roi_mask = roi, time_idx = c(2,5))
+  out <- h$stash$input
+  vox_idx <- which(as.logical(roi))
+  mat <- matrix(arr, prod(dim(arr)[1:3]), dim(arr)[4])
+  expected <- mat[vox_idx, c(2,5), drop = FALSE]
+  expect_equal(out, expected)
+})
