@@ -271,26 +271,7 @@ lna_pipeline <- R6::R6Class(
         )
       }
 
-      find_idx <- function(key) {
-        if (is.numeric(key)) {
-          idx <- as.integer(key[1])
-          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
-          idx
-        } else if (is.character(key)) {
-          typ <- as.character(key[1])
-          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
-          if (length(matches) == 0) return(NA_integer_)
-          matches[length(matches)]
-        } else {
-          abort_lna(
-            "index_or_type must be numeric or character",
-            .subclass = "lna_error_validation",
-            location = "lna_pipeline:modify_step"
-          )
-        }
-      }
-
-      idx <- find_idx(index_or_type)
+      idx <- find_step_index(self$steps, index_or_type)
       if (is.na(idx)) {
         abort_lna(
           "Specified step not found",
@@ -317,26 +298,7 @@ lna_pipeline <- R6::R6Class(
     #' Remove a step from the pipeline.
     #' @param index_or_type Integer index or type string identifying the step.
     remove_step = function(index_or_type) {
-      find_idx <- function(key) {
-        if (is.numeric(key)) {
-          idx <- as.integer(key[1])
-          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
-          idx
-        } else if (is.character(key)) {
-          typ <- as.character(key[1])
-          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
-          if (length(matches) == 0) return(NA_integer_)
-          matches[length(matches)]
-        } else {
-          abort_lna(
-            "index_or_type must be numeric or character",
-            .subclass = "lna_error_validation",
-            location = "lna_pipeline:remove_step"
-          )
-        }
-      }
-
-      idx <- find_idx(index_or_type)
+      idx <- find_step_index(self$steps, index_or_type)
       if (is.na(idx)) {
         abort_lna(
           "Specified step not found",
@@ -373,27 +335,8 @@ lna_pipeline <- R6::R6Class(
         )
       }
 
-      find_idx <- function(key) {
-        if (is.numeric(key)) {
-          idx <- as.integer(key[1])
-          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
-          idx
-        } else if (is.character(key)) {
-          typ <- as.character(key[1])
-          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
-          if (length(matches) == 0) return(NA_integer_)
-          matches[length(matches)]
-        } else {
-          abort_lna(
-            "index_or_type must be numeric or character",
-            .subclass = "lna_error_validation",
-            location = "lna_pipeline:insert_step"
-          )
-        }
-      }
-
       if (!is.null(after_index_or_type)) {
-        idx <- find_idx(after_index_or_type)
+        idx <- find_step_index(self$steps, after_index_or_type)
         if (is.na(idx)) {
           abort_lna(
             "Specified step not found",
@@ -403,7 +346,7 @@ lna_pipeline <- R6::R6Class(
         }
         self$steps <- append(self$steps, list(step_spec), after = idx)
       } else if (!is.null(before_index_or_type)) {
-        idx <- find_idx(before_index_or_type)
+        idx <- find_step_index(self$steps, before_index_or_type)
         if (is.na(idx)) {
           abort_lna(
             "Specified step not found",
@@ -548,4 +491,31 @@ lna_pipeline <- R6::R6Class(
     }
   )
 )
+
+#' Find the index of a pipeline step
+#'
+#' Internal helper used by lna_pipeline methods to resolve a step
+#' by numeric position or by its `type` name.
+#'
+#' @param steps List of step specifications.
+#' @param key Numeric index or type string identifying the step.
+#' @return Integer index or `NA_integer_` if no match is found.
+#' @keywords internal
+find_step_index <- function(steps, key) {
+  if (is.numeric(key)) {
+    idx <- as.integer(key[1])
+    if (idx < 1 || idx > length(steps)) return(NA_integer_)
+    idx
+  } else if (is.character(key)) {
+    typ <- as.character(key[1])
+    matches <- which(vapply(steps, function(s) identical(s$type, typ), logical(1)))
+    if (length(matches) == 0) return(NA_integer_)
+    matches[length(matches)]
+  } else {
+    abort_lna(
+      "index_or_type must be numeric or character",
+      .subclass = "lna_error_validation"
+    )
+  }
+}
 
