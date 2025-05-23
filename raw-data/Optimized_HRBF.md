@@ -158,6 +158,12 @@ Rcpp::IntegerVector label_components_6N_rcpp(Rcpp::LogicalVector flat_mask,
 
 ### 3. Integration with Existing R Code & Fallbacks
 
+The high-level HRBF helpers automatically invoke their Rcpp counterparts when
+these have been compiled. This behaviour can be toggled globally via
+`getOption("lna.hrbf.use_rcpp_helpers", TRUE)`. Setting the option to `FALSE`
+forces the pure‑R implementations, which is useful for platforms without a C++
+toolchain or for debugging.
+
 *   **`lna:::poisson_disk_sample_neuroim2`:**
     *   Retain its existing signature.
     *   Internally, use an option like `getOption("lna.hrbf.use_rcpp_helpers", TRUE)` to switch between calling the new Rcpp-backed `lna:::label_components` and `poisson_disk_sample_component_rcpp` versus the original pure-R implementations. This allows CI testing on platforms without a C++14 compiler and provides a fallback.
@@ -172,7 +178,10 @@ Rcpp::IntegerVector label_components_6N_rcpp(Rcpp::LogicalVector flat_mask,
 *   `useDynLib(neuroarchive, .registration = TRUE)` in `NAMESPACE` and Roxygen `@useDynLib neuroarchive`.
 *   SystemRequirements in `DESCRIPTION`: `C++14`.
 *   RcppEigen dependency if that optimization for sparse matrix construction is adopted.
-*   Documentation for `spat.hrbf` should note that core computations can be C++ accelerated if available.
+*   Documentation for `spat.hrbf` should note that connected component labeling
+    and Poisson‑disk sampling loops are Rcpp‑accelerated when available.
+    This behaviour is controlled by `getOption("lna.hrbf.use_rcpp_helpers", TRUE)`;
+    setting it to `FALSE` forces the pure‑R implementations.
 
 ### 5. Granular Tickets for HRBF Optimization Sprint (1 Sprint)
 
