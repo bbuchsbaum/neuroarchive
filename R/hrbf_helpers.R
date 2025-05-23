@@ -76,12 +76,18 @@ label_components <- function(mask_arr_3d) {
 #' @param component_id_for_seed_offset Integer offset added to the seed when the
 #'   mask represents a single component. Users typically call this function on
 #'   the full mask with the default `0`.
+#' @param edge_binary_map Optional logical array the same dimensions as the mask
+#'   indicating edge voxels for adaptive sampling.
+#' @param density_factor Numeric factor (>1) to reduce radius when sampling
+#'   candidate centres in edge regions.
 #'
 #' @return Integer matrix with columns `i`, `j`, `k` containing voxel
 #'   coordinates of sampled centres.
 #' @keywords internal
 poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
-                                         component_id_for_seed_offset = 0) {
+                                         component_id_for_seed_offset = 0,
+                                         edge_binary_map = NULL,
+                                         density_factor = 1.5) {
   if (!inherits(mask_neurovol, "LogicalNeuroVol")) {
     abort_lna("mask_neurovol must be LogicalNeuroVol",
               .subclass = "lna_error_validation",
@@ -92,12 +98,21 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
   spc <- tryCatch(space(mask_neurovol), error = function(e) NULL)
   spacing_vec <- tryCatch(spacing(spc), error = function(e) c(1, 1, 1))
 
+  if (!is.null(edge_binary_map)) {
+    if (!is.logical(edge_binary_map) || !all(dim(edge_binary_map) == dim(mask_arr))) {
+      abort_lna("edge_binary_map dims mismatch mask",
+                .subclass = "lna_error_validation",
+                location = "poisson_disk_sample_neuroim2")
+    }
+  }
+
   comp_info <- label_components(mask_arr)
   use_rcpp <- isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
-    exists("poisson_disk_sample_component_rcpp")
+    exists("poisson_disk_sample_component_rcpp") && is.null(edge_binary_map)
 
   radius_vox <- radius_mm / mean(spacing_vec)
   r2 <- radius_vox^2
+  r2_edge <- (radius_vox / density_factor)^2
 
   sample_component_R <- function(coords, base_seed) {
     set.seed(as.integer(base_seed))
@@ -106,12 +121,14 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
     while (nrow(remaining) > 0) {
       cand <- remaining[1, , drop = FALSE]
       remaining <- remaining[-1, , drop = FALSE]
+      cand_edge <- !is.null(edge_binary_map) && edge_binary_map[cand]
+      r2_eff <- if (cand_edge) r2_edge else r2
       if (nrow(selected) == 0) {
         selected <- rbind(selected, cand)
       } else {
         d2 <- rowSums((selected - matrix(cand, nrow = nrow(selected), ncol = 3,
                                           byrow = TRUE))^2)
-        if (all(d2 >= r2)) {
+        if (all(d2 >= r2_eff)) {
           selected <- rbind(selected, cand)
         }
       }
