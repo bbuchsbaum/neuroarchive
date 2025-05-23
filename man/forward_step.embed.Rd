@@ -6,6 +6,19 @@
 \usage{
 \method{forward_step}{embed}(type, desc, handle)
 }
+\arguments{
+\item{type}{Character string identifying the transform ("embed").}
+
+\item{desc}{Descriptor list for the step. `desc$params` must include
+  `basis_path` and may optionally specify paths for centering or scaling.}
+
+\item{handle}{\code{DataHandle} giving access to the HDF5 file, write plan and
+  runtime stash.}
+}
+\value{
+Invisibly returns the updated \code{DataHandle} with coefficients stored in the
+plan and stash.
+}
 \description{
 Projects data onto a pre-computed basis matrix.
 }
