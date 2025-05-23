@@ -1,7 +1,16 @@
 #' Embed Transform - Forward Step
 #'
-
 #' Projects data onto a pre-computed basis matrix.
+#'
+#' @param type Character string identifying the transform ("embed").
+#' @param desc Descriptor list for this step. `desc$params` must include
+#'   `basis_path` and may optionally specify `center_data_with` and
+#'   `scale_data_with` dataset paths.
+#' @param handle `DataHandle` providing access to the HDF5 file, plan and
+#'   runtime stash. The input matrix is retrieved via this handle.
+#'
+#' @return Invisibly returns the updated `DataHandle` with the computed
+#'   coefficients registered in the plan and stash.
 #' @keywords internal
 forward_step.embed <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -20,8 +29,29 @@ forward_step.embed <- function(type, desc, handle) {
               .subclass = "lna_error_contract",
               location = "forward_step.embed:basis")
   }
+  if (!is.numeric(basis)) {
+    abort_lna(
+      "basis matrix must be numeric",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:basis"
+    )
+  }
   mean_vec <- if (!is.null(p$center_data_with)) plan$payloads[[p$center_data_with]] else NULL
   scale_vec <- if (!is.null(p$scale_data_with)) plan$payloads[[p$scale_data_with]] else NULL
+  if (!is.null(mean_vec) && !is.numeric(mean_vec)) {
+    abort_lna(
+      "centering vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:center"
+    )
+  }
+  if (!is.null(scale_vec) && !is.numeric(scale_vec)) {
+    abort_lna(
+      "scaling vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:scale"
+    )
+  }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   X <- handle$get_inputs(input_key)[[1]]
@@ -39,7 +69,7 @@ forward_step.embed <- function(type, desc, handle) {
   if (nrow(basis) == ncol(X)) {
     coeff <- X %*% basis
   } else if (ncol(basis) == ncol(X)) {
-    coeff <- X %*% t(basis)
+    coeff <- tcrossprod(X, basis)
   } else {
     abort_lna(
       "basis matrix dimensions incompatible with input",
@@ -80,6 +110,16 @@ forward_step.embed <- function(type, desc, handle) {
 #' Embed Transform - Inverse Step
 #'
 #' Reconstructs data from embedding coefficients using a stored basis matrix.
+#'
+#' @param type Character string identifying the transform ("embed").
+#' @param desc Descriptor list describing the inverse step. `desc$params` should
+#'   contain `basis_path` along with optional `center_data_with` and
+#'   `scale_data_with` dataset paths used for reconstruction.
+#' @param handle `DataHandle` with access to the HDF5 file and stash containing
+#'   the coefficient matrix.
+#'
+#' @return The updated `DataHandle` with the reconstructed dense matrix placed in
+#'   the stash under `desc$inputs[[1]]`.
 #' @keywords internal
 invert_step.embed <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -99,24 +139,19 @@ invert_step.embed <- function(type, desc, handle) {
 
   root <- handle$h5[["/"]]
 
-  path_exists_safely <- function(group, path_name) {
-    if (is.null(path_name) || !nzchar(path_name)) return(FALSE)
-    tryCatch({
-      group$exists(path_name)
-    }, error = function(e) {
-      # If the error is specifically about the path not existing, treat as FALSE
-      # Otherwise, could re-throw if it's a more fundamental HDF5 issue.
-      # For now, any error in exists() implies we can't use the path.
-      FALSE
-    })
-  }
-
   if (!path_exists_safely(root, basis_path)) {
     abort_lna(sprintf("dataset '%s' not found", basis_path),
               .subclass = "lna_error_contract",
               location = "invert_step.embed:basis")
   }
   basis <- h5_read(root, basis_path)
+  if (!is.numeric(basis)) {
+    abort_lna(
+      "basis matrix must be numeric",
+      .subclass = "lna_error_validation",
+      location = "invert_step.embed:basis"
+    )
+  }
   mean_vec <- if (!is.null(p$center_data_with)) {
     if (!path_exists_safely(root, p$center_data_with)) {
       abort_lna(sprintf("dataset '%s' not found", p$center_data_with),
@@ -133,6 +168,20 @@ invert_step.embed <- function(type, desc, handle) {
     }
     h5_read(root, p$scale_data_with)
   } else NULL
+  if (!is.null(mean_vec) && !is.numeric(mean_vec)) {
+    abort_lna(
+      "centering vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "invert_step.embed:center"
+    )
+  }
+  if (!is.null(scale_vec) && !is.numeric(scale_vec)) {
+    abort_lna(
+      "scaling vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "invert_step.embed:scale"
+    )
+  }
 
 
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
@@ -142,8 +191,24 @@ invert_step.embed <- function(type, desc, handle) {
   if (!is.null(roi_mask)) {
     vox_idx <- which(as.logical(roi_mask))
     if (nrow(basis) == ncol(coeff)) {
+      if (length(vox_idx) > 0 &&
+          (min(vox_idx) < 1 || max(vox_idx) > ncol(basis))) {
+        abort_lna(
+          "roi indices out of range",
+          .subclass = "lna_error_validation",
+          location = "invert_step.embed"
+        )
+      }
       basis <- basis[, vox_idx, drop = FALSE]
     } else if (ncol(basis) == ncol(coeff)) {
+      if (length(vox_idx) > 0 &&
+          (min(vox_idx) < 1 || max(vox_idx) > nrow(basis))) {
+        abort_lna(
+          "roi indices out of range",
+          .subclass = "lna_error_validation",
+          location = "invert_step.embed"
+        )
+      }
       basis <- basis[vox_idx, , drop = FALSE]
     }
     if (!is.null(mean_vec))  mean_vec <- mean_vec[vox_idx]
@@ -151,13 +216,21 @@ invert_step.embed <- function(type, desc, handle) {
   }
   time_idx <- subset$time_idx %||% subset$time
   if (!is.null(time_idx)) {
+    if (length(time_idx) > 0 &&
+        (min(abs(time_idx)) < 1 || max(abs(time_idx)) > nrow(coeff))) {
+      abort_lna(
+        "time indices out of range",
+        .subclass = "lna_error_validation",
+        location = "invert_step.embed"
+      )
+    }
     coeff <- coeff[time_idx, , drop = FALSE]
   }
 
   if (nrow(basis) == ncol(coeff)) {
     dense <- coeff %*% basis
   } else if (ncol(basis) == ncol(coeff)) {
-    dense <- coeff %*% t(basis)
+    dense <- tcrossprod(coeff, basis)
   } else {
     abort_lna(
       "basis matrix dimensions incompatible with coefficients",

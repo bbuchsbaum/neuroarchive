@@ -32,6 +32,17 @@ test_that("set_input handles unnamed list with run_ids", {
   expect_equal(pipe$runs, c("r1", "r2"))
 })
 
+test_that("set_input requires identical element dimensions", {
+  pipe <- neuroarchive:::lna_pipeline$new()
+  arr1 <- array(1:8, dim = c(2,2,2))
+  arr2 <- array(1:9, dim = c(3,3,1))
+  expect_error(
+    pipe$set_input(list(arr1, arr2)),
+    "all input elements must have identical dimensions",
+    class = "lna_error_validation"
+  )
+})
+
 # Test lna_pipeline$new defaults
 
 test_that("lna_pipeline fields initialise correctly", {

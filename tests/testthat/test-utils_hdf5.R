@@ -141,6 +141,19 @@ test_that("assert_h5_path validates paths", {
   h5$close_all()
 })
 
+test_that("path_exists_safely handles missing paths", {
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  root <- h5[["/"]]
+  root$create_group("exists")
+
+  expect_true(path_exists_safely(h5, "exists"))
+  expect_false(path_exists_safely(h5, "missing"))
+  expect_false(path_exists_safely(h5, ""))
+
+  h5$close_all()
+})
+
 test_that("map_dtype and guess_h5_type return H5T objects", {
   t1 <- map_dtype("float32")
   expect_true(inherits(t1, "H5T"))

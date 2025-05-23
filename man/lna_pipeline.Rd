@@ -32,6 +32,7 @@ used for experimenting with a tidy DSL facade.
 \item \href{#method-lna_pipeline-add_step}{\code{lna_pipeline$add_step()}}
 \item \href{#method-lna_pipeline-print}{\code{lna_pipeline$print()}}
 \item \href{#method-lna_pipeline-get_steps_list}{\code{lna_pipeline$get_steps_list()}}
+\item \href{#method-lna_pipeline-steps}{\code{lna_pipeline$steps()}}
 \item \href{#method-lna_pipeline-get_step}{\code{lna_pipeline$get_step()}}
 \item \href{#method-lna_pipeline-get_last_step_spec}{\code{lna_pipeline$get_last_step_spec()}}
 \item \href{#method-lna_pipeline-modify_step}{\code{lna_pipeline$modify_step()}}
@@ -107,6 +108,16 @@ Print a human readable summary of the pipeline
 Return the internal list of step specifications
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{lna_pipeline$get_steps_list()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-lna_pipeline-steps"></a>}}
+\if{latex}{\out{\hypertarget{method-lna_pipeline-steps}{}}}
+\subsection{Method \code{steps()}}{
+Convenience accessor for the internal step list
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{lna_pipeline$steps()}\if{html}{\out{</div>}}
 }
 
 }

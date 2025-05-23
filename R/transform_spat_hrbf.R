@@ -96,6 +96,7 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   plan <- handle$plan
   step_index <- plan$next_index
   fname <- plan$get_next_filename(type)
+
   base_name <- tools::file_path_sans_ext(fname)
 
   if (isTRUE(p$store_dense_matrix)) {
@@ -109,6 +110,46 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   }
 
   desc$datasets <- datasets
+
+
+  mask_arr <- as.array(mask_neurovol)
+  mask_coords_vox <- which(mask_arr, arr.ind = TRUE)
+  mask_coords_world <- voxel_to_world(mask_coords_vox)
+  mask_linear_indices <- as.integer(which(mask_arr))
+  n_total_vox <- length(mask_arr)
+  k_actual <- nrow(C_total)
+
+  if (k_actual > 0) {
+    i_idx <- integer()
+    j_idx <- integer()
+    x_val <- numeric()
+    for (kk in seq_len(k_actual)) {
+      atom <- generate_hrbf_atom(mask_coords_world,
+                                 mask_linear_indices,
+                                 C_total[kk, ],
+                                 sigma_vec[kk],
+                                 kernel_type)
+      i_idx <- c(i_idx, rep.int(kk, length(atom$indices)))
+      j_idx <- c(j_idx, atom$indices)
+      x_val <- c(x_val, atom$values)
+    }
+    B_final <- Matrix::sparseMatrix(i = i_idx, j = j_idx, x = x_val,
+                                    dims = c(k_actual, n_total_vox))
+  } else {
+    B_final <- Matrix::sparseMatrix(i = integer(), j = integer(), x = numeric(),
+                                    dims = c(0, n_total_vox))
+  }
+
+  matrix_path <- "/basis/hrbf/analytic/matrix"
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
+  if (isTRUE(p$store_dense_matrix)) {
+    plan$add_payload(matrix_path, B_final)
+    plan$add_dataset_def(matrix_path, "basis_matrix", as.character(type),
+                         plan$origin_label, as.integer(step_index),
+                         params_json, matrix_path, "eager", dtype = NA_character_)
+    desc$datasets[[length(desc$datasets) + 1L]] <-
+      list(path = matrix_path, role = "basis_matrix")
+  }
 
   plan$add_descriptor(fname, desc)
   handle$plan <- plan

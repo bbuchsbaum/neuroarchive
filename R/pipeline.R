@@ -7,6 +7,21 @@
 #'
 #' @importFrom R6 R6Class
 #' @keywords internal
+style_subtle <- function(x) {
+  if (requireNamespace("pillar", quietly = TRUE)) {
+    pillar::style_subtle(x)
+  } else {
+    x
+  }
+}
+style_bold <- function(x) {
+  if (requireNamespace("pillar", quietly = TRUE)) {
+    pillar::style_bold(x)
+  } else {
+    x
+  }
+}
+
 lna_pipeline <- R6::R6Class(
   "lna_pipeline",
   public = list(
@@ -64,6 +79,16 @@ lna_pipeline <- R6::R6Class(
           )
         }
         lapply(x, validate_single)
+
+        ref_dim <- dim(x[[1]])
+        if (!all(vapply(x, function(el) identical(dim(el), ref_dim), logical(1)))) {
+          abort_lna(
+            "all input elements must have identical dimensions",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:set_input"
+          )
+        }
+
         run_count <- length(x)
         if (is.null(run_ids)) {
           if (!is.null(names(x)) && all(names(x) != "")) {
@@ -107,6 +132,15 @@ lna_pipeline <- R6::R6Class(
 
       self$input <- x
       if (!is.null(chunk_mb_suggestion)) {
+        if (!is.numeric(chunk_mb_suggestion) ||
+            length(chunk_mb_suggestion) != 1 ||
+            chunk_mb_suggestion <= 0) {
+          abort_lna(
+            "chunk_mb_suggestion must be a single positive number",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:set_input"
+          )
+        }
         self$engine_opts$chunk_mb_suggestion <- chunk_mb_suggestion
       } else {
         self$engine_opts$chunk_mb_suggestion <- NULL
@@ -161,21 +195,6 @@ lna_pipeline <- R6::R6Class(
       step_count <- length(self$steps)
       cat("  Steps:", step_count, "\n")
 
-      style_subtle <- function(x) {
-        if (requireNamespace("pillar", quietly = TRUE)) {
-          pillar::style_subtle(x)
-        } else {
-          x
-        }
-      }
-      style_bold <- function(x) {
-        if (requireNamespace("pillar", quietly = TRUE)) {
-          pillar::style_bold(x)
-        } else {
-          x
-        }
-      }
-
       if (step_count > 0) {
         for (i in seq_along(self$steps)) {
           step <- self$steps[[i]]
@@ -209,6 +228,12 @@ lna_pipeline <- R6::R6Class(
     #' @description
     #' Return the internal list of step specifications
     get_steps_list = function() {
+      self$steps
+    },
+
+    #' @description
+    #' Convenience accessor for the internal step list
+    steps = function() {
       self$steps
     },
 
@@ -265,26 +290,7 @@ lna_pipeline <- R6::R6Class(
         )
       }
 
-      find_idx <- function(key) {
-        if (is.numeric(key)) {
-          idx <- as.integer(key[1])
-          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
-          idx
-        } else if (is.character(key)) {
-          typ <- as.character(key[1])
-          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
-          if (length(matches) == 0) return(NA_integer_)
-          matches[length(matches)]
-        } else {
-          abort_lna(
-            "index_or_type must be numeric or character",
-            .subclass = "lna_error_validation",
-            location = "lna_pipeline:modify_step"
-          )
-        }
-      }
-
-      idx <- find_idx(index_or_type)
+      idx <- find_step_index(self$steps, index_or_type)
       if (is.na(idx)) {
         abort_lna(
           "Specified step not found",
@@ -311,26 +317,7 @@ lna_pipeline <- R6::R6Class(
     #' Remove a step from the pipeline.
     #' @param index_or_type Integer index or type string identifying the step.
     remove_step = function(index_or_type) {
-      find_idx <- function(key) {
-        if (is.numeric(key)) {
-          idx <- as.integer(key[1])
-          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
-          idx
-        } else if (is.character(key)) {
-          typ <- as.character(key[1])
-          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
-          if (length(matches) == 0) return(NA_integer_)
-          matches[length(matches)]
-        } else {
-          abort_lna(
-            "index_or_type must be numeric or character",
-            .subclass = "lna_error_validation",
-            location = "lna_pipeline:remove_step"
-          )
-        }
-      }
-
-      idx <- find_idx(index_or_type)
+      idx <- find_step_index(self$steps, index_or_type)
       if (is.na(idx)) {
         abort_lna(
           "Specified step not found",
@@ -367,27 +354,8 @@ lna_pipeline <- R6::R6Class(
         )
       }
 
-      find_idx <- function(key) {
-        if (is.numeric(key)) {
-          idx <- as.integer(key[1])
-          if (idx < 1 || idx > length(self$steps)) return(NA_integer_)
-          idx
-        } else if (is.character(key)) {
-          typ <- as.character(key[1])
-          matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
-          if (length(matches) == 0) return(NA_integer_)
-          matches[length(matches)]
-        } else {
-          abort_lna(
-            "index_or_type must be numeric or character",
-            .subclass = "lna_error_validation",
-            location = "lna_pipeline:insert_step"
-          )
-        }
-      }
-
       if (!is.null(after_index_or_type)) {
-        idx <- find_idx(after_index_or_type)
+        idx <- find_step_index(self$steps, after_index_or_type)
         if (is.na(idx)) {
           abort_lna(
             "Specified step not found",
@@ -397,7 +365,7 @@ lna_pipeline <- R6::R6Class(
         }
         self$steps <- append(self$steps, list(step_spec), after = idx)
       } else if (!is.null(before_index_or_type)) {
-        idx <- find_idx(before_index_or_type)
+        idx <- find_step_index(self$steps, before_index_or_type)
         if (is.na(idx)) {
           abort_lna(
             "Specified step not found",
@@ -542,4 +510,31 @@ lna_pipeline <- R6::R6Class(
     }
   )
 )
+
+#' Find the index of a pipeline step
+#'
+#' Internal helper used by lna_pipeline methods to resolve a step
+#' by numeric position or by its `type` name.
+#'
+#' @param steps List of step specifications.
+#' @param key Numeric index or type string identifying the step.
+#' @return Integer index or `NA_integer_` if no match is found.
+#' @keywords internal
+find_step_index <- function(steps, key) {
+  if (is.numeric(key)) {
+    idx <- as.integer(key[1])
+    if (idx < 1 || idx > length(steps)) return(NA_integer_)
+    idx
+  } else if (is.character(key)) {
+    typ <- as.character(key[1])
+    matches <- which(vapply(steps, function(s) identical(s$type, typ), logical(1)))
+    if (length(matches) == 0) return(NA_integer_)
+    matches[length(matches)]
+  } else {
+    abort_lna(
+      "index_or_type must be numeric or character",
+      .subclass = "lna_error_validation"
+    )
+  }
+}
 
