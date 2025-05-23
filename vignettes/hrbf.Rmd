@@ -1,0 +1,68 @@
+---
+title: "Using Hierarchical Radial Basis Functions in LNA"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using Hierarchical Radial Basis Functions in LNA}
+  %\VignetteEngine{rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette gives a brief tour of the HRBF (Hierarchical Radial Basis
+Function) transforms introduced in LNA version 2.0.
+
+```r
+library(neuroarchive)
+```
+
+## Analytic HRBF
+
+The `spat.hrbf` transform analytically generates a multiresolution RBF
+basis. Only a small descriptor is stored in the file and the basis is
+recreated on the fly by the reader. Coefficients can be computed
+without keeping the dense basis matrix:
+
+```r
+write_lna(x, "analytic.h5", transforms = "spat.hrbf")
+```
+
+Set `compute_atom_importance = TRUE` when writing to record per-atom
+importance metrics which can later be used to keep only the top
+contributing atoms during reconstruction.
+
+## Project then Embed
+
+`spat.hrbf_project` provides a lightweight way to project data onto an
+analytic HRBF dictionary without storing the dictionary itself. This is
+useful when paired with other transforms. For example, the following
+pipeline performs PCA on HRBF coefficients:
+
+```r
+write_lna(x, "pca_hrbf.h5", transforms =
+  c("spat.hrbf_project", "basis.pca", "embed.pca_on_hrbf_coeffs"))
+```
+
+## Compressing and Transferring Empirical Bases
+
+Empirical bases learned from data can be compressed with
+`basis.empirical_hrbf_compressed`. The resulting compact representation
+can later be applied to new data with `embed.transfer_hrbf_basis`.
+
+```r
+# Compress a dense basis matrix B
+write_lna(list(B = B), "dict.h5",
+  transforms = "basis.empirical_hrbf_compressed")
+
+# Apply that basis to new data
+write_lna(x, "transfer.h5",
+  transforms = "embed.transfer_hrbf_basis",
+  transform_params = list(
+    `embed.transfer_hrbf_basis` = list(
+      source_lna_file_path = "dict.h5",
+      source_transform_descriptor_name = "00_basis.empirical_hrbf_compressed.json"
+    )
+  )
+)
+```
+
+These tools allow sophisticated spatial representations while keeping
+files small and read/write operations fast.
