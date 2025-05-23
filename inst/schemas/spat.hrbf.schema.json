@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for analytic HRBF (spat.hrbf) transform",
+  "type": "object",
+  "properties": {
+    "type": { "const": "spat.hrbf" },
+    "version": { "const": "1.0" },
+    "sigma0": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 6.0,
+      "description": "Base RBF width in mm (Gaussian sigma; convert from FWHM if needed) for level 0."
+    },
+    "levels": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 3,
+      "description": "Number of dyadic levels (0 to J)."
+    },
+    "radius_factor": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 2.5,
+      "description": "Factor for Poisson-disk radius relative to sigma_j (r_j = factor * sigma_j)."
+    },
+    "kernel_type": {
+      "enum": ["gaussian", "wendland_c4"],
+      "default": "gaussian",
+      "description": "Type of radial basis function kernel. 'wendland_c4' offers C4 smoothness and compact support (shape parameter derived from sigma)."
+    },
+    "mask_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "(Output by writer) SHA256 hash of the binary mask voxel array used for centre generation."
+    },
+    "compute_atom_importance": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, writer computes and stores data-driven atom importance metrics."
+    },
+    "centres_stored": {
+      "type": "boolean",
+      "default": false,
+      "description": "(Output by writer) true if centres were explicitly stored instead of relying on seed."
+    },
+    "store_dense_matrix": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, writer stores the generated dense basis matrix (e.g., for debugging)."
+    },
+    "seed": { "type": "integer", "description": "RNG seed for Poisson-disk sampling." },
+    "centres_path": {
+      "type": "string",
+      "pattern": "^/.*",
+      "description": "HDF5 path to explicitly stored RBF centre coordinates (K_total x 3 array, float32, mm units, order: x,y,z)."
+    },
+    "sigma_vec_path": {
+      "type": "string",
+      "pattern": "^/.*",
+      "description": "HDF5 path to explicitly stored sigma for each RBF atom (K_total vector, float32, mm)."
+    },
+    "k_actual": {
+      "type": "integer",
+      "description": "(Output by writer) total number of RBF atoms generated/used."
+    },
+    "storage_order": {
+      "enum": ["component_x_voxel", "voxel_x_component"],
+      "default": "component_x_voxel"
+    }
+  },
+  "oneOf": [
+    { "required": ["seed"] },
+    { "required": ["centres_path", "sigma_vec_path"] }
+  ],
+  "required": ["sigma0", "levels", "radius_factor", "kernel_type"],
+  "examples": [
+    {
+      "type": "spat.hrbf",
+      "version": "1.0",
+      "sigma0": 6.0,
+      "levels": 3,
+      "radius_factor": 2.5,
+      "kernel_type": "gaussian",
+      "seed": 1234
+    },
+    {
+      "type": "spat.hrbf",
+      "version": "1.0",
+      "sigma0": 5.0,
+      "levels": 2,
+      "radius_factor": 2.5,
+      "kernel_type": "wendland_c4",
+      "centres_path": "/basis/hrbf/centres",
+      "sigma_vec_path": "/basis/hrbf/sigmas",
+      "store_dense_matrix": true,
+      "storage_order": "voxel_x_component"
+    }
+  ],
+  "additionalProperties": false
+}
