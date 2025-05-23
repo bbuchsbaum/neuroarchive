@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for empirical HRBF compressed basis (basis.empirical_hrbf_compressed)",
+  "type": "object",
+  "properties": {
+    "svd_rank": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 120
+    },
+    "omp_tol": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 0.01,
+      "description": "MSE tolerance for OMP re-expansion of SVD components."
+    },
+    "omp_sparsity_limit": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 32,
+      "description": "Max non-zero HRBF coeffs per SVD component."
+    },
+    "omp_quant_bits": {
+      "type": "integer",
+      "enum": [4, 5, 6, 7, 8],
+      "default": 5,
+      "description": "Bits for quantizing OMP weights."
+    },
+    "hrbf_dictionary_descriptor_path": {
+      "type": "string",
+      "pattern": "^((/.*)|(\\.\\./.*spat\\.hrbf.*\\.json$))",
+      "description": "HDF5 path (e.g., /transforms/00_spat.hrbf.json) or relative JSON pointer (e.g., ../00_spat.hrbf.json) to the analytic spat.hrbf descriptor defining the dictionary."
+    }
+  },
+  "required": ["hrbf_dictionary_descriptor_path"],
+  "additionalProperties": false
+}
