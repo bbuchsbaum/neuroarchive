@@ -7,10 +7,10 @@
 #' options set via `lna_options()`, and any user supplied
 #' `transform_params` (later values override earlier ones).
 #'
-#' @param x Numeric array or list of arrays. Each array must have at
-#'   least three dimensions (`x`, `y`, `z`, and optionally `time`). If a
-#'   list is supplied each element represents a run. When `x` is a single
-#'   array it is treated as one run.
+#' @param x Numeric array or `DenseNeuroVec` (or list of those). Each
+#'   array must have at least three dimensions (`x`, `y`, `z`, and
+#'   optionally `time`). 3D inputs (`DenseNeuroVol` or 3D array) are
+#'   expanded to 4D. Lists denote multiple runs.
 #' @param file Path to the output `.h5` file. If `NULL`, writing occurs
 #'   in memory using the HDF5 core driver and no file is created. The
 #'   returned result then contains `file = NULL`.
@@ -21,7 +21,8 @@
 #' @param mask Optional: a `LogicalNeuroVol` or 3D logical array used to
 #'   subset voxels prior to compression.
 #' @param header Optional named list of header attributes to store under
-#'   `/header`.
+#'   `/header`. When `NULL` and `x` inherits from `NeuroObj` the header is
+#'   created from its `NeuroSpace`.
 #' @param plugins Optional named list saved under the `/plugins` group.
 #' @param block_table Optional data frame specifying spatial block
 #'   coordinates stored at `/spatial/block_table`. Columns must contain
