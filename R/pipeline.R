@@ -64,6 +64,16 @@ lna_pipeline <- R6::R6Class(
           )
         }
         lapply(x, validate_single)
+
+        ref_dim <- dim(x[[1]])
+        if (!all(vapply(x, function(el) identical(dim(el), ref_dim), logical(1)))) {
+          abort_lna(
+            "all input elements must have identical dimensions",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:set_input"
+          )
+        }
+
         run_count <- length(x)
         if (is.null(run_ids)) {
           if (!is.null(names(x)) && all(names(x) != "")) {
