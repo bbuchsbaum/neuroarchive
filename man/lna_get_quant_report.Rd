@@ -8,18 +8,10 @@ lna_get_quant_report(lna_file, transform_index_or_name)
 }
 \arguments{
 \item{lna_file}{Path to an LNA file.}
-\item{transform_index_or_name}{Integer index or descriptor name identifying the transform.}
-}
-\value{
-A list parsed from the quantization report.
+
+\item{transform_index_or_name}{Integer index (0-based) or descriptor name
+identifying the transform.}
 }
 \description{
-Convenience wrapper around \code{lna_get_transform_report()}.
+Thin wrapper around \code{lna_get_transform_report()} for convenience.
 }
-\examples
-{\donttest{
-tmp <- tempfile(fileext = ".h5")
-arr <- array(runif(6), dim = c(2,3))
-write_lna(arr, tmp, transforms = "quant")
-rep <- lna_get_quant_report(tmp, 0)
-}}

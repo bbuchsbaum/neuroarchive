@@ -1,5 +1,5 @@
 library(testthat)
-
+library(neuroarchive)
 # Tests for guess_chunk_dims heuristic
 
 test_that("guess_chunk_dims targets ~1MiB", {

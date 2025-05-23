@@ -104,8 +104,9 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     chunk_dims <- NULL
 
     attempt <- function(level, chunks) {
+      effective_dtype <- if (is.na(dtype_str)) NULL else dtype_str
       h5_write_dataset(root, path, data, chunk_dims = chunks,
-                       compression_level = level, dtype = dtype_str)
+                       compression_level = level, dtype = effective_dtype)
       NULL
     }
 

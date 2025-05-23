@@ -208,7 +208,7 @@ lna_pipeline <- R6::R6Class(
 
     #' @description
     #' Return the internal list of step specifications
-    steps = function() {
+    get_steps_list = function() {
       self$steps
     },
 

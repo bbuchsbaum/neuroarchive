@@ -6,9 +6,16 @@
 \usage{
 \method{forward_step}{quant}(type, desc, handle)
 }
+\arguments{
+\item{type, desc, handle}{Internal arguments used by the transform
+dispatcher.}
+}
+\value{
+None. Updates the write plan and `handle$meta`.
+}
 \description{
-Implements the writer-side quantisation step. Parameters follow the
-quant schema and clipping beyond thresholds aborts unless
-\code{allow_clip} is \code{TRUE}.
+Implements the writer-side quant step. Parameters follow the quant
+schema (`bits`, `method`, `center`, `scale_scope`, `allow_clip`).
+Excessive clipping triggers an error unless `allow_clip` is `TRUE`.
 }
 \keyword{internal}

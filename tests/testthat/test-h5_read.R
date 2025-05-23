@@ -1,7 +1,7 @@
 library(testthat)
 library(hdf5r)
 library(withr)
-
+library(neuroarchive)
 # Tests for h5_read and h5_read_subset
 
 test_that("h5_read returns dataset contents", {

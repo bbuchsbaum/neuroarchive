@@ -6,8 +6,16 @@
 \usage{
 \method{invert_step}{quant}(type, desc, handle)
 }
+\arguments{
+\item{type, desc, handle}{Internal arguments used by the transform
+dispatcher.}
+}
+\value{
+None. Places the reconstructed array into `handle$stash`.
+}
 \description{
-Reads quantised values, validates the \code{quant_bits} attribute and
-reconstructs the original data using stored scale and offset.
+Reads quantized values and reconstructs the original data using the
+stored scale and offset. Validates the `quant_bits` attribute and
+handles legacy files missing it.
 }
 \keyword{internal}

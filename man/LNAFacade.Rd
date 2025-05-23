@@ -2,19 +2,117 @@
 % Please edit documentation in R/facade.R
 \name{LNAFacade}
 \alias{LNAFacade}
-\title{Simple facade for LNA read/write}
-\description{An R6 class providing \code{write()} and \code{read()} methods that
-wrap \code{write_lna()} and \code{read_lna()}. The last written file path is
-stored in \code{last_output}.}
-\section{Methods}{
-\itemize{
-  \item \code{new(transform_params = list())} create a new facade
-  \item \code{write(x, file, transforms, ...)} write data via \code{write_lna}
-  \item \code{read(file, ...)} read data via \code{read_lna}
-}}
+\title{LNAFacade class}
+\description{
+LNAFacade class
+
+LNAFacade class
+}
+\details{
+A lightweight wrapper around \code{write_lna()} and \code{read_lna()}.
+Default transform parameters can be supplied when creating the object.
+The path of the last written file is stored in \code{last_output}.
+}
 \examples{
-f <- LNAFacade$new()
+fac <- LNAFacade$new()
 tmp <- tempfile(fileext = ".h5")
-f$write(array(1, dim = c(1,1,1)), tmp, transforms = character())
-f$read(tmp)
+fac$write(array(1, dim = c(1, 1, 1)), tmp, transforms = character())
+fac$read(tmp)
+}
+\section{Public fields}{
+\if{html}{\out{<div class="r6-fields">}}
+\describe{
+\item{\code{default_transform_params}}{Default transform parameters}
+
+\item{\code{last_output}}{Path of the last written file}
+}
+\if{html}{\out{</div>}}
+}
+\section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-LNAFacade-new}{\code{LNAFacade$new()}}
+\item \href{#method-LNAFacade-write}{\code{LNAFacade$write()}}
+\item \href{#method-LNAFacade-read}{\code{LNAFacade$read()}}
+\item \href{#method-LNAFacade-clone}{\code{LNAFacade$clone()}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-LNAFacade-new"></a>}}
+\if{latex}{\out{\hypertarget{method-LNAFacade-new}{}}}
+\subsection{Method \code{new()}}{
+Create a new LNAFacade
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$new(transform_params = list())}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{transform_params}}{Named list of default transform parameters}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-LNAFacade-write"></a>}}
+\if{latex}{\out{\hypertarget{method-LNAFacade-write}{}}}
+\subsection{Method \code{write()}}{
+Write data to an LNA file
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$write(x, file, transforms, transform_params = NULL, ...)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{x}}{Array or list of arrays}
+
+\item{\code{file}}{Output path}
+
+\item{\code{transforms}}{Character vector of transforms}
+
+\item{\code{transform_params}}{Optional named list overriding defaults}
+
+\item{\code{...}}{Additional arguments forwarded to \code{write_lna()}}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-LNAFacade-read"></a>}}
+\if{latex}{\out{\hypertarget{method-LNAFacade-read}{}}}
+\subsection{Method \code{read()}}{
+Read data from an LNA file
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$read(file, ...)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{file}}{Path to an LNA file}
+
+\item{\code{...}}{Arguments forwarded to \code{read_lna()}}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-LNAFacade-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-LNAFacade-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
 }

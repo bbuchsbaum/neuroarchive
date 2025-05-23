@@ -8,18 +8,20 @@ lna_get_transform_report(lna_file, transform_index_or_name)
 }
 \arguments{
 \item{lna_file}{Path to an LNA file.}
-\item{transform_index_or_name}{Integer index or descriptor name identifying the transform.}
+
+\item{transform_index_or_name}{Integer index (0-based) or descriptor name
+identifying the transform.}
 }
 \value{
 A list parsed from the JSON report.
 }
 \description{
-Opens the LNA file, reads the transform descriptor and returns the parsed JSON report for that transform.
+Opens the HDF5 file, reads the descriptor for the chosen transform and
+returns the parsed JSON report associated with that transform.
 }
-\examples
-{\donttest{
+\examples{
 tmp <- tempfile(fileext = ".h5")
 arr <- array(runif(6), dim = c(2,3))
 write_lna(arr, tmp, transforms = "quant")
 rep <- lna_get_transform_report(tmp, 0)
-}}
+}

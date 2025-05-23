@@ -1,3 +1,4 @@
+#' @importFrom hdf5r H5File
 #' Write data to an LNA file
 #'
 #' Compresses one or more fMRI runs using a sequence of transforms and
@@ -59,17 +60,53 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   checksum <- match.arg(checksum)
 
   in_memory <- FALSE
-  file_to_use <- file # Will be updated if file is NULL
+  file_to_use <- file
+  h5 <- NULL 
 
   if (is.null(file)) {
-    # Ensure tmp is uniquely named to avoid clashes if this function is called multiple times with file=NULL
-    tmp_for_mem <- tempfile(fileext = ".h5") 
-    file_to_use <- tmp_for_mem # Used as the 'name' for H5File$new with core driver
+    file_to_use <- tempfile(fileext = ".h5") 
     in_memory <- TRUE
+    cat(paste0("[write_lna] In-memory HDF5 requested. Using temp name: ", file_to_use, " and direct H5File$new after library(hdf5r).\n"))
+    
+    tryCatch({
+      library(hdf5r) # Explicitly load hdf5r
+      h5 <- H5File$new(file_to_use, mode = 'w', driver = 'core', driver_info = list(backing_store = FALSE))
+      
+      if (!is.null(h5) && h5$is_valid) {
+        warning(paste0("In-memory HDF5 file (core driver) created via H5File$new (after library call) using temp name: ", file_to_use))
+      } else {
+        stop(paste0("Failed to create in-memory HDF5 file using H5File$new (after library call). H5File object is NULL or invalid. Temp name: ", file_to_use))
+      }
+    }, error = function(e) {
+      cat(paste0("[write_lna] Error during H5File$new (after library call) for in-memory HDF5: ", conditionMessage(e), "\n"))
+      h5 <- NULL 
+      stop(paste0("Error creating in-memory HDF5 file with H5File$new (after library call): ", conditionMessage(e), ". Temp name: ", file_to_use))
+    })
+
   } else {
-    cat(paste0("[write_lna] file is provided: ", file, ", preparing for disk-based HDF5.\n"))
-    file_to_use <- file
+    cat(paste0("[write_lna] On-disk HDF5 requested: ", file_to_use, "\n"))
+    # Use open_h5 for on-disk files (which uses do.call with getNamespace)
+    h5 <- open_h5(file_to_use, mode = "w")
   }
+
+  if (is.null(h5) || !h5$is_valid) {
+    stop(paste0("Failed to open or create HDF5 file object for: ", file_to_use, 
+                if(in_memory) " (in-memory attempt)" else " (on-disk attempt)",
+                ". H5File object is NULL or invalid."))
+  }
+  
+  cat(paste0("[write_lna] H5File object created. Is valid: ", h5$is_valid, "\n"))
+
+  on.exit({
+    if (!is.null(h5) && h5$is_valid) {
+      cat(paste0("[write_lna] Closing HDF5 file: ", h5$filename, "\n"))
+      h5$close_all()
+    }
+    if (in_memory && file.exists(file_to_use)) {
+      cat(paste0("[write_lna] Deleting temp file used for in-memory HDF5: ", file_to_use, "\n"))
+      unlink(file_to_use, force = TRUE)
+    }
+  })
 
   cat("[write_lna] Calling core_write...\n")
   result <- core_write(x = x, transforms = transforms,
@@ -111,54 +148,7 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
       }
     }
   }
-
-  cat(paste0("[write_lna] Attempting to open HDF5 file: ", file_to_use, " in_memory: ", in_memory, "\n"))
-  h5 <- NULL # Initialize h5 to NULL
-  tryCatch({
-    if (in_memory) {
-      message("[write_lna:debug] In-memory branch entered.")
-      warning(paste0("In-memory HDF5 file (core driver) requested. tempfile: ", file_to_use), call. = FALSE)
-      message("[write_lna:debug] Issued core driver warning. Attempting H5File$new with driver='core'.")
-      h5 <- hdf5r::H5File$new(name = file_to_use, mode = "w", driver = "core", backing_store = FALSE)
-      message("[write_lna:debug] H5File$new for core driver seemingly succeeded.")
-      cat("[write_lna] HDF5 core driver used for in-memory file.\n")
-    } else {
-      cat("[write_lna] Opening HDF5 for disk-based write using open_h5 utility.\n")
-      h5 <- open_h5(file_to_use, mode = "w") # Use the utility for standard disk files
-    }
-    cat(paste0("[write_lna] open_h5 call or H5File$new (core) completed. H5 object valid: ", ifelse(!is.null(h5) && h5$is_valid, "TRUE", "FALSE"), "\n"))
-  }, error = function(e) {
-    cat(paste0("[write_lna] ERROR during open_h5: ", conditionMessage(e), "\n"))
-    # To ensure h5 is NULL if open_h5 failed before assignment or with an invalid object
-    h5 <<- NULL 
-    stop(e) # Re-throw the error to halt execution as expected
-  })
   
-  # If h5 is NULL here, it means open_h5 failed and error was re-thrown, 
-  # or it failed in a way that didn't assign to h5 before erroring and stop() was called.
-  # However, if we want to be super defensive for the on.exit:
-  if (is.null(h5) || !inherits(h5, "H5File") || !h5$is_valid) {
-     cat("[write_lna] HDF5 handle is NULL or invalid after open_h5 attempt and before materialise_plan. Aborting write_lna.\n")
-     # Depending on desired behavior, could return an error or a specific result indicating failure.
-     # For now, let it proceed to on.exit if h5 is NULL, close_h5_safely handles NULL.
-     # But if it should stop, this is a place.
-  }
-
-  
-  on.exit({
-    if (!is.null(h5)) {
-      cat(paste0("[write_lna] on.exit: Is h5 valid before close? ", h5$is_valid, "\n"))
-    }
-    neuroarchive:::close_h5_safely(h5)
-
-    # Check if file exists after attempted close, especially if in_memory was false
-    if (!in_memory && !is.null(file_to_use)) {
-        cat(paste0("[write_lna] on.exit: Checking file existence for ", file_to_use, " after close: ", file.exists(file_to_use), "\n"))
-    }
-  }, add = TRUE)
-
-  # plugins_from_handle <- result$handle$meta$plugins # Original line
-  # Using a safer access pattern in case result$handle$meta or plugins is NULL
   plugins_from_handle <- list()
   if (!is.null(result) && !is.null(result$handle) && !is.null(result$handle$meta) && !is.null(result$handle$meta$plugins)) {
     plugins_from_handle <- result$handle$meta$plugins
@@ -172,9 +162,9 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 
   cat("[write_lna] Calling materialise_plan...\n")
   materialise_plan(h5, result$plan,
-                   checksum = checksum, # Pass the checksum argument
-                   header = header_from_handle, # use safe version
-                   plugins = plugins_from_handle) # use safe version
+                   checksum = checksum,
+                   header = header_from_handle,
+                   plugins = plugins_from_handle)
   cat("[write_lna] materialise_plan returned.\n")
 
   if (!is.null(block_table)) {
@@ -187,11 +177,16 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   final_out_file <- if (in_memory) NULL else file_to_use
   cat(paste0("[write_lna] Final out file determination: ", ifelse(is.null(final_out_file), "NULL", final_out_file), "\n"))
   
-out <- list(file = final_out_file, plan = result$plan,
-              header = header_from_handle)
-  class(out) <- c("lna_write_result", class(out))
-  cat("[write_lna] Exiting successfully.\n")
-  invisible(out)
+  lnaobj <- list(file = final_out_file, 
+                 transform_params = header_from_handle$transform_params,
+                 header = header_from_handle)
+  
+  class(lnaobj) <- c("lna_write_result", "list") # Ensure correct class name
+  
+  cat(paste0("[write_lna] Successfully created lna object. File path in object: ", 
+             ifelse(is.null(lnaobj$file), "NULL (in-memory)", lnaobj$file), "\n"))
+  
+  return(lnaobj)
 }
 
 #' Read data from an LNA file

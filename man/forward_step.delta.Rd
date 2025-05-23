@@ -7,9 +7,11 @@
 \method{forward_step}{delta}(type, desc, handle)
 }
 \description{
-Computes first-order differences along a specified axis. When
-\code{coding_method = "rle"} the differences are compressed using the
-\code{rle} package and stored as a two column matrix of run lengths and
-values.
+Computes first-order differences along a specified axis and optionally
+run-length encodes the result.
+The name stored in `desc$outputs` (if supplied) controls the key used to
+stash the resulting delta stream. If `desc$outputs` is `NULL`, the default
+key `"delta_stream"` is used. An empty character vector results in no
+stash update.
 }
 \keyword{internal}

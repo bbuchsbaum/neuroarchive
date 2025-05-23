@@ -9,7 +9,8 @@ h5_write_dataset(
   path,
   data,
   chunk_dims = NULL,
-  compression_level = 0
+  compression_level = 0,
+  dtype = NULL
 )
 }
 \arguments{

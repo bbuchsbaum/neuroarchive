@@ -1,4 +1,5 @@
 library(testthat)
+library(neuroarchive)
 
 # Source functions if not running via devtools::test()
 # source("../R/dispatch.R")

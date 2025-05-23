@@ -93,7 +93,7 @@ Add a definition for an HDF5 dataset.
   params_json,
   payload_key,
   write_mode,
-  dtype
+  dtype = NA_character_
 )}\if{html}{\out{</div>}}
 }
 
@@ -115,7 +115,9 @@ Add a definition for an HDF5 dataset.
 \item{\code{payload_key}}{Character string, key linking to the entry in `self$payloads`.}
 
 \item{\code{write_mode}}{Character string, requested write mode ("eager"/"stream").}
-\item{\code{dtype}}{Optional character string naming the storage datatype (e.g., "uint8", "uint16").}
+
+\item{\code{dtype}}{Optional character string naming the storage datatype (e.g.,
+"uint8", "uint16").}
 }
 \if{html}{\out{</div>}}
 }

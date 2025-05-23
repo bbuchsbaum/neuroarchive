@@ -7,9 +7,9 @@
 \method{invert_step}{delta}(type, desc, handle)
 }
 \description{
-Reconstructs data from the delta representation written by
-\code{\link{forward_step.delta}}. If run-length encoding was used, the
-stored runs are expanded back to the full set of differences before
-reconstruction.
+Decodes the delta representation written by
+\code{\link{forward_step.delta}}. When `coding_method` was
+`'rle'`, the stored matrix of run lengths and values is expanded back to
+the full set of differences before reconstruction.
 }
 \keyword{internal}

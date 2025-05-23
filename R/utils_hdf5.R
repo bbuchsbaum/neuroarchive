@@ -4,7 +4,7 @@
 #'   and deleting attributes associated with HDF5 objects (groups or datasets).
 #'
 #' @import hdf5r
-#' @importFrom hdf5r H5P_DATASET_XFER H5P_FILE_CREATE
+#' @importFrom hdf5r H5P_DATASET_XFER H5P_FILE_CREATE H5P_DEFAULT
 #' @keywords internal
 
 # Check if the object is a valid hdf5r object that can hold attributes
@@ -290,7 +290,7 @@ h5_write_dataset <- function(h5_group, path, data,
   invisible(TRUE)
 }
 
-
+#' @importFrom hdf5r H5File H5P_FILE_CREATE H5P_DEFAULT
 #' Open an HDF5 file with basic error handling
 #'
 #' Wrapper around `hdf5r::H5File$new` that throws a clearer error message on
@@ -298,42 +298,72 @@ h5_write_dataset <- function(h5_group, path, data,
 #'
 #' @param path Path to the HDF5 file.
 #' @param mode File mode passed to `H5File$new`.
-#' @param ... Additional arguments forwarded to `H5File$new`.
+#' @param ... Additional arguments forwarded to `H5File$new` (e.g., 
+#'   `driver`, `driver_info`, `file_create_pl`, `file_access_pl`).
 #' @return An `H5File` object.
 #' @details When `mode` is `"w"` the file is truncated if it already
 #'   exists. Use a unique temporary file and `file.rename()` when
 #'   writing in parallel.
 #' @keywords internal
 open_h5 <- function(path, mode = "a", ...) {
-
+  
   stopifnot(is.character(path), length(path) == 1)
   stopifnot(is.character(mode), length(mode) == 1)
 
-  # Start with unnamed path, then named mode
-  h5_args <- list(path, mode = mode)
+  h5_args <- list()
+  h5_args$filename <- path # First argument to H5File$new is 'filename'
+  h5_args$mode <- mode
 
-  if (grepl("^w", mode)) {
-    fcpl <- H5P_FILE_CREATE$new()
-    h5_args <- c(h5_args, file_create_pl = fcpl)
-  }
+  additional_args_from_dots <- list(...)
 
-  additional_args <- list(...)
-
-  additional_args <- additional_args[!sapply(additional_args, is.null)]
-
-  if (length(additional_args) > 0) {
-    h5_args <- c(h5_args, additional_args)
-  }
-
-  tryCatch(
-    do.call(hdf5r::H5File$new, h5_args),
-    error = function(e) {
-      stop(
-        sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
-        call. = FALSE
-      )
+  # Add File Create Property List if mode is 'w' and not already in ...
+  # H5File$new uses H5P_DEFAULT for fcpl if not specified, which is usually fine for 'w'.
+  # However, to match your previous simple version explicitly:
+  if (grepl("^[wx]", mode) && is.null(additional_args_from_dots$file_create_pl)) {
+    fcpl <- tryCatch(hdf5r::H5P_FILE_CREATE$new(), error = function(e) NULL)
+    if (!is.null(fcpl)) {
+      h5_args$file_create_pl <- fcpl
     }
-  )
+  }
+
+  # Combine with other arguments from ...
+  # Arguments in additional_args_from_dots will override those set above if names clash (e.g., custom file_create_pl)
+  if (length(additional_args_from_dots) > 0) {
+    for (nm in names(additional_args_from_dots)) {
+        if (!is.null(additional_args_from_dots[[nm]])) { # only add if not NULL
+            h5_args[[nm]] <- additional_args_from_dots[[nm]]
+        }
+    }
+  }
+
+  
+  
+  # Ensure no NULL values are passed to do.call if an argument was explicitly set to NULL
+  h5_args <- h5_args[!sapply(h5_args, is.null)]
+
+  h5f <- NULL
+  tryCatch({
+    H5File_new_func <- getNamespace("hdf5r")$H5File$new
+    if (!is.function(H5File_new_func)) {
+         stop("getNamespace('hdf5r')$H5File$new did not return a function.")
+    }
+
+    browser()
+    h5f <- do.call(H5File_new_func, h5_args[1:2])
+
+    if (is.null(h5f) || !inherits(h5f, "H5File") || !h5f$is_valid) { # Using active binding `is_valid`
+      arg_summary_str <- paste(names(h5_args), sapply(h5_args, function(x) if(is.atomic(x) && length(x)==1) x else paste0("<",class(x)[1],">")), collapse=", ")
+      stop(sprintf("H5File$new call returned an invalid or NULL object. Args: [%s]", arg_summary_str))
+    }
+  }, error = function(e) {
+    arg_summary_str <- paste(names(h5_args), sapply(h5_args, function(x) if(is.atomic(x) && length(x)==1) x else paste0("<",class(x)[1],">")), collapse=", ")
+    stop(
+      sprintf("Failed to open/create HDF5 file '%s'. Args: [%s]. Original error: %s",
+              path, arg_summary_str, conditionMessage(e)),
+      call. = FALSE
+    )
+  })
+  return(h5f)
 }
 
 #' Close an HDF5 file handle if valid

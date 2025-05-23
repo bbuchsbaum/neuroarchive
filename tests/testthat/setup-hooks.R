@@ -1,3 +1,4 @@
+library(hdf5r)
 message("[neuroarchive-test-setup] Setting HDF5_PLUGIN_PATH to empty string.")
 original_path <- Sys.getenv("HDF5_PLUGIN_PATH", unset = "<UNSET>")
 message(paste0("[neuroarchive-test-setup] Original HDF5_PLUGIN_PATH was: '", original_path, "'"))
@@ -19,4 +20,15 @@ tryCatch({
   }
 }, error = function(e) {
   message(paste0("[neuroarchive-test-setup] Error during HDF5 check: ", e$message))
-}) 
+})
+
+message("--- HDF5R debug --- ")
+tryCatch({
+  message(paste0("hdf5r::H5File class: ", class(hdf5r::H5File)))
+  message(paste0("is.function(hdf5r::H5File$new): ", is.function(hdf5r::H5File$new)))
+  message("ls(\"package:hdf5r\"):")
+  print(ls("package:hdf5r"))
+}, error = function(e) {
+  message(paste0("Error during hdf5r debug prints: ", e$message))
+})
+message("--- End HDF5R debug --- ") 

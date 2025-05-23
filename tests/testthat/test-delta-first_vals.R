@@ -1,5 +1,6 @@
 library(testthat)
 library(hdf5r)
+library(neuroarchive)
 
 # ensure first_vals dataset dimension is stored and read correctly
 

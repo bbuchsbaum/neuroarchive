@@ -1,4 +1,5 @@
 library(testthat)
+library(neuroarchive)   
 
 #' Mock forward_step methods that simply add descriptors to the plan
 forward_step.tA <- function(type, desc, handle) {

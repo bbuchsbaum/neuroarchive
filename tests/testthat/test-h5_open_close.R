@@ -1,6 +1,7 @@
 library(testthat)
 library(hdf5r)
 library(withr)
+library(neuroarchive)
 
 # Tests for open_h5 and close_h5_safely helpers
 
