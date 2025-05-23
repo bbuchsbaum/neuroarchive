@@ -3,15 +3,31 @@
   "title": "Parameters for 'temporal' transform",
   "type": "object",
   "properties": {
-    "kind": {"type": "string", "enum": ["dct", "bspline", "dpss", "polynomial", "wavelet"], "default": "dct"},
-    "n_basis": {"type": "integer", "minimum": 1, "default": 20},
-    "order": {"type": "integer", "minimum": 1, "default": 3},
-    "knot_vector_path": {"type": "string", "default": ""},
-    "knot_spacing_method": {"type": "string", "enum": ["equidistant", "quantile"], "default": "equidistant"},
-    "time_bandwidth_product": {"type": "number", "default": 3.0},
-    "n_tapers": {"type": "integer", "minimum": 1, "default": 1},
-    "wavelet": {"type": "string", "default": "db4"},
-    "scope": {"type": "string", "enum": ["global", "voxelwise"], "default": "global"}
+    "type": {"type": "string"},
+    "version": {"type": "string"},
+    "inputs": {"oneOf": [{"type": "array"}, {"type": "string"}]},
+    "outputs": {"oneOf": [{"type": "array"}, {"type": "string"}]},
+    "datasets": {"type": "array"},
+    "params": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {"type": "string", "enum": ["dct", "bspline", "dpss", "polynomial", "wavelet"], "default": "dct"},
+            "n_basis": {"type": "integer", "minimum": 0, "default": 20},
+            "order": {"type": "integer", "minimum": 1, "default": 3},
+            "knot_vector_path": {"type": "string", "default": ""},
+            "knot_spacing_method": {"type": "string", "enum": ["equidistant", "quantile"], "default": "equidistant"},
+            "time_bandwidth_product": {"type": "number", "default": 3.0},
+            "n_tapers": {"type": "integer", "minimum": 1, "default": 1},
+            "wavelet": {"type": "string", "default": "db4"},
+            "scope": {"type": "string", "enum": ["global", "voxelwise"], "default": "global"}
+          },
+          "additionalProperties": false
+        },
+        {"type": "array", "maxItems": 0}
+      ]
+    }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

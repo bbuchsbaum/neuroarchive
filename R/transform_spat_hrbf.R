@@ -64,7 +64,7 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   }
 
   p$k_actual <- nrow(C_total)
-  mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256", serialize = FALSE)
+  mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256")
   p$mask_hash <- paste0("sha256:", mask_hash_val)
 
 
@@ -182,7 +182,7 @@ invert_step.spat.hrbf <- function(type, desc, handle) {
     sigma_vec <- sigs
   }
 
-  mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256", serialize = FALSE)
+  mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256")
   current_hash <- paste0("sha256:", mask_hash_val)
   if (!is.null(p$mask_hash) && !identical(current_hash, p$mask_hash)) {
     strict <- lna_options("read.strict_mask_hash_validation")$read.strict_mask_hash_validation %||% FALSE

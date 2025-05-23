@@ -55,34 +55,53 @@ lna_get_transform_report <- function(lna_file, transform_index_or_name) {
 
   dset <- root[[report_path]]
   on.exit(if (!is.null(dset) && inherits(dset, "H5D")) dset$close(), add = TRUE)
-  raw_data <- dset$read()
   
-  # Handle case where raw data was stored as integers for hdf5r compatibility
-  if (is.integer(raw_data) && h5_attr_exists(dset, "compression")) {
-    raw_data <- as.raw(raw_data)
-  }
+  # When the HDF5 datatype is H5T_STD_U8LE (unsigned 8-bit int),
+  # dset$read() returns a numeric vector of byte values.
+  report_bytes_numeric <- dset$read()
+
+  # Convert this numeric vector of bytes into an R raw vector.
+  current_raw_vector <- as.raw(report_bytes_numeric)
   
+  # Handle decompression if the attribute exists.
   if (h5_attr_exists(dset, "compression")) {
     comp <- h5_attr_read(dset, "compression")
     if (identical(comp, "gzip")) {
-      raw_data <- memDecompress(raw_data, type = "gzip")
+      current_raw_vector <- memDecompress(current_raw_vector, type = "gzip")
+    }
+  } else {
+    # Check for gzip magic number (0x1f8b or 0x789c for different gzip formats)
+    # 0x78 0x9c is the most common gzip header for default compression level
+    if (length(current_raw_vector) >= 2) {
+      if ((current_raw_vector[1] == as.raw(0x78) && current_raw_vector[2] == as.raw(0x9c)) ||
+          (current_raw_vector[1] == as.raw(0x1f) && current_raw_vector[2] == as.raw(0x8b))) {
+        current_raw_vector <- memDecompress(current_raw_vector, type = "gzip")
+      }
     }
   }
 
-  # Ensure json_str is a character string for jsonlite::fromJSON
-  # If raw_data is raw (either originally or after decompression), convert to char.
-  # If it was already character, it remains character.
-  json_str <- if (is.raw(raw_data)) {
-    rawToChar(raw_data)
-  } else {
-    as.character(raw_data)
+  # Find the first null byte, if any, and truncate the raw vector there.
+  # This prevents rawToChar from erroring on embedded nulls if the actual content ends before them.
+  first_null_idx <- which(current_raw_vector == as.raw(0))
+  if (length(first_null_idx) > 0) {
+    current_raw_vector <- current_raw_vector[1:(min(first_null_idx) - 1)]
   }
-  
-  # Remove potential leading/trailing whitespace
-  json_str <- trimws(json_str)
-  # Explicitly remove null characters which can cause parsing issues
-  json_str <- gsub("\\0", "", json_str, fixed = TRUE)
 
+  # Convert the (potentially decompressed and truncated) raw vector to a character string.
+  json_str <- rawToChar(current_raw_vector)
+  
+  # Explicitly mark encoding as UTF-8 before iconv, in case rawToChar doesn't or marks it differently.
+  Encoding(json_str) <- "UTF-8"
+  
+  # Clean the string:
+  # 1. Sanitize UTF-8 encoding first, as subsequent operations assume valid UTF-8.
+  #    Remove invalid sequences.
+  json_str <- iconv(json_str, from = "UTF-8", to = "UTF-8", sub = "") 
+  
+  # 2. Trim whitespace.
+  json_str <- trimws(json_str)
+
+  # Parse the cleaned JSON string.
   jsonlite::fromJSON(json_str, simplifyVector = TRUE,
                      simplifyDataFrame = FALSE, simplifyMatrix = FALSE)
 }

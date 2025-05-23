@@ -4,16 +4,32 @@
   "title": "Parameters for 'myorg.sparsepca' transform",
   "type": "object",
   "properties": {
-    "k": {"type": "integer", "minimum": 1, "default": 50},
-    "alpha": {"type": "number", "default": 0.001},
-    "whiten": {"type": "boolean", "default": false},
-    "seed": {"type": "integer", "default": 42},
-    "storage_order": {
-      "type": "string",
-      "enum": ["component_x_voxel", "voxel_x_component"],
-      "default": "component_x_voxel"
+    "type": {"type": "string"},
+    "version": {"type": "string"},
+    "inputs": {"oneOf": [{"type": "array"}, {"type": "string"}]},
+    "outputs": {"oneOf": [{"type": "array"}, {"type": "string"}]},
+    "datasets": {"type": "array"},
+    "params": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "k": {"type": "integer", "minimum": 1, "default": 50},
+            "n_components": {"type": "integer", "minimum": 1, "description": "Alias for k parameter"},
+            "alpha": {"type": "number", "default": 0.001},
+            "whiten": {"type": "boolean", "default": false},
+            "seed": {"type": "integer", "default": 42},
+            "storage_order": {
+              "type": "string",
+              "enum": ["component_x_voxel", "voxel_x_component"],
+              "default": "component_x_voxel"
+            }
+          },
+          "additionalProperties": false
+        },
+        {"type": "array", "maxItems": 0}
+      ]
     }
   },
-  "required": ["k"],
-  "additionalProperties": false
+  "additionalProperties": true
 }

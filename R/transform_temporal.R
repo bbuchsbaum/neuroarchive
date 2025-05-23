@@ -67,6 +67,7 @@ forward_step.temporal <- function(type, desc, handle) {
 
   args <- c(list(kind = kind, n_time = n_time, n_basis = n_basis, order = order),
             p)
+  
   basis <- do.call(temporal_basis, args)
 
   # Delegate projection logic to per-kind methods for extensibility
@@ -123,6 +124,8 @@ forward_step.temporal <- function(type, desc, handle) {
   
   basis_payload <- basis
   plan$add_payload(basis_path, basis_payload)
+  
+
 
   plan$add_dataset_def(basis_path, "temporal_basis", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
@@ -190,6 +193,8 @@ invert_step.temporal <- function(type, desc, handle) {
     message(sprintf("[invert_step.temporal] Coeff dims: %s", paste(dim(coeff), collapse = "x")))
   }
   
+
+  
   if (dbg) {
     message("--- Invert Step Pre-Dense Calculation Debug ---")
     if (nrow(basis) >= 2 && ncol(basis) >= 2) {
@@ -204,16 +209,67 @@ invert_step.temporal <- function(type, desc, handle) {
   
   # Check for valid matrix dimensions before multiplication
   if (!is.matrix(basis) || !is.matrix(coeff)) {
-    abort_lna("Invalid matrix dimensions for multiplication", .subclass="lna_error_internal", location="invert_step.temporal")
-  }
+    # Handle case where basis/coeff are stored dimension vectors from empty arrays
+    if (length(basis) == 2 && length(coeff) == 2 && 
+        all(basis >= 0) && all(coeff >= 0) && 
+        all(basis == as.integer(basis)) && all(coeff == as.integer(coeff))) {
+      # These look like stored dimensions - reconstruct the original empty matrices
+      basis_dims <- as.integer(basis)
+      coeff_dims <- as.integer(coeff)
+      
+      
+      
+      # Reconstruct the matrices
+      basis <- array(numeric(0), dim = basis_dims)
+      coeff <- array(numeric(0), dim = coeff_dims)
+      
+      # Now check if we can do matrix multiplication
+      if (basis_dims[2] != coeff_dims[1]) {
+        # Dimensions don't match for multiplication - create empty result
+        dense <- matrix(numeric(0), nrow = basis_dims[1], ncol = coeff_dims[2])
+        
+      } else {
+        # Dimensions match - do the multiplication (which will result in empty matrix)
+        dense <- basis %*% coeff
+        
+      }
+    } else if (length(basis) == 0 && length(coeff) == 0) {
+      # Both are empty - create empty result matrix
+      dense <- matrix(numeric(0), nrow = 0, ncol = 0)
+      
+    } else {
+      abort_lna("Invalid matrix dimensions for multiplication", .subclass="lna_error_internal", location="invert_step.temporal")
+    }
+  } else {
+    # Special case: if basis is 0x0 (n_time=0, n_basis=0), create empty result with correct dimensions
+    if (nrow(basis) == 0 && ncol(basis) == 0) {
+      # When n_time=0, we need to reconstruct to match the expected output dimensions
+      # The output should have 0 rows (time) and the same number of columns as the original data
+      # We can infer the number of columns from the coefficient matrix
+      n_features <- if (is.matrix(coeff) && ncol(coeff) > 0) ncol(coeff) else 1
+      dense <- matrix(numeric(0), nrow = 0, ncol = n_features)
+      
+    } else {
+      # Check that matrix dimensions are compatible for multiplication
+      if (ncol(basis) != nrow(coeff)) {
+        abort_lna(
+          sprintf("Matrix dimension mismatch: basis has %d columns but coeff has %d rows", 
+                  ncol(basis), nrow(coeff)),
+          .subclass = "lna_error_internal", 
+          location = "invert_step.temporal"
+        )
+      }
 
-  dense <- temporal_reconstruct(desc$params$kind %||% "dct", basis, coeff)
+      dense <- temporal_reconstruct(desc$params$kind %||% "dct", basis, coeff)
+    }
+  }
+  
   if (dbg) message(sprintf("[invert_step.temporal] Dense dims after matmult: %s", paste(dim(dense), collapse="x")))
   if (dbg && nrow(dense) >= 2 && ncol(dense) >= 2) {
     message("dense[1:2, 1:2]:")
     print(dense[1:2, 1:2, drop = FALSE])
   }
-
+  
   subset <- handle$subset
   if (!is.null(subset$roi_mask)) {
     roi <- as.logical(subset$roi_mask)
@@ -248,6 +304,10 @@ invert_step.temporal <- function(type, desc, handle) {
 #' Generate an orthonormal DCT basis matrix
 #' @keywords internal
 .dct_basis <- function(n_time, n_basis) {
+  if (n_basis <= 0) {
+    return(matrix(0, nrow = n_time, ncol = 0))
+  }
+  
   t <- seq_len(n_time) - 0.5
   k <- seq_len(n_basis) - 1
   B <- sqrt(2 / n_time) * cos(outer(t, k, function(ti, ki) pi * ti * ki / n_time))

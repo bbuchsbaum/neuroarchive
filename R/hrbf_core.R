@@ -22,7 +22,7 @@ hrbf_generate_basis <- function(params, mask, h5_root = NULL) {
 hrbf_project_matrix <- function(X, mask, params, h5_root = NULL) {
   B <- hrbf_generate_basis(params, mask, h5_root)
   X_dense <- as_dense_mat(X)
-  tcrossprod(X_dense, B)
+  Matrix::tcrossprod(X_dense, B)  # Use Matrix operations to match transform behavior
 }
 
 #' @rdname hrbf_generate_basis
@@ -31,5 +31,5 @@ hrbf_project_matrix <- function(X, mask, params, h5_root = NULL) {
 hrbf_reconstruct_matrix <- function(coeff, mask, params, h5_root = NULL) {
   B <- hrbf_generate_basis(params, mask, h5_root)
   coeff_dense <- as_dense_mat(coeff)
-  coeff_dense %*% B
+  coeff_dense %*% B  # Matrix multiplication will preserve Matrix objects
 }

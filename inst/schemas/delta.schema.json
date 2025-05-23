@@ -3,17 +3,35 @@
   "title": "Parameters for 'delta' transform",
   "type": "object",
   "properties": {
-
-    "order": {"type": "integer", "default": 1, "minimum": 1, "maximum": 1},
-    "axis": {"type": "integer", "default": -1},
-    "reference_value_storage": {
-      "type": "string",
-      "enum": ["first_value_verbatim", "reconstruct_from_deltas"],
-      "default": "first_value_verbatim"
-    },
-
-    "coding_method": {"type": "string", "enum": ["none", "rle", "range_coded"], "default": "none"}
-
+    "type": {"type": "string"},
+    "version": {"type": "string"},
+    "inputs": {"oneOf": [{"type": "array"}, {"type": "string"}]},
+    "outputs": {"oneOf": [{"type": "array"}, {"type": "string"}]},
+    "datasets": {"type": "array"},
+    "params": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "order": {"type": "integer", "default": 1, "minimum": 1, "maximum": 1},
+            "axis": {"type": "integer", "default": -1},
+            "orig_dims": {"type": "array", "items": {"type": "integer"}, "description": "Original dimensions for reconstruction"},
+            "reference_value_storage": {
+              "type": "string",
+              "enum": ["first_value_verbatim", "reconstruct_from_deltas"],
+              "default": "first_value_verbatim"
+            },
+            "coding_method": {
+              "type": "string",
+              "enum": ["none", "rle", "range_coded"],
+              "default": "none"
+            }
+          },
+          "additionalProperties": false
+        },
+        {"type": "array", "maxItems": 0}
+      ]
+    }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

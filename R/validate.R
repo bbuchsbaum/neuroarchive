@@ -149,9 +149,15 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
         }
 
         json <- jsonlite::toJSON(desc, auto_unbox = TRUE)
-        valid <- jsonvalidate::json_validate(json, schema_path, verbose = TRUE)
+        valid <- jsonvalidate::json_validate(json, schema_path, verbose = TRUE, engine = "ajv")
         if (!isTRUE(valid)) {
-          fail(sprintf("Descriptor %s failed schema validation", nm))
+          errors <- attr(valid, "errors")
+          error_message <- sprintf("Descriptor %s failed schema validation", nm)
+          if (!is.null(errors) && length(errors) > 0) {
+            error_details <- paste(utils::capture.output(print(errors)), collapse = "\n")
+            error_message <- paste(error_message, "Details:", error_details, sep = "\n")
+          }
+          fail(error_message)
         }
 
         if (!is.null(desc$datasets)) {
@@ -194,7 +200,11 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
               }
             )
             if (is.numeric(data)) {
-              if (all(is.na(data)) || all(data == 0)) {
+              # Skip zero/NaN check for datasets that can legitimately be zero
+              is_special_dataset <- !is.null(ds$role) && ds$role %in% c("singular_values", "basis_matrix", "temporal_basis")
+              # Also skip if the data is genuinely empty (e.g. 0xN or Nx0 matrix)
+              is_empty_data <- length(data) == 0
+              if (!is_special_dataset && !is_empty_data && (all(is.na(data)) || all(data == 0))) {
                 fail(sprintf("Dataset '%s' contains only zeros/NaN", path))
               }
             }

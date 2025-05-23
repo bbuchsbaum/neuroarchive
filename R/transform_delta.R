@@ -264,7 +264,13 @@ invert_step.delta <- function(type, desc, handle) {
     idx <- as.integer(time_idx)
     max_idx <- if (length(idx) > 0) max(idx) else 0L
     if (max_idx > 1) {
-      cums <- .col_cumsums(deltas[seq_len(max_idx - 1), , drop = FALSE])
+      # Only access deltas if we have rows to access
+      n_rows_needed <- max_idx - 1
+      if (n_rows_needed > 0 && nrow(deltas) >= n_rows_needed) {
+        cums <- .col_cumsums(deltas[seq_len(n_rows_needed), , drop = FALSE])
+      } else {
+        cums <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
+      }
     } else {
       cums <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
     }

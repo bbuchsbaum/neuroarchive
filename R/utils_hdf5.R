@@ -111,7 +111,18 @@ guess_chunk_dims <- function(dims, dtype_size) {
   
   # Ensure dims is a valid integer vector
   dims <- as.integer(dims)
-  if (length(dims) == 0 || any(dims < 1)) {
+  if (length(dims) == 0) {
+    stop("Invalid dimensions for chunk calculation")
+  }
+  
+  # Handle empty dimensions - any dimension can be 0 for empty arrays
+  if (any(dims == 0)) {
+    # For empty arrays, return safe chunk dimensions (1s with same length)
+    return(rep(1L, length(dims)))
+  }
+  
+  # Now check for invalid negative dimensions
+  if (any(dims < 1)) {
     stop("Invalid dimensions for chunk calculation")
   }
   
@@ -227,8 +238,8 @@ h5_create_empty_dataset <- function(h5_group, path, dims, dtype,
                            dims = as.integer(dims),
                            dtype = dty,
                            chunk_dims = chunk_dims)
-  if (inherits(ds, "H5D")) ds$close()
-  invisible(TRUE)
+  # if (inherits(ds, "H5D")) ds$close() # Do not close the dataset here
+  invisible(ds) # Return the created dataset object
 }
 
 #' Write a dataset to an HDF5 group
@@ -262,10 +273,27 @@ h5_write_dataset <- function(h5_group, path, data,
     }
   }
   
-  # Ensure dim(data) is valid after conversion
-  data_dims <- dim(data)
-  if (is.null(data_dims) || length(data_dims) == 0 || any(data_dims < 1)) {
+  data_dims <- dim(data) # These are the dimensions of the incoming data
+  if (is.null(data_dims) || length(data_dims) == 0) {
     stop("Unable to determine valid dimensions for data")
+  }
+  
+  message(sprintf("[DEBUG h5_write_dataset BEFORE] path: %s, data_dims: %s, class: %s", 
+                  path, paste(data_dims, collapse="x"), class(data)[1]))
+
+  is_empty_array <- any(data_dims == 0)
+
+  if (is_empty_array) {
+    message(sprintf("[DEBUG h5_write_dataset EMPTY] original data_dims: %s", paste(data_dims, collapse="x")))
+    placeholder_data <- array(as.integer(data_dims), dim = c(length(data_dims), 1))
+    message(sprintf("[DEBUG h5_write_dataset EMPTY] placeholder_data_dims: %s, placeholder_data: %s", 
+                    paste(dim(placeholder_data), collapse="x"), paste(placeholder_data, collapse=",")))
+    
+    data_to_write_final <- placeholder_data
+    dtype_final <- map_dtype("int32") 
+  } else {
+    data_to_write_final <- data 
+    dtype_final <- if (!is.null(dtype)) map_dtype(dtype) else guess_h5_type(data)
   }
 
   parts <- strsplit(path, "/")[[1]]
@@ -281,30 +309,24 @@ h5_write_dataset <- function(h5_group, path, data,
   }
 
   if (is.null(chunk_dims)) {
-    element_size <- if (!is.null(dtype)) {
-      map_dtype(dtype)$get_size(variable_as_inf = FALSE)
-    } else if (is.integer(data)) {
-      4L
-    } else {
-      8L
-    }
-    chunk_dims <- guess_chunk_dims(data_dims, element_size)
+    element_size <- dtype_final$get_size(variable_as_inf = FALSE)
+    # If writing a placeholder, chunks are based on placeholder dims.
+    # Otherwise, based on original data dims.
+    effective_dims_for_chunking <- if(is_empty_array) dim(data_to_write_final) else data_dims
+    chunk_dims <- guess_chunk_dims(effective_dims_for_chunking, element_size)
   } else {
     chunk_dims <- as.integer(chunk_dims)
   }
 
   create_fun <- function(level) {
-    dty <- if (!is.null(dtype)) map_dtype(dtype) else guess_h5_type(data)
-    on.exit(if (inherits(dty, "H5T") && is.null(dtype)) dty$close(), add = TRUE)
+    on.exit(if (inherits(dtype_final, "H5T") && is.null(dtype) && !is_empty_array) dtype_final$close(), add = TRUE)
     
-    # Handle raw vectors with uint8 dtype - convert to integer for hdf5r compatibility
-    data_to_write <- data
-    if (is.raw(data) && !is.null(dtype) && dtype == "uint8") {
-      data_to_write <- as.integer(data)
-      dim(data_to_write) <- dim(data)  # Preserve dimensions
+    current_data_to_write <- data_to_write_final
+    if (!is_empty_array && is.raw(current_data_to_write) && !is.null(dtype) && dtype == "uint8") {
+      current_data_to_write <- as.integer(current_data_to_write)
+      dim(current_data_to_write) <- dim(data_to_write_final) 
     }
     
-    # Check if dataset already exists, and if so, delete it before creating
     if (grp$exists(ds_name)) {
       existing_obj <- grp[[ds_name]]
       if (inherits(existing_obj, "H5D")) {
@@ -316,11 +338,16 @@ h5_write_dataset <- function(h5_group, path, data,
       }
     }
     
-    grp$create_dataset(ds_name,
-                       robj = data_to_write,
-                       chunk_dims = chunk_dims,
-                       dtype = dty,
-                       gzip_level = level)
+    created_dset <- grp$create_dataset(ds_name,
+                                       robj = current_data_to_write, 
+                                       chunk_dims = chunk_dims,
+                                       dtype = dtype_final, 
+                                       gzip_level = level)
+    
+    if (is_empty_array) {
+      h5_attr_write(created_dset, "lna_empty_array_placeholder", TRUE)
+    }
+    created_dset 
   }
 
   dset <- NULL
@@ -527,6 +554,34 @@ h5_read <- function(h5_group, path) {
   tryCatch({
     dset <- h5_group[[path]]
     result <- dset$read()
+    
+    # Check for the empty array placeholder attribute
+    is_placeholder <- FALSE
+    if (h5_attr_exists(dset, "lna_empty_array_placeholder")) {
+      is_placeholder <- isTRUE(h5_attr_read(dset, "lna_empty_array_placeholder"))
+    }
+
+    # If it's a placeholder, reconstruct the original empty structure
+    if (is_placeholder) {
+      # Check if placeholder is a vector (hdf5r might convert Nx1 matrix to vector)
+      if (is.vector(result) && !is.list(result) && is.numeric(result) && 
+          all(result >= 0) && all(result == as.integer(result))) {
+        orig_dims <- as.integer(result)
+        message(sprintf("[DEBUG h5_read PLACEHOLDER_VECTOR] path: %s, reconstructed dims: %s", 
+                        path, paste(orig_dims, collapse="x")))
+        result <- array(numeric(0), dim = orig_dims)
+      } else if (is.matrix(result) && ncol(result) == 1 && is.numeric(result) && 
+          all(result >= 0) && all(result == as.integer(result))) {
+        orig_dims <- as.integer(result[,1])
+        message(sprintf("[DEBUG h5_read PLACEHOLDER_MATRIX] path: %s, reconstructed dims: %s", 
+                        path, paste(orig_dims, collapse="x")))
+        result <- array(numeric(0), dim = orig_dims)
+      } else {
+        # This case should ideally not happen if writing was correct
+        warning(sprintf("Dataset '%s' marked as empty placeholder but data format is unexpected. Result class: %s, dim: %s, values: %s. Returning as is.", 
+                        path, class(result)[1], paste(dim(result), collapse="x"), paste(result, collapse=",")))
+      }
+    }
   }, error = function(e) {
     stop(paste0("Error reading dataset '", path, "': ", conditionMessage(e)), call. = FALSE)
   }, finally = {

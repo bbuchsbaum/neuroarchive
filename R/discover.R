@@ -48,7 +48,7 @@ discover_transforms <- function(h5_group) {
 
   # Regex to capture NN, type from NN_type.json
   # NN must be digits, type must be characters except '_'
-  pattern <- "^(\\d+)_([^_]+)\\.json$"
+  pattern <- "^(\\d+)_([A-Za-z0-9._]+)\\.json$"
   matches <- regexec(pattern, obj_names)
 
   extracted_data <- lapply(seq_along(matches), function(i) {

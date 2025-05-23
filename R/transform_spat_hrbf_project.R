@@ -33,13 +33,14 @@ forward_step.spat.hrbf_project <- function(type, desc, handle) {
   B_final <- hrbf_generate_basis(p, mask_neurovol,
                                  if (!is.null(handle$h5)) handle$h5[["/"]] else NULL)
   p$k_actual <- nrow(B_final)
-  mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256", serialize = FALSE)
+  mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256")
   p$mask_hash <- paste0("sha256:", mask_hash_val)
 
   inp <- handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
   input_key <- inp$key
   X <- as_dense_mat(inp$value)
-  coeff <- tcrossprod(X, B_final)
+  #B_final_dense <- as.matrix(B_final)  # Convert sparse matrix to dense
+  coeff <- Matrix::tcrossprod(X, B_final)
 
   plan <- handle$plan
   fname <- plan$get_next_filename(type)
@@ -119,7 +120,7 @@ invert_step.spat.hrbf_project <- function(type, desc, handle) {
     coeff <- coeff[time_idx, , drop = FALSE]
   }
 
-  dense <- coeff %*% B_final
+  dense <- coeff %*% B_final  # Let Matrix package handle sparse operations efficiently
 
   handle$update_stash(keys = coeff_key,
                       new_values = setNames(list(dense), input_key))

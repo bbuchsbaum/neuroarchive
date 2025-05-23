@@ -1,7 +1,7 @@
 library(testthat)
 library(hdf5r)
 library(withr)
-library(neuroarchive)
+
 
 check_roundtrip <- function(arr, axis = -1, coding = "none") {
   tmp <- local_tempfile(fileext = ".h5")

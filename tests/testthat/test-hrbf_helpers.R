@@ -6,9 +6,9 @@ FakeSpace <- function(dim, spacing_v) {
   structure(list(dim = dim, spacing = spacing_v, trans = diag(4), origin = c(0,0,0)),
             class = "FakeSpace")
 }
-space.FakeLogicalNeuroVol <- function(x, ...) attr(x, "space")
+space.LogicalNeuroVol <- function(x, ...) attr(x, "space")
 spacing.FakeSpace <- function(x, ...) x$spacing
-as.array.FakeLogicalNeuroVol <- function(x, ...) x$arr
+as.array.LogicalNeuroVol <- function(x, ...) x$arr
 
 
 test_that("poisson_disk_sample_neuroim2 deterministic", {
@@ -17,12 +17,12 @@ test_that("poisson_disk_sample_neuroim2 deterministic", {
   attr(vol, "space") <- FakeSpace(c(5,5,5), c(1,1,1))
 
   assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
-  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
-    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   c1 <- neuroarchive:::poisson_disk_sample_neuroim2(vol, radius_mm = 2, seed = 42)
@@ -37,12 +37,12 @@ test_that("poisson_disk_sample_neuroim2 guard rail on tiny ROI", {
   attr(vol, "space") <- FakeSpace(c(2,2,2), c(1,1,1))
 
   assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
-  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
-    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   pts <- neuroarchive:::poisson_disk_sample_neuroim2(vol, radius_mm = 5, seed = 1)
@@ -58,12 +58,12 @@ test_that("poisson_disk_sample_neuroim2 handles disconnected components", {
   attr(vol, "space") <- FakeSpace(c(4,4,4), c(1,1,1))
 
   assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
-  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
-    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   pts <- neuroarchive:::poisson_disk_sample_neuroim2(vol, radius_mm = 1, seed = 99)

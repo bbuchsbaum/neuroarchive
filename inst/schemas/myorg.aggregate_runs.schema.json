@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://my-lab.org/schemas/lna/2.0/myorg.aggregate_runs.schema.json",
+  "title": "Parameters for 'myorg.aggregate_runs' transform",
+  "description": "Aggregates multiple runs into a single matrix by row-binding",
+  "type": "object",
+  "properties": {
+    "params": {
+      "oneOf": [
+        {"type": "object"},
+        {"type": "array", "maxItems": 0}
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "default": {}
+} 

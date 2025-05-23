@@ -4,19 +4,22 @@ library(withr)
 
 # Simple aggregator plugin used for testing
 .forward_step.myorg.aggregate_runs <- function(type, desc, handle) {
-  lst <- handle$stash$input # Directly access the full input list from stash
+  # Respect the pipeline-provided input key
+  input_key <- desc$inputs[[1]]
+  lst <- handle$stash[[input_key]]
   stopifnot(is.list(lst))
   mats <- lapply(lst, function(x) {
     if (is.matrix(x)) x else as.matrix(x)
   })
   aggregated <- do.call(rbind, mats)
   desc$version <- "1.0"
-  desc$inputs <- "input" # What it conceptually consumes
-  desc$outputs <- "aggregated_matrix" # What it produces
-  # The plan descriptor should reflect this for provenance
+  # Keep the pipeline-provided inputs and outputs
   handle$plan$add_descriptor(handle$plan$get_next_filename(type), desc)
-  # Update stash: remove original 'input' and add 'aggregated_matrix'
-  handle$update_stash(keys = "input", new_values = list(aggregated_matrix = aggregated))
+  
+  # Use the pipeline-provided output key
+  output_key <- desc$outputs[[1]]
+  new_values <- setNames(list(aggregated), output_key)
+  handle$update_stash(keys = input_key, new_values = new_values)
 }
 
 .invert_step.myorg.aggregate_runs <- function(type, desc, handle) {

@@ -3,10 +3,10 @@ library(neuroarchive)
 FakeSpace <- function(dim, spacing_v, origin_v = c(0,0,0)) {
   structure(list(dim = dim, spacing = spacing_v, origin = origin_v), class = "FakeSpace")
 }
-space.FakeLogicalNeuroVol <- function(x, ...) attr(x, "space")
+space.LogicalNeuroVol <- function(x, ...) attr(x, "space")
 spacing.FakeSpace <- function(x, ...) x$spacing
 origin.FakeSpace <- function(x, ...) x$origin
-as.array.FakeLogicalNeuroVol <- function(x, ...) x$arr
+as.array.LogicalNeuroVol <- function(x, ...) x$arr
 
 
 test_that("hrbf helpers match transform outputs", {
@@ -15,13 +15,13 @@ test_that("hrbf helpers match transform outputs", {
   attr(vol, "space") <- FakeSpace(c(1,1,2), c(1,1,1))
 
   assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
-  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
   assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
-    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       origin.FakeSpace, as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   X <- matrix(1:4, nrow = 2)
