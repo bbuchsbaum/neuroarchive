@@ -23,6 +23,59 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
               location = "forward_step.spat.hrbf:mask")
   }
 
+  ## Advanced parameter validation / stubs ----
+  if (isTRUE(p$use_anisotropic_atoms)) {
+    if (is.null(p$anisotropy_source_path)) {
+      abort_lna(
+        "use_anisotropic_atoms=TRUE requires anisotropy_source_path",
+        .subclass = "lna_error_validation",
+        location = "forward_step.spat.hrbf:anisotropy_source"
+      )
+    } else if (!is.null(handle$h5)) {
+      root <- handle$h5[["/"]]
+      if (!path_exists_safely(root, p$anisotropy_source_path)) {
+        abort_lna(
+          sprintf("HDF5 path '%s' not found", p$anisotropy_source_path),
+          .subclass = "lna_error_missing_path",
+          location = "forward_step.spat.hrbf:anisotropy_source"
+        )
+      }
+    }
+    warn_lna(
+      "Anisotropic atoms not fully implemented in this version; using isotropic."
+    )
+    p$use_anisotropic_atoms <- FALSE
+  }
+
+  if (identical(p$include_gaussian_derivatives, "first_order")) {
+    warn_lna(
+      "Derivative-of-Gaussian atoms not fully implemented; using standard Gaussians."
+    )
+    p$include_gaussian_derivatives <- "none"
+  }
+
+  cs_map <- p$centre_steering$map_path %||% NULL
+  if (!is.null(cs_map)) {
+    if (!is.null(handle$h5)) {
+      root <- handle$h5[["/"]]
+      if (!path_exists_safely(root, cs_map)) {
+        abort_lna(
+          sprintf("HDF5 path '%s' not found", cs_map),
+          .subclass = "lna_error_missing_path",
+          location = "forward_step.spat.hrbf:centre_steering_map"
+        )
+      }
+    }
+    warn_lna("Centre steering not fully implemented; ignoring map.")
+  }
+
+  if (isTRUE(p$use_differential_encoding)) {
+    warn_lna(
+      "Differential encoding not fully implemented; proceeding without it."
+    )
+    p$use_differential_encoding <- FALSE
+  }
+
   # helper to convert voxel coordinates to world (mm)
   voxel_to_world <- function(vox_mat) {
     spc <- tryCatch(space(mask_neurovol), error = function(e) NULL)
