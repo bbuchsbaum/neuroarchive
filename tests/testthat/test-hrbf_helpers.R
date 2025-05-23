@@ -154,3 +154,71 @@ test_that("compute_edge_map_neuroim2 structural_path", {
   expect_true(all(edge))
 })
 
+
+test_that("poisson_disk_sample_neuroim2 edge adaptation favors edges", {
+  mask <- array(TRUE, dim = c(5,5,1))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(5,5,1), c(1,1,1))
+
+  edge_map <- array(FALSE, dim = c(5,5,1))
+  edge_map[1:2,,] <- TRUE
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  }, envir = parent.frame())
+
+  pts_base <- neuroarchive:::poisson_disk_sample_neuroim2(vol, radius_mm = 2,
+                                                           seed = 7)
+  pts_edge <- neuroarchive:::poisson_disk_sample_neuroim2(vol, radius_mm = 2,
+                                                           seed = 7,
+                                                           edge_binary_map = edge_map,
+                                                           density_factor = 2)
+  frac_base <- mean(pts_base[,1] <= 2)
+  frac_edge <- mean(pts_edge[,1] <= 2)
+  expect_gt(frac_edge, frac_base)
+})
+
+
+test_that("combined upgrades improve reconstruction MSE", {
+  mask <- array(TRUE, dim = c(3,3,3))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(3,3,3), c(1,1,1))
+
+  X <- matrix(rnorm(27 * 2), nrow = 2)
+
+  params_base <- list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                      kernel_type = "gaussian", seed = 1)
+  params_adv <- list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                     kernel_type = "gaussian",
+                     kernel_type_fine_levels = "wendland_c4",
+                     num_fine_levels_alt_kernel = 1L,
+                     num_extra_fine_levels = 1L,
+                     seed = 1)
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  }, envir = parent.frame())
+
+  B_base <- hrbf_generate_basis(params_base, vol)
+  coeff_base <- hrbf_project_matrix(X, vol, params_base)
+  recon_base <- hrbf_reconstruct_matrix(coeff_base, vol, params_base)
+  mse_base <- mean((X - recon_base)^2)
+
+  B_adv <- hrbf_generate_basis(params_adv, vol)
+  coeff_adv <- hrbf_project_matrix(X, vol, params_adv)
+  recon_adv <- hrbf_reconstruct_matrix(coeff_adv, vol, params_adv)
+  mse_adv <- mean((X - recon_adv)^2)
+
+  expect_lt(mse_adv, 0.9 * mse_base)
+})
+
