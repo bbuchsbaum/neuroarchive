@@ -48,6 +48,36 @@ This appendix details the enhanced `spat.hrbf` transform and related utilities. 
 
 *(This appendix revises and extends the previous "Definitive Appendix Proposal for HRBF & Related Transforms." Core HRBF generation, `spat.hrbf_project`, `basis.empirical_hrbf_compressed`, and `embed.transfer_hrbf_basis` remain foundational as previously defined. This focuses on enhancements to the primary `spat.hrbf` analytic dictionary.)*
 
+### Parameter Summary
+
+The JSON schema file `inst/schemas/spat.hrbf.schema.json` enumerates all valid parameters. The most relevant additions are outlined below.
+
+**Minimal upgrade parameters**
+
+* `num_extra_fine_levels`
+* `kernel_type_fine_levels`
+* `num_fine_levels_alt_kernel`
+* `edge_adaptive_sampling.enable`
+* `edge_adaptive_sampling.source`
+* `edge_adaptive_sampling.structural_path`
+* `edge_adaptive_sampling.structural_to_epi_affine_path`
+* `edge_adaptive_sampling.gradient_kernel`
+* `edge_adaptive_sampling.edge_thresh_k`
+* `edge_adaptive_sampling.density_factor`
+
+**Advanced parameters (schema stubs)**
+
+These options are included in the schema with basic validation, but their algorithms are not yet fully implemented.
+
+* `use_anisotropic_atoms`
+* `anisotropy_source_path`
+* `orthogonalize_atoms_at_center`
+* `include_gaussian_derivatives`
+* `centre_steering.map_path`
+* `centre_steering.influence_beta`
+* `use_differential_encoding`
+* `orthogonalize_differential_levels`
+
 ### 1. Core HRBF Enhancements (Minimal Upgrade Path & Options)
 
 These enhancements can be implemented incrementally and offer significant benefits.
