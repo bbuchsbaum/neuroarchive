@@ -1,9 +1,11 @@
 #' Temporal Transform - Forward Step
 #'
 #' Projects data onto a temporal basis (DCT, B-spline, DPSS, polynomial, or wavelet).
+#' Debug messages are controlled by the `lna.debug.temporal` option.
 #' @keywords internal
 #' @export
 forward_step.temporal <- function(type, desc, handle) {
+  dbg <- isTRUE(getOption("lna.debug.temporal", FALSE))
   p <- desc$params %||% list()
   # Extract temporal-specific parameters and remove them from p to avoid duplication
   kind <- p$kind %||% "dct"
@@ -39,27 +41,29 @@ forward_step.temporal <- function(type, desc, handle) {
   # Delegate projection logic to per-kind methods for extensibility
   coeff <- temporal_project(kind, basis, X)
 
-  # DEBUG: Check reconstruction locally
-  if (is.matrix(basis) && is.matrix(coeff) && ncol(basis) == nrow(coeff)) {
-    if (identical(kind, "polynomial")) {
-      message("[forward_step.temporal POLY DEBUG] Checking orthogonality of basis (t(basis) %*% basis):")
-      # Ensure it's a plain matrix for printing, and round for clarity
-      t_basis_basis <- as.matrix(crossprod(basis))
-      print(round(t_basis_basis, 5))
-    }
-    X_reconstructed_debug <- basis %*% coeff # Should be time x features
-    if (!isTRUE(all.equal(X, X_reconstructed_debug, tolerance = 1e-7))) {
-      message("[forward_step.temporal DEBUG] Local reconstruction MISMATCH.")
+  if (dbg) {
+    # DEBUG: Check reconstruction locally
+    if (is.matrix(basis) && is.matrix(coeff) && ncol(basis) == nrow(coeff)) {
       if (identical(kind, "polynomial")) {
-         message("Sum of squared differences: ", sum((X - X_reconstructed_debug)^2))
+        message("[forward_step.temporal POLY DEBUG] Checking orthogonality of basis (t(basis) %*% basis):")
+        # Ensure it's a plain matrix for printing, and round for clarity
+        t_basis_basis <- as.matrix(crossprod(basis))
+        print(round(t_basis_basis, 5))
+      }
+      X_reconstructed_debug <- basis %*% coeff # Should be time x features
+      if (!isTRUE(all.equal(X, X_reconstructed_debug, tolerance = 1e-7))) {
+        message("[forward_step.temporal DEBUG] Local reconstruction MISMATCH.")
+        if (identical(kind, "polynomial")) {
+           message("Sum of squared differences: ", sum((X - X_reconstructed_debug)^2))
+        }
+      } else {
+        message("[forward_step.temporal DEBUG] Local reconstruction MATCHES.")
       }
     } else {
-      message("[forward_step.temporal DEBUG] Local reconstruction MATCHES.")
+      message("[forward_step.temporal DEBUG] Could not perform local reconstruction check due to matrix non-conformance.")
     }
-  } else {
-    message("[forward_step.temporal DEBUG] Could not perform local reconstruction check due to matrix non-conformance.")
+    # END DEBUG
   }
-  # END DEBUG
 
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
@@ -127,10 +131,12 @@ forward_step.temporal <- function(type, desc, handle) {
 #' Temporal Transform - Inverse Step
 #'
 #' Reconstructs data from stored temporal basis coefficients.
+#' Debug messages are controlled by the `lna.debug.temporal` option.
 #' @keywords internal
 #' @export
 invert_step.temporal <- function(type, desc, handle) {
-  message(sprintf("[invert_step.temporal ENTRY] Incoming handle stash keys: %s. Is input NULL? %s", paste(names(handle$stash), collapse=", "), is.null(handle$stash$input)))
+  dbg <- isTRUE(getOption("lna.debug.temporal", FALSE))
+  if (dbg) message(sprintf("[invert_step.temporal ENTRY] Incoming handle stash keys: %s. Is input NULL? %s", paste(names(handle$stash), collapse=", "), is.null(handle$stash$input)))
   basis_path <- NULL
   coeff_path <- NULL
   
@@ -162,22 +168,24 @@ invert_step.temporal <- function(type, desc, handle) {
   coeff <- h5_read(root, coeff_path)
 
   # Reshape 3D arrays from HDF5 back to 2D matrices if necessary
-  message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D basis: %f", sum(basis)))
-  message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D coeff: %f", sum(coeff)))
+  if (dbg) message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D basis: %f", sum(basis)))
+  if (dbg) message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D coeff: %f", sum(coeff)))
   if (length(dim(basis)) == 3 && dim(basis)[3] == 1) {
     basis <- basis[,,1, drop=FALSE]
   }
   if (length(dim(coeff)) == 3 && dim(coeff)[3] == 1) {
     coeff <- coeff[,,1, drop=FALSE]
   }
-  message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D basis: %f", sum(basis)))
-  message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D coeff: %f", sum(coeff)))
-  message(sprintf("[invert_step.temporal] Basis dims after reshape: %s", paste(dim(basis), collapse="x")))
-  message(sprintf("[invert_step.temporal] Coeff dims after reshape: %s", paste(dim(coeff), collapse="x")))
+  if (dbg) message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D basis: %f", sum(basis)))
+  if (dbg) message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D coeff: %f", sum(coeff)))
+  if (dbg) message(sprintf("[invert_step.temporal] Basis dims after reshape: %s", paste(dim(basis), collapse="x")))
+  if (dbg) message(sprintf("[invert_step.temporal] Coeff dims after reshape: %s", paste(dim(coeff), collapse="x")))
   
-  message("--- Invert Step Pre-Dense Calculation Debug ---")
-  if (nrow(basis) >=2 && ncol(basis) >=2) message("basis_loaded[1:2, 1:2]:"); print(basis[1:2, 1:2, drop=FALSE])
-  if (nrow(coeff) >=2 && ncol(coeff) >=2) message("coeff_loaded[1:2, 1:2]:"); print(coeff[1:2, 1:2, drop=FALSE])
+  if (dbg) {
+    message("--- Invert Step Pre-Dense Calculation Debug ---")
+    if (nrow(basis) >=2 && ncol(basis) >=2) message("basis_loaded[1:2, 1:2]:"); if (nrow(basis) >=2 && ncol(basis) >=2) print(basis[1:2, 1:2, drop=FALSE])
+    if (nrow(coeff) >=2 && ncol(coeff) >=2) message("coeff_loaded[1:2, 1:2]:"); if (nrow(coeff) >=2 && ncol(coeff) >=2) print(coeff[1:2, 1:2, drop=FALSE])
+  }
   
   # Check for valid matrix dimensions before multiplication
   if (!is.matrix(basis) || !is.matrix(coeff)) {
@@ -185,8 +193,8 @@ invert_step.temporal <- function(type, desc, handle) {
   }
 
   dense <- temporal_reconstruct(desc$params$kind %||% "dct", basis, coeff)
-  message(sprintf("[invert_step.temporal] Dense dims after matmult: %s", paste(dim(dense), collapse="x")))
-  if (nrow(dense) >=2 && ncol(dense) >=2) message("dense[1:2, 1:2]:"); print(dense[1:2, 1:2, drop=FALSE])
+  if (dbg) message(sprintf("[invert_step.temporal] Dense dims after matmult: %s", paste(dim(dense), collapse="x")))
+  if (dbg && nrow(dense) >=2 && ncol(dense) >=2) { message("dense[1:2, 1:2]:"); print(dense[1:2, 1:2, drop=FALSE]) }
 
   subset <- handle$subset
   if (!is.null(subset$roi_mask)) {
@@ -205,17 +213,17 @@ invert_step.temporal <- function(type, desc, handle) {
         warning("time_idx for temporal subsetting is invalid or out of bounds.")
     }
   }
-  message(sprintf("[invert_step.temporal] Dense dims after subsetting: %s", paste(dim(dense), collapse="x")))
+  if (dbg) message(sprintf("[invert_step.temporal] Dense dims after subsetting: %s", paste(dim(dense), collapse="x")))
   
   if (is.null(dense)) {
     abort_lna("Reconstructed data (dense) is NULL before stashing", .subclass="lna_error_internal", location="invert_step.temporal")
   }
-  message(sprintf("[invert_step.temporal] Stashing to key: '%s'. Is dense NULL? %s", output_stash_key, is.null(dense)))
+  if (dbg) message(sprintf("[invert_step.temporal] Stashing to key: '%s'. Is dense NULL? %s", output_stash_key, is.null(dense)))
   new_values_list <- setNames(list(dense), output_stash_key)
 
-  handle <- handle$update_stash(keys = character(), 
+  handle <- handle$update_stash(keys = character(),
                                 new_values = new_values_list)
-  message(sprintf("[invert_step.temporal] invert_step.temporal IS RETURNING handle with Stash keys: %s. Is input NULL? %s", paste(names(handle$stash), collapse=", "), is.null(handle$stash$input)))
+  if (dbg) message(sprintf("[invert_step.temporal] invert_step.temporal IS RETURNING handle with Stash keys: %s. Is input NULL? %s", paste(names(handle$stash), collapse=", "), is.null(handle$stash$input)))
   return(handle)
 }
 

@@ -8,5 +8,6 @@
 }
 \description{
 Projects data onto a temporal basis (DCT, B-spline, DPSS, polynomial, or wavelet).
+Debug output is controlled by the \code{lna.debug.temporal} option.
 }
 \keyword{internal}
