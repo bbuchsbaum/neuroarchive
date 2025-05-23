@@ -235,6 +235,20 @@ invert_step.delta <- function(type, desc, handle) {
 
   expected_nrows_deltas <- max(0, dims[axis] - 1L)
 
+  subset <- handle$subset
+  col_idx <- seq_len(expected_ncols)
+  row_idx <- seq_len(expected_nrows_deltas)
+  time_idx_req <- NULL
+  if (!is.null(subset$roi_mask)) {
+    col_idx <- which(as.logical(subset$roi_mask))
+  }
+  if (!is.null(subset$time_idx)) {
+    time_idx_req <- as.integer(subset$time_idx)
+    if (length(time_idx_req) > 0) {
+      row_idx <- seq_len(max(time_idx_req) - 1L)
+    }
+  }
+
   if (identical(coding, "rle")) {
     r_obj <- structure(list(lengths = delta_stream[, 1], values = delta_stream[, 2]), class = "rle")
     delta_vec <- inverse.rle(r_obj)
@@ -249,13 +263,28 @@ invert_step.delta <- function(type, desc, handle) {
         location = "invert_step.delta:rle_decode"
       )
     }
-    deltas <- matrix(delta_vec, nrow = expected_nrows_deltas, ncol = expected_ncols)
+    deltas_full <- matrix(delta_vec, nrow = expected_nrows_deltas, ncol = expected_ncols)
   } else {
-    deltas <- matrix(delta_stream, nrow = expected_nrows_deltas, ncol = expected_ncols)
+    deltas_full <- matrix(delta_stream, nrow = expected_nrows_deltas, ncol = expected_ncols)
   }
 
-  cums <- matrix(apply(deltas, 2, cumsum), nrow = expected_nrows_deltas, ncol = expected_ncols)
-  recon <- rbind(first_vals, sweep(cums, 2, first_vals, "+"))
+  deltas <- deltas_full[row_idx, col_idx, drop = FALSE]
+  first_vals_sub <- first_vals[, col_idx, drop = FALSE]
+
+  cums <- if (length(row_idx) > 0) {
+    matrix(apply(deltas, 2, cumsum), nrow = length(row_idx), ncol = length(col_idx))
+  } else {
+    matrix(numeric(0), nrow = 0, ncol = length(col_idx))
+  }
+
+  recon_sub <- rbind(first_vals_sub, sweep(cums, 2, first_vals_sub, "+"))
+
+  recon <- matrix(0, nrow = dims[axis], ncol = expected_ncols)
+  if (nrow(recon_sub) > 0 && length(col_idx) > 0) {
+    recon[seq_len(nrow(recon_sub)), col_idx] <- recon_sub
+  } else if (length(col_idx) > 0) {
+    recon[1, col_idx] <- first_vals_sub
+  }
 
   perm <- c(axis, setdiff(seq_along(dims), axis))
   recon_perm <- array(recon, dim = dims[perm])
