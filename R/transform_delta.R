@@ -86,10 +86,7 @@ forward_step.delta <- function(type, desc, handle) {
   }
 
   if (identical(p$coding_method, "rle")) {
-    vec <- as.vector(deltas)
-    r_obj <- rle(vec) # Use base R rle directly
-    delta_stream <- matrix(c(r_obj$lengths, r_obj$values), ncol = 2,
-                           dimnames = list(NULL, c("lengths", "values")))
+    delta_stream <- .encode_rle(as.vector(deltas))
   } else {
     delta_stream <- deltas
   }
@@ -197,17 +194,6 @@ invert_step.delta <- function(type, desc, handle) {
 
   expected_ncols <- if (length(dims) == 1) 1 else prod(dims[-axis])
 
-  if (identical(coding, "rle") && !is.matrix(delta_stream)) {
-    # Handle case where RLE data might be read as a vector if it's empty or single row/col
-    if (length(delta_stream) == 0) {
-        delta_stream <- matrix(numeric(0), ncol = 2, dimnames = list(NULL, c("lengths", "values")))
-    } else if (length(delta_stream) > 0 && length(delta_stream) %% 2 == 0) {
-        delta_stream <- matrix(delta_stream, ncol = 2, dimnames = list(NULL, c("lengths", "values")))
-    } else {
-        abort_lna("RLE delta_stream has incorrect number of elements to form a 2-column matrix",
-                  .subclass="lna_error_runtime", location="invert_step.delta:rle_matrix_reshape")
-    }
-  }
 
   expected_rows_first_vals <- if (dims[axis] == 0) 0L else 1L
 
@@ -236,19 +222,9 @@ invert_step.delta <- function(type, desc, handle) {
   expected_nrows_deltas <- max(0, dims[axis] - 1L)
 
   if (identical(coding, "rle")) {
-    r_obj <- structure(list(lengths = delta_stream[, 1], values = delta_stream[, 2]), class = "rle")
-    delta_vec <- inverse.rle(r_obj)
-    if (expected_nrows_deltas > 0 && length(delta_vec) != expected_nrows_deltas * expected_ncols) {
-      abort_lna(
-        sprintf(
-          "RLE decoded data length (%d) mismatch. Expected %d elements for %dx%d deltas matrix.",
-          length(delta_vec), expected_nrows_deltas * expected_ncols,
-          expected_nrows_deltas, expected_ncols
-        ),
-        .subclass = "lna_error_runtime",
-        location = "invert_step.delta:rle_decode"
-      )
-    }
+    delta_vec <- .decode_rle(delta_stream,
+                             expected_nrows_deltas * expected_ncols,
+                             location = "invert_step.delta")
     deltas <- matrix(delta_vec, nrow = expected_nrows_deltas, ncol = expected_ncols)
   } else {
     deltas <- matrix(delta_stream, nrow = expected_nrows_deltas, ncol = expected_ncols)
