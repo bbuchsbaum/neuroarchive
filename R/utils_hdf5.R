@@ -383,6 +383,25 @@ close_h5_safely <- function(h5) {
   invisible(NULL)
 }
 
+#' Safely check for the existence of an HDF5 path
+#'
+#' Wrapper around `H5Group$exists` that treats any error as the path not
+#' existing. This is useful when paths may contain characters that `exists()`
+#' cannot handle cleanly.
+#'
+#' @param group An `H5File` or `H5Group` to check.
+#' @param path_name Character path to test.
+#' @return Logical `TRUE` if the path exists, otherwise `FALSE`.
+#' @keywords internal
+path_exists_safely <- function(group, path_name) {
+  if (is.null(path_name) || !nzchar(path_name)) return(FALSE)
+  tryCatch({
+    group$exists(path_name)
+  }, error = function(e) {
+    FALSE
+  })
+}
+
 #' Assert that an HDF5 path exists
 #'
 #' Convenience helper to verify that a dataset or group is present
