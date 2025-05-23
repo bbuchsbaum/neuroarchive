@@ -97,3 +97,60 @@ test_that("generate_hrbf_atom wendland_c4 normalisation", {
   expect_equal(sum(res$values^2), 1, tolerance = 1e-6)
   expect_true(all(res$values >= 0))
 })
+
+test_that("compute_edge_map_neuroim2 self_mean", {
+  mask <- array(TRUE, dim = c(3,3,3))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(3,3,3), c(1,1,1))
+
+  arr <- array(0, dim = c(3,3,3,2))
+  arr[2,2,2,] <- 1
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  }, envir = parent.frame())
+
+  h <- DataHandle$new(initial_stash = list(input_dense_mat = arr),
+                      mask_info = list(mask = vol))
+  edge <- neuroarchive:::compute_edge_map_neuroim2("self_mean", h,
+                                                   list(edge_thresh_k = 0))
+  expect_true(is.logical(edge))
+  expect_equal(dim(edge), c(3,3,3))
+  expect_true(any(edge))
+})
+
+test_that("compute_edge_map_neuroim2 structural_path", {
+  mask <- array(TRUE, dim = c(2,2,2))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(2,2,2), c(1,1,1))
+
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
+  h5 <- H5File$new(tmp, mode = "w")
+  h5[['grad']] <- array(2, dim = c(2,2,2))
+  h5$close_all()
+  h5 <- H5File$new(tmp, mode = "r")
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, envir=.GlobalEnv)
+    h5$close_all()
+  }, envir = parent.frame())
+
+  h <- DataHandle$new(h5 = h5, mask_info = list(mask = vol))
+  edge <- neuroarchive:::compute_edge_map_neuroim2(
+    "structural_path", h,
+    list(structural_path = "grad", edge_thresh_k = 0.5)
+  )
+  expect_true(all(edge))
+})
+

@@ -327,3 +327,86 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
   }
 }
 
+
+#' Compute edge binary map for neuroim2 volumes
+#'
+#' Helper used for edge-adaptive HRBF sampling. Depending on
+#' `source_spec`, either computes a Sobel gradient magnitude from the
+#' current data or loads a pre-computed gradient map.
+#'
+#' @param source_spec Character string specifying the source of the
+#'   gradient map ("self_mean" or "structural_path").
+#' @param data_handle A `DataHandle` providing access to the input data
+#'   and HDF5 file if required.
+#' @param params_edge_adaptive List of edge adaptive parameters. Fields
+#'   `structural_path`, `structural_to_epi_affine_path`, and
+#'   `edge_thresh_k` are used.
+#' @return Logical 3D array indicating edge voxels.
+#' @keywords internal
+compute_edge_map_neuroim2 <- function(source_spec, data_handle,
+                                      params_edge_adaptive) {
+  mask_nv <- data_handle$mask_info$mask
+  if (is.null(mask_nv)) {
+    abort_lna("mask_info$mask missing", .subclass = "lna_error_validation",
+              location = "compute_edge_map_neuroim2")
+  }
+  mask_arr <- as.array(mask_nv)
+  dims <- dim(mask_arr)
+  p <- params_edge_adaptive %||% list()
+  thresh_k <- p$edge_thresh_k %||% 3.0
+
+  sobel_mag <- function(vol) {
+    w <- matrix(c(1,2,1,2,4,2,1,2,1), nrow = 3, byrow = TRUE)
+    kx <- array(0, c(3,3,3)); ky <- array(0, c(3,3,3)); kz <- array(0, c(3,3,3))
+    for (i in 1:3) for (j in 1:3) {
+      kx[1,i,j] <- -w[i,j]; kx[3,i,j] <- w[i,j]
+      ky[i,1,j] <- -w[i,j]; ky[i,3,j] <- w[i,j]
+      kz[i,j,1] <- -w[i,j]; kz[i,j,3] <- w[i,j]
+    }
+    conv3d <- function(arr, ker) {
+      d <- dim(arr); out <- array(0, d)
+      for (x in 2:(d[1]-1)) for (y in 2:(d[2]-1)) for (z in 2:(d[3]-1)) {
+        sub <- arr[(x-1):(x+1), (y-1):(y+1), (z-1):(z+1)]
+        out[x,y,z] <- sum(sub * ker)
+      }
+      out
+    }
+    gx <- conv3d(vol, kx); gy <- conv3d(vol, ky); gz <- conv3d(vol, kz)
+    sqrt(gx^2 + gy^2 + gz^2)
+  }
+
+  if (identical(source_spec, "self_mean")) {
+    inp <- data_handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
+    X <- as_dense_mat(inp$value)
+    mean_vec <- colMeans(X)
+    vol <- array(mean_vec, dim = dims)
+    grad_map <- sobel_mag(vol)
+  } else if (identical(source_spec, "structural_path")) {
+    if (is.null(data_handle$h5)) {
+      abort_lna("H5 handle required for structural_path",
+                .subclass = "lna_error_validation",
+                location = "compute_edge_map_neuroim2")
+    }
+    root <- data_handle$h5[["/"]]
+    grad_map <- h5_read(root, p$structural_path)
+    if (!all(dim(grad_map) == dims)) {
+      if (!is.null(p$structural_to_epi_affine_path)) {
+        abort_lna("Affine resampling not implemented",
+                  .subclass = "lna_error_unimplemented",
+                  location = "compute_edge_map_neuroim2")
+      } else {
+        abort_lna("Gradient map dims mismatch mask",
+                  .subclass = "lna_error_validation",
+                  location = "compute_edge_map_neuroim2")
+      }
+    }
+  } else {
+    abort_lna("Unknown edge map source", .subclass = "lna_error_validation",
+              location = "compute_edge_map_neuroim2")
+  }
+
+  med_val <- median(abs(as.numeric(grad_map[mask_arr])), na.rm = TRUE)
+  edge_binary <- grad_map > (thresh_k * med_val)
+  array(as.logical(edge_binary), dim = dims)
+}
+
