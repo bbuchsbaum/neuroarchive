@@ -92,6 +92,19 @@ the form `temporal_basis.<kind>()`. These methods should return a matrix with
 the core `temporal` transform and will dispatch to these user-defined methods
 when `kind` matches `<kind>`.
 
+### Standalone HRBF Utilities
+
+`hrbf_generate_basis()`, `hrbf_project_matrix()` and
+`hrbf_reconstruct_matrix()` allow working with analytic HRBF dictionaries
+outside of the LNA pipeline.  Given a mask and HRBF parameter list these
+helpers generate the basis, project dense data to coefficients and
+reconstruct dense matrices.
+
+```r
+coeff <- hrbf_project_matrix(X, mask, params)
+reconstructed <- hrbf_reconstruct_matrix(coeff, mask, params)
+```
+
 ### Validation and Fork Safety
 
 `validate_lna()` uses cached compiled JSON schemas. When running validation inside forked workers (e.g., with `future::plan(multicore)`), clear this cache in each worker using `lna:::schema_cache_clear()` to avoid potential fork-safety issues.
