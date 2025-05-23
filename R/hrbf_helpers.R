@@ -117,3 +117,70 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
   colnames(selected) <- c("i", "j", "k")
   selected
 }
+
+#' Generate an analytic HRBF atom over a mask
+#'
+#' @description Internal helper that evaluates a radial basis function centred at
+#' `centre_coord_world` on all voxels of a mask. The mask is provided via its
+#' voxel world coordinates and corresponding linear indices. Optionally the atom
+#' is \eqn{L_2}-normalised over the mask voxels.
+#'
+#' @param mask_coords_world Numeric matrix of world coordinates for the mask
+#'   voxels (\eqn{N_{maskvox} \times 3}).
+#' @param mask_linear_indices Integer vector of the same length giving the voxel
+#'   linear indices within the full volume.
+#' @param centre_coord_world Numeric vector of length 3 giving the RBF centre in
+#'   world coordinates.
+#' @param sigma_mm Numeric width parameter in millimetres.
+#' @param kernel_type Either \code{"gaussian"} or \code{"wendland_c4"}.
+#' @param normalize_over_mask Logical; if \code{TRUE} the returned values are
+#'   normalised to unit \eqn{L_2} norm over the mask.
+#'
+#' @return A list with elements \code{values} (numeric vector of length
+#'   \code{nrow(mask_coords_world)}) and \code{indices}
+#'   (\code{mask_linear_indices}).
+#' @keywords internal
+generate_hrbf_atom <- function(mask_coords_world, mask_linear_indices,
+                               centre_coord_world, sigma_mm,
+                               kernel_type = c("gaussian", "wendland_c4"),
+                               normalize_over_mask = TRUE) {
+  mask_coords_world <- as.matrix(mask_coords_world)
+  if (ncol(mask_coords_world) != 3) {
+    abort_lna("mask_coords_world must have 3 columns",
+              .subclass = "lna_error_validation",
+              location = "generate_hrbf_atom")
+  }
+  if (length(mask_linear_indices) != nrow(mask_coords_world)) {
+    abort_lna("mask_linear_indices length mismatch",
+              .subclass = "lna_error_validation",
+              location = "generate_hrbf_atom")
+  }
+  centre_coord_world <- as.numeric(centre_coord_world)
+  if (length(centre_coord_world) != 3) {
+    abort_lna("centre_coord_world must be length 3",
+              .subclass = "lna_error_validation",
+              location = "generate_hrbf_atom")
+  }
+  kernel_type <- match.arg(kernel_type)
+
+  diffs <- sweep(mask_coords_world, 2, centre_coord_world, FUN = "-")
+  dist_mm <- sqrt(rowSums(diffs^2))
+
+  if (kernel_type == "gaussian") {
+    phi <- exp(-(dist_mm^2) / (2 * sigma_mm^2))
+  } else { # wendland_c4
+    r <- dist_mm / sigma_mm
+    base <- pmax(0, 1 - r)
+    phi <- base^8 * (32 * r^3 + 25 * r^2 + 8 * r + 1)
+    phi[r >= 1] <- 0
+  }
+
+  if (normalize_over_mask) {
+    norm_val <- sqrt(sum(phi^2))
+    if (norm_val > 0) {
+      phi <- phi / norm_val
+    }
+  }
+
+  list(values = phi, indices = mask_linear_indices)
+}

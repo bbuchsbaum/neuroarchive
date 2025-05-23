@@ -71,3 +71,23 @@ test_that("poisson_disk_sample_neuroim2 handles disconnected components", {
   expect_true(any(pts[,1] > 2))
 })
 
+
+test_that("generate_hrbf_atom gaussian normalisation", {
+  coords <- matrix(rbind(c(0,0,0), c(1,0,0), c(0,1,0)), ncol = 3, byrow = TRUE)
+  idx <- 1:3
+  res <- neuroarchive:::generate_hrbf_atom(coords, idx, c(0,0,0), sigma_mm = 1,
+                                           kernel_type = "gaussian")
+  expect_equal(res$indices, idx)
+  expect_equal(length(res$values), 3)
+  expect_equal(sum(res$values^2), 1, tolerance = 1e-6)
+})
+
+test_that("generate_hrbf_atom wendland_c4 normalisation", {
+  coords <- matrix(rbind(c(0,0,0), c(1,0,0), c(0,1,0)), ncol = 3, byrow = TRUE)
+  idx <- 1:3
+  res <- neuroarchive:::generate_hrbf_atom(coords, idx, c(0,0,0), sigma_mm = 2,
+                                           kernel_type = "wendland_c4")
+  expect_equal(res$indices, idx)
+  expect_equal(sum(res$values^2), 1, tolerance = 1e-6)
+  expect_true(all(res$values >= 0))
+})
