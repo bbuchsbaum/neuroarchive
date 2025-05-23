@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Descriptor for 'embed.transfer_hrbf_basis' transform",
+  "type": "object",
+  "properties": {
+    "type": { "const": "embed.transfer_hrbf_basis" },
+    "source_lna_file_path": { "type": "string", "default": "" },
+    "source_transform_descriptor_name": { "type": "string", "default": "" }
+  },
+  "required": ["type", "source_lna_file_path", "source_transform_descriptor_name"],
+  "additionalProperties": false
+}
