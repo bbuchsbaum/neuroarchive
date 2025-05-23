@@ -11,6 +11,7 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   sigma0 <- p$sigma0 %||% 6
   levels <- p$levels %||% 3L
   radius_factor <- p$radius_factor %||% 2.5
+  num_extra_fine_levels <- p$num_extra_fine_levels %||% 0L
   kernel_type <- p$kernel_type %||% "gaussian"
   seed <- p$seed
   centres_path <- p$centres_path
@@ -43,6 +44,19 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
       if (nrow(vox_centres) > 0) {
         centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
         sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+      }
+    }
+    if (num_extra_fine_levels > 0L) {
+      for (j_extra in seq_len(num_extra_fine_levels)) {
+        sigma_new <- sigma0 / (2^(levels + j_extra))
+        r_new <- radius_factor * sigma_new
+        vox_centres <- poisson_disk_sample_neuroim2(
+          mask_neurovol, r_new, seed + levels + j_extra
+        )
+        if (nrow(vox_centres) > 0) {
+          centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
+          sigs <- c(sigs, rep(sigma_new, nrow(vox_centres)))
+        }
       }
     }
     if (length(centres_list) > 0) {
@@ -136,6 +150,7 @@ invert_step.spat.hrbf <- function(type, desc, handle) {
   levels <- p$levels %||% 3L
   radius_factor <- p$radius_factor %||% 2.5
   kernel_type <- p$kernel_type %||% "gaussian"
+  num_extra_fine_levels <- p$num_extra_fine_levels %||% 0L
   seed <- p$seed
   centres_path <- p$centres_path
   sigma_vec_path <- p$sigma_vec_path
@@ -175,6 +190,19 @@ invert_step.spat.hrbf <- function(type, desc, handle) {
       if (nrow(vox_centres) > 0) {
         centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
         sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+      }
+    }
+    if (num_extra_fine_levels > 0L) {
+      for (j_extra in seq_len(num_extra_fine_levels)) {
+        sigma_new <- sigma0 / (2^(levels + j_extra))
+        r_new <- radius_factor * sigma_new
+        vox_centres <- poisson_disk_sample_neuroim2(
+          mask_neurovol, r_new, seed + levels + j_extra
+        )
+        if (nrow(vox_centres) > 0) {
+          centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
+          sigs <- c(sigs, rep(sigma_new, nrow(vox_centres)))
+        }
       }
     }
     C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list)
