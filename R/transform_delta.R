@@ -228,8 +228,39 @@ invert_step.delta <- function(type, desc, handle) {
     deltas <- matrix(delta_stream, nrow = expected_nrows_deltas, ncol = expected_ncols)
   }
 
-  cums <- .col_cumsums(deltas)
-  recon <- rbind(first_vals, sweep(cums, 2, first_vals, "+"))
+  subset <- handle$subset
+  roi_mask <- subset$roi_mask
+  time_idx <- subset$time_idx
+
+  if (!is.null(roi_mask)) {
+    vox_idx <- which(as.logical(roi_mask))
+    first_vals <- first_vals[, vox_idx, drop = FALSE]
+    deltas <- deltas[, vox_idx, drop = FALSE]
+    dims[-axis] <- length(vox_idx)
+  }
+
+  if (!is.null(time_idx)) {
+    idx <- as.integer(time_idx)
+    max_idx <- if (length(idx) > 0) max(idx) else 0L
+    if (max_idx > 1) {
+      cums <- .col_cumsums(deltas[seq_len(max_idx - 1), , drop = FALSE])
+    } else {
+      cums <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
+    }
+    recon <- matrix(0, nrow = length(idx), ncol = ncol(deltas))
+    for (i in seq_along(idx)) {
+      t <- idx[i]
+      if (t == 1) {
+        recon[i, ] <- first_vals
+      } else {
+        recon[i, ] <- first_vals + cums[t - 1, ]
+      }
+    }
+    dims[axis] <- length(idx)
+  } else {
+    cums <- .col_cumsums(deltas)
+    recon <- rbind(first_vals, sweep(cums, 2, first_vals, "+"))
+  }
 
   perm <- c(axis, setdiff(seq_along(dims), axis))
   recon_perm <- array(recon, dim = dims[perm])
@@ -237,24 +268,6 @@ invert_step.delta <- function(type, desc, handle) {
     out <- aperm(recon_perm, order(perm))
   } else {
     out <- as.vector(recon_perm)
-  }
-
-  subset <- handle$subset
-  if (!is.null(subset$roi_mask)) {
-    vox_idx <- which(as.logical(subset$roi_mask))
-    out <- out[vox_idx, , drop = FALSE]
-  }
-  if (!is.null(subset$time_idx)) {
-    idx <- as.integer(subset$time_idx)
-    if (axis == length(dims)) {
-      out <- out[,, idx, drop = FALSE]
-    } else {
-      # for simplicity, convert to array and subset along axis
-      ind <- vector("list", length(dims))
-      for (i in seq_along(ind)) ind[[i]] <- seq_len(dim(out)[i])
-      ind[[axis]] <- idx
-      out <- do.call('[', c(list(out), ind, drop = FALSE))
-    }
   }
 
   input_key <- desc$inputs[[1]] %||% "input"
