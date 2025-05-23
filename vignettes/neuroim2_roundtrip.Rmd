@@ -1,0 +1,29 @@
+---
+title: "Round-Trip with neuroim2"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Round-Trip with neuroim2}
+  %\VignetteEngine{rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette shows a minimal example of writing a `neuroim2` object to
+an LNA file and reading it back.
+
+```r
+library(neuroarchive)
+# library(neuroim2) # for real use
+
+# Read a NIfTI using neuroim2 (example path)
+# vec <- neuroim2::read_vec("func.nii.gz")
+# Ensure we have a DenseNeuroVec
+# vec <- as(vec, "DenseNeuroVec")
+
+# Write to LNA
+# write_lna(vec, "roundtrip.h5", transforms = "quant")
+
+# Read back
+# read_lna("roundtrip.h5")
+
+# Future: read_lna("roundtrip.h5", as_neuroim = TRUE)
+```
