@@ -18,7 +18,8 @@ test_that("lna_get_transform_report handles missing report_path and gzip", {
   dset <- h5[["/transforms/00_quant.json"]]
   desc <- jsonlite::fromJSON(dset$read())
   desc$params$report_path <- NULL
-  dset$write(jsonlite::toJSON(desc, auto_unbox = TRUE))
+  json_string <- jsonlite::toJSON(desc, auto_unbox = TRUE, pretty = FALSE)
+  dset[] <- json_string
   dset$close(); h5$close_all()
   rep <- lna_get_transform_report(tmp, "00_quant.json")
   expect_type(rep, "list")

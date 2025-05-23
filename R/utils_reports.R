@@ -56,6 +56,12 @@ lna_get_transform_report <- function(lna_file, transform_index_or_name) {
   dset <- root[[report_path]]
   on.exit(if (!is.null(dset) && inherits(dset, "H5D")) dset$close(), add = TRUE)
   raw_data <- dset$read()
+  
+  # Handle case where raw data was stored as integers for hdf5r compatibility
+  if (is.integer(raw_data) && h5_attr_exists(dset, "compression")) {
+    raw_data <- as.raw(raw_data)
+  }
+  
   if (h5_attr_exists(dset, "compression")) {
     comp <- h5_attr_read(dset, "compression")
     if (identical(comp, "gzip")) {
@@ -63,7 +69,20 @@ lna_get_transform_report <- function(lna_file, transform_index_or_name) {
     }
   }
 
-  json_str <- if (is.raw(raw_data)) rawToChar(raw_data) else as.character(raw_data)
+  # Ensure json_str is a character string for jsonlite::fromJSON
+  # If raw_data is raw (either originally or after decompression), convert to char.
+  # If it was already character, it remains character.
+  json_str <- if (is.raw(raw_data)) {
+    rawToChar(raw_data)
+  } else {
+    as.character(raw_data)
+  }
+  
+  # Remove potential leading/trailing whitespace
+  json_str <- trimws(json_str)
+  # Explicitly remove null characters which can cause parsing issues
+  json_str <- gsub("\\0", "", json_str, fixed = TRUE)
+
   jsonlite::fromJSON(json_str, simplifyVector = TRUE,
                      simplifyDataFrame = FALSE, simplifyMatrix = FALSE)
 }
