@@ -17,6 +17,11 @@
       "default": 3,
       "description": "Number of dyadic levels (0 to J)."
     },
+    "num_extra_fine_levels": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
     "radius_factor": {
       "type": "number",
       "exclusiveMinimum": 0,
@@ -27,6 +32,14 @@
       "enum": ["gaussian", "wendland_c4"],
       "default": "gaussian",
       "description": "Type of radial basis function kernel. 'wendland_c4' offers C4 smoothness and compact support (shape parameter derived from sigma)."
+    },
+    "kernel_type_fine_levels": {
+      "enum": ["gaussian", "wendland_c4"],
+      "default": "wendland_c4"
+    },
+    "num_fine_levels_alt_kernel": {
+      "type": "integer",
+      "default": 2
     },
     "mask_hash": {
       "type": "string",
@@ -66,6 +79,22 @@
     "storage_order": {
       "enum": ["component_x_voxel", "voxel_x_component"],
       "default": "component_x_voxel"
+    },
+    "edge_adaptive_sampling": {
+      "type": "object",
+      "properties": {
+        "enable": { "type": "boolean", "default": false },
+        "source": {
+          "enum": ["self_mean", "structural_path"],
+          "default": "self_mean"
+        },
+        "structural_path": { "type": "string" },
+        "structural_to_epi_affine_path": { "type": "string" },
+        "gradient_kernel": { "const": "sobel_3d" },
+        "edge_thresh_k": { "type": "number", "default": 3.0 },
+        "density_factor": { "type": "number", "default": 1.5 }
+      },
+      "additionalProperties": false
     }
   },
   "oneOf": [
@@ -79,8 +108,11 @@
       "version": "1.0",
       "sigma0": 6.0,
       "levels": 3,
+      "num_extra_fine_levels": 1,
       "radius_factor": 2.5,
       "kernel_type": "gaussian",
+      "kernel_type_fine_levels": "wendland_c4",
+      "num_fine_levels_alt_kernel": 2,
       "seed": 1234
     },
     {
@@ -93,7 +125,11 @@
       "centres_path": "/basis/hrbf/centres",
       "sigma_vec_path": "/basis/hrbf/sigmas",
       "store_dense_matrix": true,
-      "storage_order": "voxel_x_component"
+      "storage_order": "voxel_x_component",
+      "edge_adaptive_sampling": {
+        "enable": true,
+        "source": "self_mean"
+      }
     }
   ],
   "additionalProperties": false
