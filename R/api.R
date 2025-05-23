@@ -56,148 +56,50 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
                       header = NULL, plugins = NULL, block_table = NULL,
                       run_id = NULL, checksum = c("none", "sha256")) {
-  
-  cat(paste0("[write_lna] Input file arg: ", ifelse(is.null(file), "NULL", file), "\n"))
+
   checksum <- match.arg(checksum)
 
-  in_memory <- FALSE
-  file_to_use <- file
-  h5 <- NULL 
-
-  if (is.null(file)) {
-    file_to_use <- tempfile(fileext = ".h5") 
-    in_memory <- TRUE
-    cat(paste0("[write_lna] In-memory HDF5 requested. Using temp name: ", file_to_use, " and direct H5File$new after library(hdf5r).\n"))
-    
-    tryCatch({
-      library(hdf5r) # Explicitly load hdf5r
-      h5 <- H5File$new(file_to_use, mode = 'w', driver = 'core', driver_info = list(backing_store = FALSE))
-      
-      if (!is.null(h5) && h5$is_valid) {
-        warning(paste0("In-memory HDF5 file (core driver) created via H5File$new (after library call) using temp name: ", file_to_use))
-      } else {
-        stop(paste0("Failed to create in-memory HDF5 file using H5File$new (after library call). H5File object is NULL or invalid. Temp name: ", file_to_use))
-      }
-    }, error = function(e) {
-      cat(paste0("[write_lna] Error during H5File$new (after library call) for in-memory HDF5: ", conditionMessage(e), "\n"))
-      h5 <- NULL 
-      stop(paste0("Error creating in-memory HDF5 file with H5File$new (after library call): ", conditionMessage(e), ". Temp name: ", file_to_use))
-    })
-
-  } else {
-    cat(paste0("[write_lna] On-disk HDF5 requested: ", file_to_use, "\n"))
-    # Use open_h5 for on-disk files (which uses do.call with getNamespace)
-    h5 <- open_h5(file_to_use, mode = "w")
-  }
-
-  if (is.null(h5) || !h5$is_valid) {
-    stop(paste0("Failed to open or create HDF5 file object for: ", file_to_use, 
-                if(in_memory) " (in-memory attempt)" else " (on-disk attempt)",
-                ". H5File object is NULL or invalid."))
-  }
-  
-  cat(paste0("[write_lna] H5File object created. Is valid: ", h5$is_valid, "\n"))
-
-  on.exit({
-    if (!is.null(h5) && h5$is_valid) {
-      cat(paste0("[write_lna] Closing HDF5 file: ", h5$filename, "\n"))
-      h5$close_all()
-    }
-    if (in_memory && file.exists(file_to_use)) {
-      cat(paste0("[write_lna] Deleting temp file used for in-memory HDF5: ", file_to_use, "\n"))
-      unlink(file_to_use, force = TRUE)
-    }
-  })
+  info <- open_output_h5(file)
+  h5 <- info$h5
+  on.exit(close_output_h5(info), add = TRUE)
 
   if (is.null(header)) {
-    x_for_header <- if (is.list(x)) x[[1]] else x
-    if (methods::is(x_for_header, "NeuroObj")) {
-      spc <- tryCatch(space(x_for_header), error = function(e) NULL)
-      if (!is.null(spc)) {
-        header <- neuroim2_space_to_lna_header(spc)
-      }
-    }
+    header <- derive_header_from_input(x)
   }
 
-  cat("[write_lna] Calling core_write...\n")
-  result <- core_write(x = x, transforms = transforms,
-                       transform_params = transform_params,
-                       mask = mask, header = header, plugins = plugins, run_id = run_id)
+  result <- core_write(
+    x = x,
+    transforms = transforms,
+    transform_params = transform_params,
+    mask = mask,
+    header = header,
+    plugins = plugins,
+    run_id = run_id
+  )
  
-  if (!is.null(block_table)) {
-    if (!is.data.frame(block_table)) {
-      abort_lna(
-        "block_table must be a data frame",
-        .subclass = "lna_error_validation",
-        location = "write_lna:block_table"
-      )
-    }
-    if (nrow(block_table) > 0) {
-      num_cols <- vapply(block_table, is.numeric, logical(1))
-      if (!all(num_cols)) {
-        abort_lna(
-          "block_table columns must be numeric",
-          .subclass = "lna_error_validation",
-          location = "write_lna:block_table"
-        )
-      }
-      coords <- unlist(block_table)
-      if (any(is.na(coords)) || any(coords < 1, na.rm = TRUE)) {
-        abort_lna(
-          "block_table coordinates must be non-missing and >= 1",
-          .subclass = "lna_error_validation",
-          location = "write_lna:block_table"
-        )
-      }
-      max_idx <- result$handle$mask_info$active_voxels
-      if (!is.null(max_idx) && any(coords > max_idx, na.rm = TRUE)) {
-        abort_lna(
-          "block_table coordinates exceed masked voxel count",
-          .subclass = "lna_error_validation",
-          location = "write_lna:block_table"
-        )
-      }
-    }
-  }
+  validate_block_table(block_table, result$handle$mask_info$active_voxels)
   
-  plugins_from_handle <- list()
-  if (!is.null(result) && !is.null(result$handle) && !is.null(result$handle$meta) && !is.null(result$handle$meta$plugins)) {
-    plugins_from_handle <- result$handle$meta$plugins
-  }
+  plugins_from_handle <- result$handle$meta$plugins
   if (length(plugins_from_handle) == 0) plugins_from_handle <- NULL
+  header_from_handle <- result$handle$meta$header %||% list()
 
-  header_from_handle <- list()
-  if (!is.null(result) && !is.null(result$handle) && !is.null(result$handle$meta) && !is.null(result$handle$meta$header)) {
-    header_from_handle <- result$handle$meta$header
-  }
+  materialise_plan(
+    h5,
+    result$plan,
+    checksum = checksum,
+    header = header_from_handle,
+    plugins = plugins_from_handle
+  )
 
-  cat("[write_lna] Calling materialise_plan...\n")
-  materialise_plan(h5, result$plan,
-                   checksum = checksum,
-                   header = header_from_handle,
-                   plugins = plugins_from_handle)
-  cat("[write_lna] materialise_plan returned.\n")
+  write_block_table_dataset(h5, block_table)
 
-  if (!is.null(block_table)) {
-    cat("[write_lna] Writing block_table dataset.\n")
-    bt_matrix <- as.matrix(block_table)
-    h5_write_dataset(h5[["/"]], "spatial/block_table", bt_matrix)
-    cat("[write_lna] Finished writing block_table dataset.\n")
-  }
-
-  final_out_file <- if (in_memory) NULL else file_to_use
-  cat(paste0("[write_lna] Final out file determination: ", ifelse(is.null(final_out_file), "NULL", final_out_file), "\n"))
-  
-  lnaobj <- list(file = final_out_file, 
-                 transform_params = header_from_handle$transform_params,
-                 header = header_from_handle)
-  
-  class(lnaobj) <- c("lna_write_result", "list") # Ensure correct class name
-  
-  cat(paste0("[write_lna] Successfully created lna object. File path in object: ", 
-             ifelse(is.null(lnaobj$file), "NULL (in-memory)", lnaobj$file), "\n"))
-  
-  return(lnaobj)
+  lnaobj <- list(
+    file = if (info$in_memory) NULL else info$file,
+    transform_params = header_from_handle$transform_params,
+    header = header_from_handle
+  )
+  class(lnaobj) <- c("lna_write_result", "list")
+  lnaobj
 }
 
 #' Read data from an LNA file
@@ -292,3 +194,100 @@ compress_fmri <- function(...) write_lna(...)
 #' @seealso read_lna
 #' @export
 open_lna <- read_lna
+
+# -------------------------------------------------------------------------
+# Internal helper functions
+
+open_output_h5 <- function(path) {
+  if (is.null(path)) {
+    tmp <- tempfile(fileext = ".h5")
+    h5 <- hdf5r::H5File$new(
+      tmp,
+      mode = "w",
+      driver = "core",
+      driver_info = list(backing_store = FALSE)
+    )
+    if (is.null(h5) || !h5$is_valid) {
+      stop("Failed to create in-memory HDF5 file with H5File$new")
+    }
+    warning(
+      sprintf(
+        "In-memory HDF5 file (core driver) created via H5File$new using temp name: %s",
+        tmp
+      ),
+      call. = FALSE
+    )
+    list(h5 = h5, file = tmp, in_memory = TRUE)
+  } else {
+    h5 <- open_h5(path, mode = "w")
+    if (is.null(h5) || !h5$is_valid) {
+      stop(sprintf("Failed to open HDF5 file '%s'", path))
+    }
+    list(h5 = h5, file = path, in_memory = FALSE)
+  }
+}
+
+close_output_h5 <- function(info) {
+  if (!is.null(info$h5) && info$h5$is_valid) {
+    info$h5$close_all()
+  }
+  if (isTRUE(info$in_memory) && file.exists(info$file)) {
+    unlink(info$file, force = TRUE)
+  }
+  invisible(NULL)
+}
+
+derive_header_from_input <- function(x) {
+  src <- if (is.list(x)) x[[1]] else x
+  if (methods::is(src, "NeuroObj")) {
+    spc <- tryCatch(space(src), error = function(e) NULL)
+    if (!is.null(spc)) {
+      return(neuroim2_space_to_lna_header(spc))
+    }
+  }
+  NULL
+}
+
+validate_block_table <- function(block_table, max_idx) {
+  if (is.null(block_table)) return(invisible(NULL))
+  if (!is.data.frame(block_table)) {
+    abort_lna(
+      "block_table must be a data frame",
+      .subclass = "lna_error_validation",
+      location = "write_lna:block_table"
+    )
+  }
+  if (nrow(block_table) > 0) {
+    num_cols <- vapply(block_table, is.numeric, logical(1))
+    if (!all(num_cols)) {
+      abort_lna(
+        "block_table columns must be numeric",
+        .subclass = "lna_error_validation",
+        location = "write_lna:block_table"
+      )
+    }
+    coords <- unlist(block_table)
+    if (any(is.na(coords)) || any(coords < 1, na.rm = TRUE)) {
+      abort_lna(
+        "block_table coordinates must be non-missing and >= 1",
+        .subclass = "lna_error_validation",
+        location = "write_lna:block_table"
+      )
+    }
+    if (!is.null(max_idx) && any(coords > max_idx, na.rm = TRUE)) {
+      abort_lna(
+        "block_table coordinates exceed masked voxel count",
+        .subclass = "lna_error_validation",
+        location = "write_lna:block_table"
+      )
+    }
+  }
+  invisible(NULL)
+}
+
+write_block_table_dataset <- function(h5, block_table) {
+  if (is.null(block_table)) return(invisible(NULL))
+  bt_matrix <- as.matrix(block_table)
+  h5_write_dataset(h5[["/"]], "spatial/block_table", bt_matrix)
+  invisible(NULL)
+}
