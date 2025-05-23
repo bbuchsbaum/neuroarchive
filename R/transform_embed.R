@@ -39,7 +39,7 @@ forward_step.embed <- function(type, desc, handle) {
   if (nrow(basis) == ncol(X)) {
     coeff <- X %*% basis
   } else if (ncol(basis) == ncol(X)) {
-    coeff <- X %*% t(basis)
+    coeff <- tcrossprod(X, basis)
   } else {
     abort_lna(
       "basis matrix dimensions incompatible with input",
@@ -157,7 +157,7 @@ invert_step.embed <- function(type, desc, handle) {
   if (nrow(basis) == ncol(coeff)) {
     dense <- coeff %*% basis
   } else if (ncol(basis) == ncol(coeff)) {
-    dense <- coeff %*% t(basis)
+    dense <- tcrossprod(coeff, basis)
   } else {
     abort_lna(
       "basis matrix dimensions incompatible with coefficients",
