@@ -20,7 +20,8 @@
     "num_extra_fine_levels": {
       "type": "integer",
       "minimum": 0,
-      "default": 0
+      "default": 0,
+      "description": "Additional dyadic levels beyond 'levels'. Functionality pending future implementation."
     },
     "radius_factor": {
       "type": "number",
@@ -35,11 +36,13 @@
     },
     "kernel_type_fine_levels": {
       "enum": ["gaussian", "wendland_c4"],
-      "default": "wendland_c4"
+      "default": "wendland_c4",
+      "description": "Kernel type applied to the finest levels. Full functionality pending future implementation."
     },
     "num_fine_levels_alt_kernel": {
       "type": "integer",
-      "default": 2
+      "default": 2,
+      "description": "Number of finest levels using 'kernel_type_fine_levels'. Functionality pending future implementation."
     },
     "mask_hash": {
       "type": "string",
@@ -98,20 +101,27 @@
     },
     "use_anisotropic_atoms": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Enable anisotropic RBF atoms derived from a tensor source. Full functionality pending future implementation."
     },
-    "anisotropy_source_path": { "type": "string" },
+    "anisotropy_source_path": {
+      "type": "string",
+      "description": "HDF5 path to anisotropy information used when `use_anisotropic_atoms` is TRUE. Full functionality pending future implementation."
+    },
     "orthogonalize_atoms_at_center": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Orthogonalize atoms that share a centre. Full functionality pending future implementation."
     },
     "include_gaussian_derivatives": {
       "enum": ["none", "first_order"],
-      "default": "none"
+      "default": "none",
+      "description": "Include derivative-of-Gaussian atoms. Full functionality pending future implementation."
     },
     "centre_steering": {
       "type": "object",
       "default": {},
+      "description": "Steer centre density based on an external map. Full functionality pending future implementation.",
       "properties": {
         "map_path": {
           "type": "string",
@@ -128,11 +138,13 @@
     },
     "use_differential_encoding": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Encode basis as multi-scale differences. Full functionality pending future implementation."
     },
     "orthogonalize_differential_levels": {
       "type": "boolean",
-      "default": true
+      "default": true,
+      "description": "Orthogonalize differential levels when `use_differential_encoding` is TRUE. Full functionality pending future implementation."
     }
   },
   "oneOf": [
