@@ -252,7 +252,9 @@ generate_hrbf_atom <- function(mask_coords_world, mask_linear_indices,
 #' @return Sparse matrix with one row per HRBF atom and columns matching
 #'   mask voxels.
 #' @keywords internal
-hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
+hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
+                                   mask_world_coords = NULL, mask_arr = NULL,
+                                   mask_linear_indices = NULL) {
   sigma0 <- params$sigma0 %||% 6
   levels <- params$levels %||% 3L
   radius_factor <- params$radius_factor %||% 2.5
@@ -314,10 +316,16 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
               location = "hrbf_basis_from_params")
   }
 
-  mask_arr <- as.array(mask_neurovol)
-  mask_coords_vox <- which(mask_arr, arr.ind = TRUE)
-  mask_coords_world <- voxel_to_world(mask_coords_vox)
-  mask_linear_indices <- as.integer(which(mask_arr))
+  if (is.null(mask_arr)) {
+    mask_arr <- as.array(mask_neurovol)
+  }
+  if (is.null(mask_world_coords)) {
+    mask_coords_vox <- which(mask_arr, arr.ind = TRUE)
+    mask_world_coords <- voxel_to_world(mask_coords_vox)
+  }
+  if (is.null(mask_linear_indices)) {
+    mask_linear_indices <- as.integer(which(mask_arr))
+  }
   n_total_vox <- length(mask_arr)
   k_actual <- nrow(C_total)
 
