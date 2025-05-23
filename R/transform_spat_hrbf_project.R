@@ -107,8 +107,112 @@ forward_step.spat.hrbf_project <- function(type, desc, handle) {
   plan$add_descriptor(fname, desc)
   handle$plan <- plan
 
-  handle$update_stash(keys = character(),
+handle$update_stash(keys = character(),
                       new_values = list(hrbf_coefficients = coeff))
+}
+
+#' Inverse step for the 'spat.hrbf_project' transform
+#'
+#' Reconstructs dense data from HRBF coefficients using an analytically
+#' generated HRBF basis. Centres are regenerated from the descriptor
+#' parameters or loaded from HDF5 if provided.
+#' @keywords internal
+invert_step.spat.hrbf_project <- function(type, desc, handle) {
+  p <- desc$params %||% list()
+  sigma0 <- p$sigma0 %||% 6
+  levels <- p$levels %||% 3L
+  radius_factor <- p$radius_factor %||% 2.5
+  kernel_type <- p$kernel_type %||% "gaussian"
+  seed <- p$seed
+  centres_path <- p$centres_path
+  sigma_vec_path <- p$sigma_vec_path
+  centres_stored <- isTRUE(p$centres_stored)
+
+  mask_neurovol <- handle$mask_info$mask
+  if (is.null(mask_neurovol)) {
+    abort_lna("mask_info$mask missing", .subclass = "lna_error_validation",
+              location = "invert_step.spat.hrbf_project:mask")
+  }
+
+  voxel_to_world <- function(vox_mat) {
+    spc <- tryCatch(space(mask_neurovol), error = function(e) NULL)
+    spacing_vec <- tryCatch(spacing(spc), error = function(e) c(1,1,1))
+    origin_vec <- tryCatch(origin(spc), error = function(e) c(0,0,0))
+    sweep(vox_mat - 1, 2, spacing_vec, `*`) +
+      matrix(origin_vec, nrow(vox_mat), 3, byrow = TRUE)
+  }
+
+  if (centres_stored && !is.null(centres_path) && !is.null(sigma_vec_path)) {
+    root <- handle$h5[["/"]]
+    C_total <- h5_read(root, centres_path)
+    sigma_vec <- as.numeric(h5_read(root, sigma_vec_path))
+  } else {
+    if (is.null(seed)) {
+      abort_lna("seed missing for analytic regeneration",
+                .subclass = "lna_error_descriptor",
+                location = "invert_step.spat.hrbf_project:seed")
+    }
+    centres_list <- list()
+    sigs <- numeric()
+    for (j in seq_len(levels + 1L) - 1L) {
+      sigma_j <- sigma0 / (2^j)
+      r_j <- radius_factor * sigma_j
+      vox_centres <- poisson_disk_sample_neuroim2(mask_neurovol, r_j, seed + j)
+      if (nrow(vox_centres) > 0) {
+        centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
+        sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+      }
+    }
+    C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list)
+               else matrix(numeric(0), ncol = 3)
+    sigma_vec <- sigs
+  }
+
+  mask_arr <- as.array(mask_neurovol)
+  mask_coords_vox <- which(mask_arr, arr.ind = TRUE)
+  mask_coords_world <- voxel_to_world(mask_coords_vox)
+  mask_linear_indices <- as.integer(which(mask_arr))
+  n_total_vox <- length(mask_arr)
+  k_actual <- nrow(C_total)
+
+  if (k_actual > 0) {
+    i_idx <- integer(); j_idx <- integer(); x_val <- numeric()
+    for (kk in seq_len(k_actual)) {
+      atom <- generate_hrbf_atom(mask_coords_world, mask_linear_indices,
+                                 C_total[kk,], sigma_vec[kk], kernel_type)
+      i_idx <- c(i_idx, rep.int(kk, length(atom$indices)))
+      j_idx <- c(j_idx, atom$indices)
+      x_val <- c(x_val, atom$values)
+    }
+    B_final <- Matrix::sparseMatrix(i = i_idx, j = j_idx, x = x_val,
+                                    dims = c(k_actual, n_total_vox))
+  } else {
+    B_final <- Matrix::sparseMatrix(i = integer(), j = integer(), x = numeric(),
+                                    dims = c(0, n_total_vox))
+  }
+
+  coeff_key <- desc$outputs[[1]] %||% "hrbf_coefficients"
+  input_key <- desc$inputs[[1]] %||% "input"
+  if (!handle$has_key(coeff_key)) {
+    return(handle)
+  }
+  coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
+
+  subset <- handle$subset
+  roi_mask <- subset$roi_mask %||% subset$roi
+  if (!is.null(roi_mask)) {
+    vox_idx <- which(as.logical(roi_mask))
+    B_final <- B_final[, vox_idx, drop = FALSE]
+  }
+  time_idx <- subset$time_idx %||% subset$time
+  if (!is.null(time_idx)) {
+    coeff <- coeff[time_idx, , drop = FALSE]
+  }
+
+  dense <- coeff %*% B_final
+
+  handle$update_stash(keys = coeff_key,
+                      new_values = setNames(list(dense), input_key))
 }
 
 #' Default parameters for the 'spat.hrbf_project' transform
