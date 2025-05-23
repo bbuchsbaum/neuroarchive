@@ -37,6 +37,10 @@ forward_step.temporal <- function(type, desc, handle) {
   if (is.null(n_basis)) n_basis <- n_time
   n_basis <- min(n_basis, n_time)
 
+  # After resolving defaults, store parameters back in desc$params
+  p_final <- c(list(kind = kind, n_basis = n_basis, order = order), p)
+  desc$params <- p_final
+
   args <- c(list(kind = kind, n_time = n_time, n_basis = n_basis, order = order),
             p)
   basis <- do.call(temporal_basis, args)
@@ -76,7 +80,7 @@ forward_step.temporal <- function(type, desc, handle) {
   basis_path <- paste0("/temporal/", base_name, "/basis")
   coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
   knots_path <- paste0("/temporal/", base_name, "/knots")
-  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
+  params_json <- as.character(jsonlite::toJSON(desc$params, auto_unbox = TRUE))
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
