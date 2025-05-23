@@ -23,6 +23,12 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
               location = "forward_step.spat.hrbf:mask")
   }
 
+  mask_arr <- as.array(mask_neurovol)
+  cached_mask_world_coords <- neuroim2::grid_to_coord(
+    mask_neurovol, which(mask_arr, arr.ind = TRUE)
+  )
+  mask_linear_indices <- as.integer(which(mask_arr))
+
   ## Advanced parameter validation / stubs ----
   if (isTRUE(p$use_anisotropic_atoms)) {
     if (is.null(p$anisotropy_source_path)) {
@@ -149,8 +155,13 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
 
 
 
-  B_final <- hrbf_generate_basis(p, mask_neurovol,
-                                 if (!is.null(handle$h5)) handle$h5[["/"]] else NULL)
+  B_final <- hrbf_generate_basis(
+    p, mask_neurovol,
+    if (!is.null(handle$h5)) handle$h5[["/"]] else NULL,
+    mask_world_coords = cached_mask_world_coords,
+    mask_arr = mask_arr,
+    mask_linear_indices = mask_linear_indices
+  )
 
   matrix_path <- "/basis/hrbf/analytic/matrix"
   params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))

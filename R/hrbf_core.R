@@ -12,8 +12,14 @@
 #'   returns the coefficient matrix and `hrbf_reconstruct_matrix` returns
 #'   a dense numeric matrix.
 #' @export
-hrbf_generate_basis <- function(params, mask, h5_root = NULL) {
-  hrbf_basis_from_params(params, mask, h5_root)
+hrbf_generate_basis <- function(params, mask, h5_root = NULL,
+                                mask_world_coords = NULL,
+                                mask_arr = NULL,
+                                mask_linear_indices = NULL) {
+  hrbf_basis_from_params(params, mask, h5_root,
+                         mask_world_coords = mask_world_coords,
+                         mask_arr = mask_arr,
+                         mask_linear_indices = mask_linear_indices)
 }
 
 #' @rdname hrbf_generate_basis
