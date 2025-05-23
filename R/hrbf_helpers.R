@@ -93,50 +93,62 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
   spacing_vec <- tryCatch(spacing(spc), error = function(e) c(1, 1, 1))
 
   comp_info <- label_components(mask_arr)
+  use_rcpp <- isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
+    exists("poisson_disk_sample_component_rcpp")
+
+  radius_vox <- radius_mm / mean(spacing_vec)
+  r2 <- radius_vox^2
+
+  sample_component_R <- function(coords, base_seed) {
+    set.seed(as.integer(base_seed))
+    remaining <- coords[sample(nrow(coords)), , drop = FALSE]
+    selected <- matrix(numeric(0), ncol = 3)
+    while (nrow(remaining) > 0) {
+      cand <- remaining[1, , drop = FALSE]
+      remaining <- remaining[-1, , drop = FALSE]
+      if (nrow(selected) == 0) {
+        selected <- rbind(selected, cand)
+      } else {
+        d2 <- rowSums((selected - matrix(cand, nrow = nrow(selected), ncol = 3,
+                                          byrow = TRUE))^2)
+        if (all(d2 >= r2)) {
+          selected <- rbind(selected, cand)
+        }
+      }
+    }
+    selected
+  }
+
+  gather <- function(coords, seed_val) {
+    if (use_rcpp) {
+      out <- poisson_disk_sample_component_rcpp(coords - 1L, r2, seed_val) + 1L
+    } else {
+      out <- sample_component_R(coords, seed_val)
+    }
+    if (nrow(out) == 0 && nrow(coords) < 150) {
+      centroid_pt <- round(colMeans(coords))
+      out <- matrix(centroid_pt, nrow = 1)
+    }
+    out
+  }
 
   if (comp_info$count > 1L && component_id_for_seed_offset == 0) {
     centres <- lapply(seq_len(comp_info$count), function(id) {
-      sub_mask <- comp_info$labels == id
-      sub_vol <- structure(list(arr = sub_mask), class = "LogicalNeuroVol")
-      if (!is.null(spc)) attr(sub_vol, "space") <- spc
-      poisson_disk_sample_neuroim2(sub_vol, radius_mm, seed, id)
+      coords <- which(comp_info$labels == id, arr.ind = TRUE)
+      if (nrow(coords) == 0) return(matrix(numeric(0), ncol = 3))
+      gather(coords, as.integer(seed) + id)
     })
     res <- do.call(rbind, centres)
     colnames(res) <- c("i", "j", "k")
     return(res)
   }
 
-  set.seed(as.integer(seed) + as.integer(component_id_for_seed_offset))
-
-  radius_vox <- radius_mm / mean(spacing_vec)
-  r2 <- radius_vox^2
-
   vox_coords <- which(mask_arr, arr.ind = TRUE)
   if (nrow(vox_coords) == 0) {
     return(matrix(integer(0), ncol = 3, dimnames = list(NULL, c("i","j","k"))))
   }
-  remaining <- vox_coords[sample(nrow(vox_coords)), , drop = FALSE]
-  selected <- matrix(numeric(0), ncol = 3)
 
-  while (nrow(remaining) > 0) {
-    cand <- remaining[1, , drop = FALSE]
-    remaining <- remaining[-1, , drop = FALSE]
-    if (nrow(selected) == 0) {
-      selected <- rbind(selected, cand)
-    } else {
-      d2 <- rowSums((selected - matrix(cand, nrow = nrow(selected), ncol = 3,
-                                      byrow = TRUE))^2)
-      if (all(d2 >= r2)) {
-        selected <- rbind(selected, cand)
-      }
-    }
-  }
-
-  if (nrow(selected) == 0 && sum(mask_arr) < 150) {
-    centroid_pt <- round(colMeans(vox_coords))
-    selected <- matrix(centroid_pt, nrow = 1)
-  }
-
+  selected <- gather(vox_coords, as.integer(seed) + as.integer(component_id_for_seed_offset))
   colnames(selected) <- c("i", "j", "k")
   selected
 }
