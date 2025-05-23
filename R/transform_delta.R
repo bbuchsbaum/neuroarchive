@@ -254,7 +254,7 @@ invert_step.delta <- function(type, desc, handle) {
     deltas <- matrix(delta_stream, nrow = expected_nrows_deltas, ncol = expected_ncols)
   }
 
-  cums <- matrix(apply(deltas, 2, cumsum), nrow = expected_nrows_deltas, ncol = expected_ncols)
+  cums <- .col_cumsums(deltas)
   recon <- rbind(first_vals, sweep(cums, 2, first_vals, "+"))
 
   perm <- c(axis, setdiff(seq_along(dims), axis))
