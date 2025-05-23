@@ -180,6 +180,38 @@ pca <- function(data_or_pipe, k = NULL, ...) {
 }
 
 
+##' Infer Embed Step Type and Default Path
+#'
+#' Helper used by `embed()` to derive the appropriate transform type and
+#' default `basis_path` based on the preceding pipeline step. If no
+#' known basis-producing step is detected, returns a generic embed type
+#' with a `NULL` path.
+#'
+#' @param prev_step Step specification from `get_last_step_spec()`.
+#' @param prev_index Integer index (1-based) of the previous step.
+#' @return List with fields `type` and `basis_path`.
+#' @keywords internal
+infer_embed_step <- function(prev_step, prev_index) {
+  res <- list(type = "embed", basis_path = NULL)
+  if (is.null(prev_step)) return(res)
+
+  zero_idx <- prev_index - 1L
+
+  if (identical(prev_step$type, "basis")) {
+    method <- prev_step$params$method %||% "pca"
+    res$type <- paste0("embed.", method)
+    base_name <- sprintf("%02d_%s", zero_idx, prev_step$type)
+    res$basis_path <- paste0("/basis/", base_name, "/matrix")
+  } else if (identical(prev_step$type, "spat.hrbf")) {
+    res$type <- "embed.hrbf_analytic"
+    base_name <- sprintf("%02d_%s", zero_idx, prev_step$type)
+    res$basis_path <- paste0("/basis/", base_name, "/matrix")
+  }
+
+  res
+}
+
+
 ##' Embed DSL verb
 #'
 #' Adds an embedding step that projects the input data onto a basis
@@ -214,17 +246,12 @@ embed <- function(data_or_pipe, basis_path = NULL, ...) {
   user_params <- c(list(basis_path = basis_path), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  embed_type <- "embed"
-  default_path <- NULL
+  info <- infer_embed_step(prev, length(pipe$steps))
+  embed_type <- info$type
+  default_path <- info$basis_path
 
-  prev_index <- length(pipe$steps)
-  if (prev$type == "basis") {
-    base_name <- sprintf("%02d_%s", prev_index - 1L, prev$type)
-    default_path <- paste0("/basis/", base_name, "/matrix")
-  }
-
-  pars <- default_params("embed")
-  opts <- lna_options("embed")$embed %||% list()
+  pars <- default_params(embed_type)
+  opts <- lna_options(embed_type)[[embed_type]] %||% list()
   pars <- utils::modifyList(pars, opts)
 
   if (is.null(user_params$basis_path)) {

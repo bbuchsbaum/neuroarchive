@@ -68,7 +68,7 @@ test_that("embed() infers path after hrbf", {
   pipe <- hrbf(arr)
   pipe <- embed(pipe)
   step <- pipe$steps[[2]]
-  expect_equal(step$type, "embed")
+  expect_equal(step$type, "embed.hrbf_analytic")
   expect_true(grepl("/basis/00_spat.hrbf/matrix", step$params$basis_path))
 })
 
