@@ -16,6 +16,8 @@ Imports:
     rlang,
     R6,
     tibble,
+    neuroim2,
+    igraph,
     progressr,
     digest,
     memoise,
