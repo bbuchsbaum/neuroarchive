@@ -213,6 +213,12 @@ lna_pipeline <- R6::R6Class(
     },
 
     #' @description
+    #' Convenience accessor for the internal step list
+    steps = function() {
+      self$steps
+    },
+
+    #' @description
     #' Retrieve a step specification by index or by type name. If a type
     #' string is provided and occurs multiple times, the last matching step
     #' is returned. Returns `NULL` if no matching step exists.
