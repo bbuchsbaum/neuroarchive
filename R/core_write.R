@@ -33,7 +33,7 @@ core_write <- function(x, transforms, transform_params = list(),
   # cat("[core_write] Input data validated.\n")
 
   # cat("[core_write] Validating mask...\n")
-  mask_info <- validate_mask(mask)
+  mask_info <- validate_mask(mask, x)
   mask_array <- mask_info$array
   active_voxels <- mask_info$active_voxels
   # cat(paste0("[core_write] Mask validated. Is mask_array NULL? ", is.null(mask_array), " Active voxels: ", ifelse(is.null(active_voxels), "N/A", active_voxels), "\n"))
@@ -212,14 +212,34 @@ core_write <- function(x, transforms, transform_params = list(),
 #' Validate and normalise mask argument
 #'
 #' @param mask Optional mask object.
+#' @param input Optional input object used to compare mask space/orientation.
 #' @return List with `array` and `active_voxels` entries.
 #' @keywords internal
-validate_mask <- function(mask) {
+validate_mask <- function(mask, input = NULL) {
   if (is.null(mask)) {
     return(list(array = NULL, active_voxels = NULL))
   }
 
   if (inherits(mask, "LogicalNeuroVol")) {
+    mask_space <- tryCatch(space(mask), error = function(e) NULL)
+
+    if (!is.null(input)) {
+      x_run <- if (is.list(input)) input[[1]] else input
+      input_space <- tryCatch(space(x_run), error = function(e) NULL)
+      if (!is.null(mask_space) && !is.null(input_space)) {
+        mask_dims <- tryCatch(dim(mask_space)[1:3], error = function(e) NULL)
+        input_dims <- tryCatch(dim(input_space)[1:3], error = function(e) NULL)
+        mask_trans <- tryCatch(trans(mask_space), error = function(e) NULL)
+        input_trans <- tryCatch(trans(input_space), error = function(e) NULL)
+
+        if (!is.null(mask_dims) && !is.null(input_dims) &&
+            (!identical(mask_dims, input_dims) ||
+             (!is.null(mask_trans) && !is.null(input_trans) && !identical(mask_trans, input_trans)))) {
+          warn_lna("Mask orientation/space differs from input data; reslice mask to data space for accurate application.")
+        }
+      }
+    }
+
     arr <- as.array(mask)
   } else if (is.array(mask) && length(dim(mask)) == 3 && is.logical(mask)) {
     arr <- mask
