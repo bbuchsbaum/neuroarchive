@@ -238,9 +238,19 @@ invert_step.temporal <- function(type, desc, handle) {
 
 
 #' Generate DPSS basis matrix
+#'
+#' Uses \code{multitaper::dpss.taper()} when available to avoid constructing
+#' large Toeplitz matrices.
 #' @keywords internal
 .dpss_basis <- function(n_time, n_basis, NW) {
   stopifnot(NW > 0, NW < n_time / 2, n_basis <= 2 * NW)
+
+  if (requireNamespace("multitaper", quietly = TRUE)) {
+    res <- multitaper::dpss.taper(N = n_time, K = n_basis, NW = NW)
+    V <- if (is.list(res) && !is.null(res$v)) res$v else res
+    V <- V[, seq_len(min(n_basis, ncol(V))), drop = FALSE]
+    return(V)
+  }
 
   W <- NW / n_time
   m <- as.double(seq_len(n_time) - 1)
@@ -287,7 +297,9 @@ invert_step.temporal <- function(type, desc, handle) {
 #'
 #' Daubechies 4 ("db4") tends to balance temporal resolution and smoothness
 #' for fMRI applications, so it is used as the default.
-#' Any wavelet supported by the `wavelets` package may be supplied.
+#' Any wavelet supported by the `wavelets` package may be supplied. The
+#' computation is vectorised with `vapply` to avoid creating an explicit
+#' identity matrix.
 #' @keywords internal
 .wavelet_basis <- function(n_time, wavelet = "db4") {
   if (log2(n_time) %% 1 != 0) {
@@ -306,12 +318,13 @@ invert_step.temporal <- function(type, desc, handle) {
     wavelet <- wl
   }
   J <- log2(n_time)
-  dwt_single <- function(x) {
+  basis <- vapply(seq_len(n_time), function(i) {
+    x <- numeric(n_time)
+    x[i] <- 1
     w <- wavelets::dwt(x, filter = wavelet, n.levels = J, boundary = "periodic")
     c(unlist(w@W), w@V[[w@level]])
-  }
-  I <- diag(n_time)
-  apply(I, 2, dwt_single)
+  }, numeric(n_time))
+  basis
 }
 
 #' Generate temporal basis matrix
