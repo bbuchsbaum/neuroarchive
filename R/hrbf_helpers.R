@@ -167,7 +167,10 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
 #' @param centre_coord_world Numeric vector of length 3 giving the RBF centre in
 #'   world coordinates.
 #' @param sigma_mm Numeric width parameter in millimetres.
-#' @param kernel_type Either \code{"gaussian"} or \code{"wendland_c4"}.
+#' @param current_level_j Integer level index of this atom (0-indexed).
+#' @param total_levels Total number of levels in the pyramid (\eqn{J}).
+#' @param params Parameter list defining \code{kernel_type},
+#'   \code{kernel_type_fine_levels} and \code{num_fine_levels_alt_kernel}.
 #' @param normalize_over_mask Logical; if \code{TRUE} the returned values are
 #'   normalised to unit \eqn{L_2} norm over the mask.
 #'
@@ -177,7 +180,7 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
 #' @keywords internal
 generate_hrbf_atom <- function(mask_coords_world, mask_linear_indices,
                                centre_coord_world, sigma_mm,
-                               kernel_type = c("gaussian", "wendland_c4"),
+                               current_level_j, total_levels, params,
                                normalize_over_mask = TRUE) {
   mask_coords_world <- as.matrix(mask_coords_world)
   if (ncol(mask_coords_world) != 3) {
@@ -196,12 +199,16 @@ generate_hrbf_atom <- function(mask_coords_world, mask_linear_indices,
               .subclass = "lna_error_validation",
               location = "generate_hrbf_atom")
   }
-  kernel_type <- match.arg(kernel_type)
+  p_kernel_type <- params$kernel_type %||% "gaussian"
+  p_kernel_type_fine <- params$kernel_type_fine_levels %||% "wendland_c4"
+  num_alt <- params$num_fine_levels_alt_kernel %||% 0L
+  use_alt_kernel <- current_level_j > (total_levels - num_alt)
+  eff_kernel <- if (use_alt_kernel) p_kernel_type_fine else p_kernel_type
 
   diffs <- sweep(mask_coords_world, 2, centre_coord_world, FUN = "-")
   dist_mm <- sqrt(rowSums(diffs^2))
 
-  if (kernel_type == "gaussian") {
+  if (eff_kernel == "gaussian") {
     phi <- exp(-(dist_mm^2) / (2 * sigma_mm^2))
   } else { # wendland_c4
     r <- dist_mm / sigma_mm
@@ -232,7 +239,6 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
   sigma0 <- params$sigma0 %||% 6
   levels <- params$levels %||% 3L
   radius_factor <- params$radius_factor %||% 2.5
-  kernel_type <- params$kernel_type %||% "gaussian"
   seed <- params$seed
   centres_path <- params$centres_path
   sigma_vec_path <- params$sigma_vec_path
@@ -250,20 +256,24 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
       !is.null(h5_root)) {
     C_total <- h5_read(h5_root, centres_path)
     sigma_vec <- as.numeric(h5_read(h5_root, sigma_vec_path))
+    level_vec <- as.integer(round(log2(sigma0 / sigma_vec)))
   } else if (!is.null(seed)) {
-    centres_list <- list(); sigs <- numeric()
+    centres_list <- list(); sigs <- numeric(); level_vec <- integer()
     for (j in seq_len(levels + 1L) - 1L) {
       sigma_j <- sigma0 / (2^j)
       r_j <- radius_factor * sigma_j
       vox_centres <- poisson_disk_sample_neuroim2(mask_neurovol, r_j, seed + j)
       if (nrow(vox_centres) > 0) {
         centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
-        sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+        n_new <- nrow(vox_centres)
+        sigs <- c(sigs, rep(sigma_j, n_new))
+        level_vec <- c(level_vec, rep(j, n_new))
       }
     }
     C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list)
                else matrix(numeric(0), ncol = 3)
     sigma_vec <- sigs
+    level_vec <- level_vec
   } else {
     abort_lna("Insufficient parameters to regenerate HRBF basis",
               .subclass = "lna_error_descriptor",
@@ -283,7 +293,8 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
     triplet_x_list <- vector("list", k_actual)
     for (kk in seq_len(k_actual)) {
       atom <- generate_hrbf_atom(mask_coords_world, mask_linear_indices,
-                                 C_total[kk, ], sigma_vec[kk], kernel_type)
+                                 C_total[kk, ], sigma_vec[kk],
+                                 level_vec[kk], levels, params)
       triplet_i_list[[kk]] <- rep.int(kk, length(atom$indices))
       triplet_j_list[[kk]] <- atom$indices
       triplet_x_list[[kk]] <- atom$values

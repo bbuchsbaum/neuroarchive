@@ -171,7 +171,6 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   sigma0 <- p$sigma0 %||% 6
   levels <- p$levels %||% 3L
   radius_factor <- p$radius_factor %||% 2.5
-  kernel_type <- p$kernel_type %||% "gaussian"
   seed <- p$seed %||% 1L
 
   voxel_to_world <- function(vox_mat) {
@@ -182,19 +181,22 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
       matrix(origin_vec, nrow(vox_mat), 3, byrow = TRUE)
   }
 
-  centres_list <- list(); sigs <- numeric()
+  centres_list <- list(); sigs <- numeric(); level_vec <- integer()
   for (j in seq_len(levels + 1L) - 1L) {
     sigma_j <- sigma0 / (2^j)
     r_j <- radius_factor * sigma_j
     vox_centres <- poisson_disk_sample_neuroim2(mask_neurovol, r_j, seed + j)
     if (nrow(vox_centres) > 0) {
       centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
-      sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+      n_new <- nrow(vox_centres)
+      sigs <- c(sigs, rep(sigma_j, n_new))
+      level_vec <- c(level_vec, rep(j, n_new))
     }
   }
   C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list)
              else matrix(numeric(0), ncol = 3)
   sigma_vec <- sigs
+  level_vec <- level_vec
 
   mask_arr <- as.array(mask_neurovol)
   mask_linear_indices <- which(mask_arr)
@@ -207,7 +209,8 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
     i_idx <- integer(); j_idx <- integer(); x_val <- numeric()
     for (kk in seq_len(k_actual)) {
       atom <- generate_hrbf_atom(mask_coords_world, mask_linear_indices,
-                                 C_total[kk,], sigma_vec[kk], kernel_type)
+                                 C_total[kk,], sigma_vec[kk],
+                                 level_vec[kk], levels, p)
       i_idx <- c(i_idx, rep.int(kk, length(atom$indices)))
       j_idx <- c(j_idx, atom$indices)
       x_val <- c(x_val, atom$values)
