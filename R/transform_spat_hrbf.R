@@ -67,49 +67,19 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256", serialize = FALSE)
   p$mask_hash <- paste0("sha256:", mask_hash_val)
 
-  # -- Basis Matrix Construction (HRBF-S1-5) ---------------------------------
-  mask_arr <- as.array(mask_neurovol)
-  mask_idx <- which(mask_arr)
-  vox_coords <- which(mask_arr, arr.ind = TRUE)
-  mask_coords_world <- voxel_to_world(vox_coords)
-
-  k <- nrow(C_total)
-  n_vox <- length(mask_idx)
-  B_final <- matrix(0, nrow = k, ncol = n_vox)
-
-  if (k > 0) {
-    for (i in seq_len(k)) {
-      atom <- generate_hrbf_atom(mask_coords_world, mask_idx,
-                                 C_total[i, ], sigma_vec[i],
-                                 kernel_type = kernel_type,
-                                 normalize_over_mask = TRUE)
-      B_final[i, ] <- atom$values
-    }
-  }
 
   desc$params <- p
   desc$version <- "1.0"
   desc$inputs <- desc$inputs %||% character()
   desc$outputs <- character()
   datasets <- list()
+  desc$datasets <- datasets
 
   plan <- handle$plan
   step_index <- plan$next_index
   fname <- plan$get_next_filename(type)
 
-  base_name <- tools::file_path_sans_ext(fname)
 
-  if (isTRUE(p$store_dense_matrix)) {
-    matrix_path <- paste0("/basis/", base_name, "/matrix")
-    datasets[[1]] <- list(path = matrix_path, role = "basis_matrix")
-    params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
-    plan$add_payload(matrix_path, B_final)
-    plan$add_dataset_def(matrix_path, "basis_matrix", type,
-                         plan$origin_label, as.integer(step_index),
-                         params_json, matrix_path, "eager", dtype = NA_character_)
-  }
-
-  desc$datasets <- datasets
 
 
   mask_arr <- as.array(mask_neurovol)
