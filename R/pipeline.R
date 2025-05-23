@@ -107,6 +107,15 @@ lna_pipeline <- R6::R6Class(
 
       self$input <- x
       if (!is.null(chunk_mb_suggestion)) {
+        if (!is.numeric(chunk_mb_suggestion) ||
+            length(chunk_mb_suggestion) != 1 ||
+            chunk_mb_suggestion <= 0) {
+          abort_lna(
+            "chunk_mb_suggestion must be a single positive number",
+            .subclass = "lna_error_validation",
+            location = "lna_pipeline:set_input"
+          )
+        }
         self$engine_opts$chunk_mb_suggestion <- chunk_mb_suggestion
       } else {
         self$engine_opts$chunk_mb_suggestion <- NULL
