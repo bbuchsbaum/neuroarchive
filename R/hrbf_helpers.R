@@ -278,14 +278,19 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL) {
   k_actual <- nrow(C_total)
 
   if (k_actual > 0) {
-    i_idx <- integer(); j_idx <- integer(); x_val <- numeric()
+    triplet_i_list <- vector("list", k_actual)
+    triplet_j_list <- vector("list", k_actual)
+    triplet_x_list <- vector("list", k_actual)
     for (kk in seq_len(k_actual)) {
       atom <- generate_hrbf_atom(mask_coords_world, mask_linear_indices,
-                                 C_total[kk,], sigma_vec[kk], kernel_type)
-      i_idx <- c(i_idx, rep.int(kk, length(atom$indices)))
-      j_idx <- c(j_idx, atom$indices)
-      x_val <- c(x_val, atom$values)
+                                 C_total[kk, ], sigma_vec[kk], kernel_type)
+      triplet_i_list[[kk]] <- rep.int(kk, length(atom$indices))
+      triplet_j_list[[kk]] <- atom$indices
+      triplet_x_list[[kk]] <- atom$values
     }
+    i_idx <- unlist(triplet_i_list, use.names = FALSE)
+    j_idx <- unlist(triplet_j_list, use.names = FALSE)
+    x_val <- unlist(triplet_x_list, use.names = FALSE)
     Matrix::sparseMatrix(i = i_idx, j = j_idx, x = x_val,
                          dims = c(k_actual, n_total_vox))
   } else {
