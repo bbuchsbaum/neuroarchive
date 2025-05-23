@@ -76,6 +76,11 @@ core_write <- function(x, transforms, transform_params = list(),
   current_run_id_for_handle <- if (length(final_run_ids) > 0) final_run_ids[1] else sanitize_run_id("run-01")
   # cat(paste0("[core_write] current_run_id_for_handle set to: ", current_run_id_for_handle, "\n"))
 
+  convert_input <- function(obj) {
+    ensure_lna_array_input(obj)
+  }
+  x <- if (is.list(x)) lapply(x, convert_input) else convert_input(x)
+
   if (!is.null(mask_array)) {
     check_mask <- function(obj) {
       dims <- dim(obj)
@@ -289,4 +294,48 @@ validate_input_data <- function(x, min_dims = 3L) {
   } else {
     check_dims(x)
   }
+}
+
+#' Ensure LNA-Compatible Array Input
+#'
+#' Detects common `neuroim2` objects and converts them to 4D
+#' arrays expected by the LNA engine. If the object is a 3D array
+#' (or `DenseNeuroVol`), a singleton fourth dimension is appended and
+#' an attribute `lna.was_3d` is set to `TRUE`.
+#'
+#' @param obj Input object.
+#' @return A 4D array with possible `lna.was_3d` attribute.
+#' @keywords internal
+ensure_lna_array_input <- function(obj) {
+  if (inherits(obj, "DenseNeuroVec")) {
+    arr <- as.array(obj)
+    attr(arr, "lna.was_3d") <- FALSE
+    return(arr)
+  }
+
+  if (inherits(obj, "DenseNeuroVol")) {
+    arr <- as.array(obj)
+    arr <- array(arr, dim = c(dim(arr), 1L))
+    attr(arr, "lna.was_3d") <- TRUE
+    return(arr)
+  }
+
+  if (is.array(obj)) {
+    d <- dim(obj)
+    if (length(d) == 4) {
+      attr(obj, "lna.was_3d") <- FALSE
+      return(obj)
+    }
+    if (length(d) == 3) {
+      arr <- array(obj, dim = c(d, 1L))
+      attr(arr, "lna.was_3d") <- TRUE
+      return(arr)
+    }
+  }
+
+  abort_lna(
+    "input must be DenseNeuroVec, DenseNeuroVol, or 3D/4D array",
+    .subclass = "lna_error_validation",
+    location = "ensure_lna_array_input"
+  )
 }
