@@ -108,6 +108,16 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     }
   })
 
+  if (is.null(header)) {
+    x_for_header <- if (is.list(x)) x[[1]] else x
+    if (methods::is(x_for_header, "NeuroObj")) {
+      spc <- tryCatch(space(x_for_header), error = function(e) NULL)
+      if (!is.null(spc)) {
+        header <- neuroim2_space_to_lna_header(spc)
+      }
+    }
+  }
+
   cat("[write_lna] Calling core_write...\n")
   result <- core_write(x = x, transforms = transforms,
                        transform_params = transform_params,
