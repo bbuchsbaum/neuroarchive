@@ -15,14 +15,24 @@ forward_step.delta <- function(type, desc, handle) {
   # These are the parameters that will be used for processing AND stored in the descriptor
   p <- list()
   p$order <- incoming_params$order %||% 1L
+
+  # Determine input key primarily from the descriptor and fetch the data
+  input_key <- desc$inputs[[1]]
+  if (is.null(input_key)) {
+    warning(
+      "desc$inputs missing for delta forward step; defaulting to 'input'",
+      call. = FALSE
+    )
+    input_key <- "input"
+  }
+  x <- handle$get_inputs(input_key)[[1]]
+  dims <- dim(x)
+  if (is.null(dims)) dims <- c(length(x))
+
   # Resolve actual axis for processing and storage in descriptor
-  # Keep original dims for use in axis resolution
-  temp_dims_for_axis_res <- dim(handle$get_inputs(desc$inputs[[1]] %||% "input")[[1]])
-  if (is.null(temp_dims_for_axis_res)) temp_dims_for_axis_res <- length(handle$get_inputs(desc$inputs[[1]] %||% "input")[[1]])
-  
   p$axis <- incoming_params$axis %||% -1L
   if (p$axis == -1L) {
-    p$axis <- length(temp_dims_for_axis_res)
+    p$axis <- length(dims)
   }
   p$axis <- as.integer(p$axis)
 
@@ -44,24 +54,8 @@ forward_step.delta <- function(type, desc, handle) {
               location = "forward_step.delta:order")
   }
 
-  # Determine input key primarily from the descriptor
-  input_key <- desc$inputs[[1]]
-  if (is.null(input_key)) {
-    warning(
-      "desc$inputs missing for delta forward step; defaulting to 'input'",
-      call. = FALSE
-    )
-    input_key <- "input"
-  }
-  x <- handle$get_inputs(input_key)[[1]]
-  dims <- dim(x) # These are the true dimensions of the input data for this step
-  if (is.null(dims)) {
-    # For a vector, treat it as a 1D array. Store its dimension as a vector.
-    dims <- c(length(x)) 
-  }
-  
   # Store the true original dimensions of x in p, this is what invert_step needs
-  p$orig_dims <- dims 
+  p$orig_dims <- dims
 
   # Ensure p$axis is valid for these true dims
   stopifnot(p$axis >= 1, p$axis <= length(dims))
