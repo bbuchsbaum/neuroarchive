@@ -9,12 +9,12 @@
 #' @return None. Updates the write plan and `handle$meta`.
 #' @keywords internal
 forward_step.quant <- function(type, desc, handle) {
-  p <- desc$params %||% list()
-  bits <- p$bits %||% 8
-  method <- p$method %||% "range"
-  center <- p$center %||% TRUE
-  scope <- p$scale_scope %||% "global"
-  snr_sample_frac <- p$snr_sample_frac
+  opts <- desc$params %||% list()
+  bits <- opts$bits %||% 8
+  method <- opts$method %||% "range"
+  center <- opts$center %||% TRUE
+  scope <- opts$scale_scope %||% "global"
+  snr_sample_frac <- opts$snr_sample_frac
   if (is.null(snr_sample_frac)) {
     snr_sample_frac <- lna_options("quant")[[1]]$snr_sample_frac
   }
@@ -62,9 +62,9 @@ forward_step.quant <- function(type, desc, handle) {
   }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
-  x <- handle$get_inputs(input_key)[[1]]
+  input_data <- handle$get_inputs(input_key)[[1]]
 
-  if (any(!is.finite(x))) {
+  if (any(!is.finite(input_data))) {
     abort_lna(
       "quant cannot handle non-finite values – run an imputation/filtering transform first.",
       .subclass = "lna_error_validation",
@@ -73,20 +73,20 @@ forward_step.quant <- function(type, desc, handle) {
   }
 
   if (identical(scope, "voxel")) {
-    if (length(dim(x)) < 4) {
+    if (length(dim(input_data)) < 4) {
       warning("scale_scope='voxel' requires 4D data; falling back to global")
       scope <- "global"
     }
   }
 
   if (identical(scope, "voxel")) {
-    params <- .quantize_voxel(x, bits, method, center)
+    params <- .quantize_voxel(input_data, bits, method, center)
   } else {
-    params <- .quantize_global(as.numeric(x), bits, method, center)
-    params$q <- array(params$q, dim = dim(x))
+    params <- .quantize_global(as.numeric(input_data), bits, method, center)
+    params$q <- array(params$q, dim = dim(input_data))
   }
 
-  q <- params$q
+  quantized_vals <- params$q
   scale <- params$scale
   offset <- params$offset
   if (identical(scope, "global")) {
@@ -94,7 +94,7 @@ forward_step.quant <- function(type, desc, handle) {
     if (is.null(clip_warn_pct)) clip_warn_pct <- 0.5
     clip_abort_pct <- lna_options("quant.clip_abort_pct")[[1]]
     if (is.null(clip_abort_pct)) clip_abort_pct <- 5.0
-    allow_clip <- isTRUE(p$allow_clip)
+    allow_clip <- isTRUE(opts$allow_clip)
     clip_pct <- params$clip_pct %||% 0
     if (clip_pct > clip_abort_pct && !allow_clip) {
       abort_lna(
@@ -120,11 +120,11 @@ forward_step.quant <- function(type, desc, handle) {
       scale_val = as.numeric(scale),
       offset_val = as.numeric(offset)
     )
-    q[q < 0] <- 0L
-    q[q > (2^bits - 1)] <- (2^bits - 1L)
+    quantized_vals[quantized_vals < 0] <- 0L
+    quantized_vals[quantized_vals > (2^bits - 1)] <- (2^bits - 1L)
   }
 
-  storage.mode(q) <- "integer"
+  storage.mode(quantized_vals) <- "integer"
   storage_type_str <- if (bits <= 8) "uint8" else "uint16"
 
   run_id <- handle$current_run_id %||% "run-01"
@@ -135,7 +135,7 @@ forward_step.quant <- function(type, desc, handle) {
 
   blockwise <- identical(scope, "voxel") && !is.null(handle$h5) && handle$h5$is_valid
   if (blockwise) {
-    dims <- dim(x)
+    dims <- dim(input_data)
     bs <- auto_block_size(dims[1:3],
                           element_size_bytes = if (bits <= 8) 1L else 2L)
     data_chunk <- c(bs$slab_dims, dims[4])
@@ -166,7 +166,7 @@ forward_step.quant <- function(type, desc, handle) {
         yi <- y:min(y + slab[2] - 1, dims[2])
         for (x0 in seq(1, dims[1], by = slab[1])) {
           xi <- x0:min(x0 + slab[1] - 1, dims[1])
-          block <- x[xi, yi, zi, , drop = FALSE]
+          block <- input_data[xi, yi, zi, , drop = FALSE]
           res <- .quantize_voxel_block(block, bits, method, center)
           idx <- list(xi, yi, zi, seq_len(dims[4]))
           dset_q$write(args = idx, res$q)
@@ -187,7 +187,7 @@ forward_step.quant <- function(type, desc, handle) {
       }
     }
     dset_q$close(); dset_scale$close(); dset_offset$close()
-    clip_pct <- if (length(x) > 0) 100 * n_clipped_total / length(x) else 0
+    clip_pct <- if (length(input_data) > 0) 100 * n_clipped_total / length(input_data) else 0
     vox_total <- prod(dims[1:3])
     sc_mean <- sc_sum / vox_total
     sc_sd <- sqrt(sc_sum_sq / vox_total - sc_mean^2)
@@ -205,17 +205,17 @@ forward_step.quant <- function(type, desc, handle) {
       offset_mean = off_mean,
       offset_sd = off_sd
     )
-    q <- NULL
+    quantized_vals <- NULL
     scale <- NULL
     offset <- NULL
   }
 
-  input_range <- range(as.numeric(x))
+  input_range <- range(as.numeric(input_data))
   qs <- handle$meta$quant_stats
   if (!identical(scope, "voxel")) {
-    var_x <- stats::var(as.numeric(x))
+    var_x <- stats::var(as.numeric(input_data))
     snr_db <- 10 * log10(var_x / ((qs$scale_val)^2 / 12))
-    hist_info <- hist(as.numeric(q), breaks = 64, plot = FALSE)
+    hist_info <- hist(as.numeric(quantized_vals), breaks = 64, plot = FALSE)
     quant_report <- list(
       report_version = "1.0",
       clipped_samples_count = qs$n_clipped_total,
@@ -230,10 +230,12 @@ forward_step.quant <- function(type, desc, handle) {
       )
     )
   } else {
-    dims <- dim(x)
+    dims <- dim(input_data)
     vox <- prod(dims[1:3])
+    # Sample only a fraction of voxels to estimate SNR quickly when the
+    # volume is large. This keeps memory usage and runtime manageable.
     sample_n <- max(1L, floor(vox * snr_sample_frac))
-    mat <- matrix(as.numeric(x), vox, dims[4])
+    mat <- matrix(as.numeric(input_data), vox, dims[4])
     idx <- sample(vox, sample_n)
     var_x <- stats::var(as.numeric(mat[idx, , drop = FALSE]))
     snr_db <- 10 * log10(var_x / ((qs$scale_mean)^2 / 12))
@@ -265,24 +267,28 @@ forward_step.quant <- function(type, desc, handle) {
   base_name <- tools::file_path_sans_ext(fname)
 
   report_path <- paste0("/transforms/", base_name, "_report.json")
-  p$report_path <- report_path
+  opts$report_path <- report_path
   json_report_str <- jsonlite::toJSON(quant_report, auto_unbox = TRUE, pretty = TRUE)
   gzipped_report <- memCompress(charToRaw(json_report_str), type = "gzip")
 
   payload_key_report <- report_path
   if (!is.null(handle$h5) && handle$h5$is_valid) {
     root <- handle$h5[["/"]]
-    h5_write_dataset(root, report_path, gzipped_report, dtype = "uint8")
-    dset_rep <- root[[report_path]]
-    h5_attr_write(dset_rep, "compression", "gzip")
-    dset_rep$close()
+    tryCatch({
+      h5_write_dataset(root, report_path, gzipped_report, dtype = "uint8")
+      dset_rep <- root[[report_path]]
+      h5_attr_write(dset_rep, "compression", "gzip")
+      dset_rep$close()
+    }, error = function(e) {
+      stop(paste0("Error writing quantization report: ", conditionMessage(e)), call. = FALSE)
+    })
     payload_key_report <- ""
   } else {
     plan$add_payload(report_path, gzipped_report)
   }
-  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
+  params_json <- as.character(jsonlite::toJSON(opts, auto_unbox = TRUE))
 
-  plan$add_descriptor(fname, list(type = "quant", params = p))
+  plan$add_descriptor(fname, list(type = "quant", params = opts))
   payload_key_data <- data_path
   payload_key_scale <- scale_path
   payload_key_offset <- offset_path
@@ -291,7 +297,7 @@ forward_step.quant <- function(type, desc, handle) {
     payload_key_scale <- ""
     payload_key_offset <- ""
   } else {
-    plan$add_payload(data_path, q)
+    plan$add_payload(data_path, quantized_vals)
     plan$add_payload(scale_path, scale)
     plan$add_payload(offset_path, offset)
   }
@@ -425,6 +431,8 @@ invert_step.quant <- function(type, desc, handle) {
   }
 
   if (scale == 0) {
+    # Zero variance input: all values are identical. Force scale to 1 so
+    # quantized output is defined (all zeros).
     scale <- 1
     q_raw <- rep.int(0L, length(x))
     n_clipped_total <- 0L
@@ -450,68 +458,17 @@ invert_step.quant <- function(type, desc, handle) {
        clip_pct = clip_pct)
 }
 
-#' Compute quantization parameters per voxel (time series)
-#' @keywords internal
-.quantize_voxel <- function(x, bits, method, center) {
-  if (any(!is.finite(x))) {
-    abort_lna(
-      "non-finite values found in input",
-      .subclass = "lna_error_validation",
-      location = ".quantize_voxel"
-    )
-  }
-  dims <- dim(x)
-  vox <- prod(dims[1:3])
-  time <- dims[4]
-  mat <- matrix(as.numeric(x), vox, time)
-
-  m <- rowMeans(mat)
-  s <- apply(mat, 1, stats::sd)
-  rng_lo <- apply(mat, 1, min)
-  rng_hi <- apply(mat, 1, max)
-
-  if (center) {
-    max_abs <- if (identical(method, "sd")) 3 * s else pmax(abs(rng_hi - m), abs(rng_lo - m))
-    scale <- (2 * max_abs) / (2^bits - 1)
-    offset <- m - max_abs
-  } else {
-    if (identical(method, "sd")) {
-      lo <- m - 3 * s
-      hi <- m + 3 * s
-    } else {
-      lo <- rng_lo
-      hi <- rng_hi
-    }
-    scale <- (hi - lo) / (2^bits - 1)
-    offset <- lo
-  }
-
-  zero_idx <- scale == 0
-  q <- matrix(0L, vox, time)
-  if (any(!zero_idx)) {
-    q[!zero_idx, ] <- round((mat[!zero_idx, , drop = FALSE] - offset[!zero_idx]) / scale[!zero_idx])
-    q[q < 0] <- 0L
-    q[q > 2^bits - 1] <- 2^bits - 1L
-  }
-  scale[zero_idx] <- 1
-
-  arr_q <- array(as.integer(q), dim = dims)
-  list(q = arr_q,
-       scale = array(scale, dim = dims[1:3]),
-       offset = array(offset, dim = dims[1:3]))
-}
-
-#' Quantize a voxel block with clipping stats
+#' Quantize voxel-wise time series
 #'
-#' Helper used by block-wise processing to quantize a subset of voxels and
-#' return clipping information along with scale/offset parameters.
+#' Internal helper that performs quantization for each voxel. When
+#' `collect_clip` is `TRUE`, the number of clipped samples is also returned.
 #' @keywords internal
-.quantize_voxel_block <- function(x, bits, method, center) {
+.quantize_voxel_core <- function(x, bits, method, center, collect_clip = FALSE) {
   if (any(!is.finite(x))) {
     abort_lna(
       "non-finite values found in input",
       .subclass = "lna_error_validation",
-      location = ".quantize_voxel_block"
+      location = if (collect_clip) ".quantize_voxel_block" else ".quantize_voxel"
     )
   }
 
@@ -546,16 +503,33 @@ invert_step.quant <- function(type, desc, handle) {
   nclip <- 0L
   if (any(!zero_idx)) {
     q_raw <- round((mat[!zero_idx, , drop = FALSE] - offset[!zero_idx]) / scale[!zero_idx])
-    nclip <- sum(q_raw < 0 | q_raw > 2^bits - 1)
+    if (collect_clip) nclip <- sum(q_raw < 0 | q_raw > 2^bits - 1)
     q[!zero_idx, ] <- q_raw
     q[q < 0] <- 0L
     q[q > 2^bits - 1] <- 2^bits - 1L
   }
   scale[zero_idx] <- 1
 
-  arr_q <- array(as.integer(q), dim = dims)
-  list(q = arr_q,
-       scale = array(scale, dim = dims[1:3]),
-       offset = array(offset, dim = dims[1:3]),
-       n_clipped_total = as.integer(nclip))
+  result <- list(
+    q = array(as.integer(q), dim = dims),
+    scale = array(scale, dim = dims[1:3]),
+    offset = array(offset, dim = dims[1:3])
+  )
+  if (collect_clip) result$n_clipped_total <- as.integer(nclip)
+  result
+}
+
+#' Compute quantization parameters per voxel (time series)
+#' @keywords internal
+.quantize_voxel <- function(x, bits, method, center) {
+  .quantize_voxel_core(x, bits, method, center, collect_clip = FALSE)
+}
+
+#' Quantize a voxel block with clipping stats
+#'
+#' Helper used by block-wise processing to quantize a subset of voxels and
+#' return clipping information along with scale/offset parameters.
+#' @keywords internal
+.quantize_voxel_block <- function(x, bits, method, center) {
+  .quantize_voxel_core(x, bits, method, center, collect_clip = TRUE)
 }

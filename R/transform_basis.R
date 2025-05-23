@@ -131,6 +131,7 @@ forward_step.basis <- function(type, desc, handle) {
   }
   min_dim <- min(dims)
 
+
   if (requireNamespace("irlba", quietly = TRUE)) {
     k_max_allowed <- max(1, min_dim - 1)
     if (k > k_max_allowed) {

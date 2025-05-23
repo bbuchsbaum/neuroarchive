@@ -6,6 +6,19 @@
 \usage{
 \method{invert_step}{embed}(type, desc, handle)
 }
+\arguments{
+\item{type}{Character string identifying the transform ("embed").}
+
+\item{desc}{Descriptor list describing the inverse step. Must specify
+  `basis_path` and may reference centering or scaling datasets.}
+
+\item{handle}{\code{DataHandle} giving access to the coefficients and output
+  storage.}
+}
+\value{
+Updated \code{DataHandle} with the reconstructed dense matrix placed in the
+stash under the name listed in \code{desc$inputs[[1]]}.
+}
 \description{
 Reconstructs data from embedding coefficients using a stored basis matrix.
 }
