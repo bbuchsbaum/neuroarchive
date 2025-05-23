@@ -195,26 +195,7 @@ pca <- function(data_or_pipe, k = NULL, ...) {
 #'
 #' @return An `lna_pipeline` object with the embed step appended.
 #' @export
-embed <- function(data_or_pipe, basis_path = NULL, ...) {}
-
-##' Finite Difference (Delta) DSL verb
-#'
-#' Adds a delta encoding step to a pipeline. If `data_or_pipe`
-#' is not an `lna_pipeline`, a new pipeline is created via
-#' `as_pipeline()`.
-#'
-#' Parameter values are resolved by merging schema defaults for
-#' the `delta` transform, global `lna_options("delta")`, and any
-#' user-supplied arguments.
-#'
-#' @param data_or_pipe Data object or `lna_pipeline`.
-#' @param order Optional difference order.
-#' @param ... Additional parameters for the delta transform.
-#'
-#' @return An `lna_pipeline` object with the delta step appended.
-#' @export
-delta <- function(data_or_pipe, order = NULL, ...) {
-
+embed <- function(data_or_pipe, basis_path = NULL, ...) {
   pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
     data_or_pipe
   } else {
@@ -261,6 +242,33 @@ delta <- function(data_or_pipe, order = NULL, ...) {
   pars <- utils::modifyList(pars, user_params)
 
   step_spec <- list(type = embed_type, params = pars)
+  pipe$add_step(step_spec)
+  pipe
+}
+
+##' Finite Difference (Delta) DSL verb
+#'
+#' Adds a delta encoding step to a pipeline. If `data_or_pipe`
+#' is not an `lna_pipeline`, a new pipeline is created via
+#' `as_pipeline()`.
+#'
+#' Parameter values are resolved by merging schema defaults for
+#' the `delta` transform, global `lna_options("delta")`, and any
+#' user-supplied arguments.
+#'
+#' @param data_or_pipe Data object or `lna_pipeline`.
+#' @param order Optional difference order.
+#' @param ... Additional parameters for the delta transform.
+#'
+#' @return An `lna_pipeline` object with the delta step appended.
+#' @export
+delta <- function(data_or_pipe, order = NULL, ...) {
+
+  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
+    data_or_pipe
+  } else {
+    as_pipeline(data_or_pipe)
+  }
 
   user_params <- c(list(order = order), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
