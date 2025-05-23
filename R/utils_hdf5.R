@@ -407,6 +407,25 @@ assert_h5_path <- function(h5, path) {
   invisible(NULL)
 }
 
+#' Safely check if an HDF5 path exists
+#'
+#' Wrapper around `$exists` that catches errors (e.g., invalid paths)
+#' and returns `FALSE` instead of propagating the error.
+#'
+#' @param h5 An `H5File` or `H5Group` object.
+#' @param path Character scalar dataset or group path.
+#' @return Logical scalar, `TRUE` if the path exists, `FALSE` otherwise.
+#' @keywords internal
+path_exists_safely <- function(h5, path) {
+  if (is.null(path) || !nzchar(path)) return(FALSE)
+  stopifnot(inherits(h5, c("H5File", "H5Group")))
+  stopifnot(is.character(path), length(path) == 1)
+
+  tryCatch({
+    h5$exists(path)
+  }, error = function(e) FALSE)
+}
+
 #' Map a datatype name to an HDF5 type
 #'
 #' Provides a small lookup used when creating datasets. The mapping is

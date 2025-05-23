@@ -99,18 +99,6 @@ invert_step.embed <- function(type, desc, handle) {
 
   root <- handle$h5[["/"]]
 
-  path_exists_safely <- function(group, path_name) {
-    if (is.null(path_name) || !nzchar(path_name)) return(FALSE)
-    tryCatch({
-      group$exists(path_name)
-    }, error = function(e) {
-      # If the error is specifically about the path not existing, treat as FALSE
-      # Otherwise, could re-throw if it's a more fundamental HDF5 issue.
-      # For now, any error in exists() implies we can't use the path.
-      FALSE
-    })
-  }
-
   if (!path_exists_safely(root, basis_path)) {
     abort_lna(sprintf("dataset '%s' not found", basis_path),
               .subclass = "lna_error_contract",
