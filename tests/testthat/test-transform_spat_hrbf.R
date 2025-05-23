@@ -112,3 +112,132 @@ test_that("num_extra_fine_levels increases k_actual", {
 
   expect_gt(k2, k1)
 })
+
+test_that("forward_step.spat.hrbf warns when anisotropic atoms requested", {
+  mask <- array(TRUE, dim = c(1,1,1))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(1,1,1), c(1,1,1))
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
+       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  }, envir = parent.frame())
+
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  h5$create_group("tensor")
+
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = matrix(0, nrow = 1, ncol = 1)),
+                      plan = plan, h5 = h5,
+                      mask_info = list(mask = vol, active_voxels = 1))
+  desc <- list(type = "spat.hrbf",
+               params = list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                              kernel_type = "gaussian", seed = 1,
+                              use_anisotropic_atoms = TRUE,
+                              anisotropy_source_path = "tensor"))
+
+  expect_warning(
+    neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h),
+    regexp = "Anisotropic atoms"
+  )
+  h5$close_all()
+})
+
+test_that("forward_step.spat.hrbf warns for derivative Gaussian atoms", {
+  mask <- array(TRUE, dim = c(1,1,1))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(1,1,1), c(1,1,1))
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
+       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  }, envir = parent.frame())
+
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = matrix(0, nrow = 1, ncol = 1)),
+                      plan = plan, mask_info = list(mask = vol, active_voxels = 1))
+  desc <- list(type = "spat.hrbf",
+               params = list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                              kernel_type = "gaussian", seed = 1,
+                              include_gaussian_derivatives = "first_order"))
+
+  expect_warning(
+    neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h),
+    regexp = "Derivative-of-Gaussian"
+  )
+})
+
+test_that("forward_step.spat.hrbf warns for centre steering map", {
+  mask <- array(TRUE, dim = c(1,1,1))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(1,1,1), c(1,1,1))
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
+       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  }, envir = parent.frame())
+
+  tmp <- local_tempfile(fileext = ".h5")
+  h5 <- H5File$new(tmp, mode = "w")
+  h5$create_dataset("steer", array(0, dim = c(1,1,1)))
+
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = matrix(0, nrow = 1, ncol = 1)),
+                      plan = plan, h5 = h5,
+                      mask_info = list(mask = vol, active_voxels = 1))
+  desc <- list(type = "spat.hrbf",
+               params = list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                              kernel_type = "gaussian", seed = 1,
+                              centre_steering = list(map_path = "steer")))
+
+  expect_warning(
+    neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h),
+    regexp = "Centre steering not fully implemented"
+  )
+  h5$close_all()
+})
+
+test_that("forward_step.spat.hrbf warns for differential encoding", {
+  mask <- array(TRUE, dim = c(1,1,1))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(1,1,1), c(1,1,1))
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
+       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  }, envir = parent.frame())
+
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = matrix(0, nrow = 1, ncol = 1)),
+                      plan = plan, mask_info = list(mask = vol, active_voxels = 1))
+  desc <- list(type = "spat.hrbf",
+               params = list(sigma0 = 6, levels = 0, radius_factor = 2.5,
+                              kernel_type = "gaussian", seed = 1,
+                              use_differential_encoding = TRUE))
+
+  expect_warning(
+    neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h),
+    regexp = "Differential encoding"
+  )
+})
