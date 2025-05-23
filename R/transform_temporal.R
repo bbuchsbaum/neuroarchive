@@ -14,6 +14,30 @@ forward_step.temporal <- function(type, desc, handle) {
   p$n_basis <- NULL
   order <- p$order %||% 3
   p$order <- NULL
+
+  if (!is.null(n_basis)) {
+    if (!is.numeric(n_basis) || length(n_basis) != 1 ||
+        n_basis <= 0 || n_basis %% 1 != 0) {
+      abort_lna(
+        "n_basis must be a positive integer",
+        .subclass = "lna_error_validation",
+        location = "forward_step.temporal:n_basis"
+      )
+    }
+    n_basis <- as.integer(n_basis)
+  }
+
+  if (!is.null(order)) {
+    if (!is.numeric(order) || length(order) != 1 ||
+        order <= 0 || order %% 1 != 0) {
+      abort_lna(
+        "order must be a positive integer",
+        .subclass = "lna_error_validation",
+        location = "forward_step.temporal:order"
+      )
+    }
+    order <- as.integer(order)
+  }
   # Determine input key based on previous transform's output.
   # When temporal coefficients are already present we treat them as
   # the input so additional temporal steps operate on the projected
@@ -97,38 +121,27 @@ forward_step.temporal <- function(type, desc, handle) {
 
   plan$add_descriptor(fname, desc)
   
-  # Prepare basis_payload for saving (ensure 3D)
-  basis_payload <- basis # basis is time x n_basis (e.g. 10x10)
-  if (is.matrix(basis_payload)) {
-    dim(basis_payload) <- c(dim(basis_payload), 1)
-  }
+  basis_payload <- basis
   plan$add_payload(basis_path, basis_payload)
-  
+
   plan$add_dataset_def(basis_path, "temporal_basis", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
-                       basis_path, "eager", dtype = NA_character_)
+                       basis_path, "eager", dtype = "float32")
 
   if (!is.null(knots_data)) {
     knots_payload <- knots_data
-    if (!is.null(knots_payload)) {
-        dim(knots_payload) <- c(length(knots_payload), 1, 1)
-    }
     plan$add_payload(knots_path, knots_payload)
     plan$add_dataset_def(knots_path, "knots", as.character(type), run_id,
                          as.integer(plan$next_index), params_json,
-                         knots_path, "eager", dtype = NA_character_)
+                         knots_path, "eager", dtype = "float32")
   }
   
-  # Prepare coeff_payload for saving (ensure 3D)
-  coeff_payload <- coeff # coeff is n_basis x features (e.g. 10x4)
-  if (is.matrix(coeff_payload)) {
-    dim(coeff_payload) <- c(dim(coeff_payload), 1)
-  }
+  coeff_payload <- coeff
   plan$add_payload(coef_path, coeff_payload)
-  
+
   plan$add_dataset_def(coef_path, "temporal_coefficients", as.character(type), run_id,
                        as.integer(plan$next_index), params_json,
-                       coef_path, "eager", dtype = NA_character_)
+                       coef_path, "eager", dtype = "float32")
   handle$plan <- plan
 
   handle$update_stash(keys = c(input_key),
@@ -170,28 +183,23 @@ invert_step.temporal <- function(type, desc, handle) {
 
   root <- handle$h5[["/"]]
   basis <- h5_read(root, basis_path)
-  
-  # Corrected: Directly read coefficients from HDF5 using coeff_path.
   coeff <- h5_read(root, coeff_path)
 
-  # Reshape 3D arrays from HDF5 back to 2D matrices if necessary
-  if (dbg) message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D basis: %f", sum(basis)))
-  if (dbg) message(sprintf("[invert_step.temporal POST-LOAD] Sum of raw loaded 3D coeff: %f", sum(coeff)))
-  if (length(dim(basis)) == 3 && dim(basis)[3] == 1) {
-    basis <- basis[,,1, drop=FALSE]
+  if (dbg) {
+    message(sprintf("[invert_step.temporal] Basis dims: %s", paste(dim(basis), collapse = "x")))
+    message(sprintf("[invert_step.temporal] Coeff dims: %s", paste(dim(coeff), collapse = "x")))
   }
-  if (length(dim(coeff)) == 3 && dim(coeff)[3] == 1) {
-    coeff <- coeff[,,1, drop=FALSE]
-  }
-  if (dbg) message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D basis: %f", sum(basis)))
-  if (dbg) message(sprintf("[invert_step.temporal POST-RESHAPE] Sum of 2D coeff: %f", sum(coeff)))
-  if (dbg) message(sprintf("[invert_step.temporal] Basis dims after reshape: %s", paste(dim(basis), collapse="x")))
-  if (dbg) message(sprintf("[invert_step.temporal] Coeff dims after reshape: %s", paste(dim(coeff), collapse="x")))
   
   if (dbg) {
     message("--- Invert Step Pre-Dense Calculation Debug ---")
-    if (nrow(basis) >=2 && ncol(basis) >=2) message("basis_loaded[1:2, 1:2]:"); if (nrow(basis) >=2 && ncol(basis) >=2) print(basis[1:2, 1:2, drop=FALSE])
-    if (nrow(coeff) >=2 && ncol(coeff) >=2) message("coeff_loaded[1:2, 1:2]:"); if (nrow(coeff) >=2 && ncol(coeff) >=2) print(coeff[1:2, 1:2, drop=FALSE])
+    if (nrow(basis) >= 2 && ncol(basis) >= 2) {
+      message("basis_loaded[1:2, 1:2]:")
+      print(basis[1:2, 1:2, drop = FALSE])
+    }
+    if (nrow(coeff) >= 2 && ncol(coeff) >= 2) {
+      message("coeff_loaded[1:2, 1:2]:")
+      print(coeff[1:2, 1:2, drop = FALSE])
+    }
   }
   
   # Check for valid matrix dimensions before multiplication
@@ -201,7 +209,10 @@ invert_step.temporal <- function(type, desc, handle) {
 
   dense <- temporal_reconstruct(desc$params$kind %||% "dct", basis, coeff)
   if (dbg) message(sprintf("[invert_step.temporal] Dense dims after matmult: %s", paste(dim(dense), collapse="x")))
-  if (dbg && nrow(dense) >=2 && ncol(dense) >=2) { message("dense[1:2, 1:2]:"); print(dense[1:2, 1:2, drop=FALSE]) }
+  if (dbg && nrow(dense) >= 2 && ncol(dense) >= 2) {
+    message("dense[1:2, 1:2]:")
+    print(dense[1:2, 1:2, drop = FALSE])
+  }
 
   subset <- handle$subset
   if (!is.null(subset$roi_mask)) {
@@ -258,7 +269,12 @@ invert_step.temporal <- function(type, desc, handle) {
 #' large Toeplitz matrices.
 #' @keywords internal
 .dpss_basis <- function(n_time, n_basis, NW) {
-  stopifnot(NW > 0, NW < n_time / 2, n_basis <= 2 * NW)
+  stopifnot(is.numeric(NW), length(NW) == 1)
+  NW <- as.numeric(NW)
+  stopifnot(NW > 0, NW < n_time / 2)
+  stopifnot(is.numeric(n_basis), length(n_basis) == 1)
+  n_basis <- as.integer(n_basis)
+  stopifnot(n_basis <= 2 * NW)
 
   if (requireNamespace("multitaper", quietly = TRUE)) {
     res <- multitaper::dpss.taper(N = n_time, K = n_basis, NW = NW)
@@ -333,12 +349,14 @@ invert_step.temporal <- function(type, desc, handle) {
     wavelet <- wl
   }
   J <- log2(n_time)
-  basis <- vapply(seq_len(n_time), function(i) {
-    x <- numeric(n_time)
-    x[i] <- 1
-    w <- wavelets::dwt(x, filter = wavelet, n.levels = J, boundary = "periodic")
-    c(unlist(w@W), w@V[[w@level]])
-  }, numeric(n_time))
+  filter <- wavelets::wavelet(wavelet)
+  basis <- matrix(0, n_time, n_time)
+  for (k in seq_len(n_time)) {
+    e_k <- numeric(n_time)
+    e_k[k] <- 1
+    w <- wavelets::dwt(e_k, filter = filter, n.levels = J, boundary = "periodic")
+    basis[, k] <- c(unlist(w@W), w@V[[w@level]])
+  }
   basis
 }
 
@@ -374,6 +392,8 @@ temporal_basis.dpss <- function(kind, n_time, n_basis,
                                time_bandwidth_product = 3,
                                n_tapers = n_basis, ...) {
   n_tapers <- n_tapers %||% n_basis
+  stopifnot(is.numeric(n_tapers), length(n_tapers) == 1)
+  n_tapers <- as.integer(n_tapers)
   n_basis <- min(n_basis, n_tapers, n_time)
   .dpss_basis(n_time, n_basis, time_bandwidth_product)
 }
@@ -418,10 +438,11 @@ temporal_project.default <- function(kind, basis, X, ...) {
 
 #' @export
 temporal_project.bspline <- function(kind, basis, X, ...) {
-  if (qr(crossprod(basis))$rank < ncol(basis)) {
+  qrB <- qr(basis)
+  if (qrB$rank < ncol(basis)) {
     message("[temporal_project.bspline WARN] B-spline basis is rank deficient. Projection may be unstable.")
   }
-  qr.solve(basis, X)
+  qr.coef(qrB, X)
 }
 
 #' Reconstruct data from temporal coefficients
