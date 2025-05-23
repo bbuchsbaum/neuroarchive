@@ -142,8 +142,24 @@ invert_step.embed <- function(type, desc, handle) {
   if (!is.null(roi_mask)) {
     vox_idx <- which(as.logical(roi_mask))
     if (nrow(basis) == ncol(coeff)) {
+      if (length(vox_idx) > 0 &&
+          (min(vox_idx) < 1 || max(vox_idx) > ncol(basis))) {
+        abort_lna(
+          "roi indices out of range",
+          .subclass = "lna_error_validation",
+          location = "invert_step.embed"
+        )
+      }
       basis <- basis[, vox_idx, drop = FALSE]
     } else if (ncol(basis) == ncol(coeff)) {
+      if (length(vox_idx) > 0 &&
+          (min(vox_idx) < 1 || max(vox_idx) > nrow(basis))) {
+        abort_lna(
+          "roi indices out of range",
+          .subclass = "lna_error_validation",
+          location = "invert_step.embed"
+        )
+      }
       basis <- basis[vox_idx, , drop = FALSE]
     }
     if (!is.null(mean_vec))  mean_vec <- mean_vec[vox_idx]
@@ -151,6 +167,14 @@ invert_step.embed <- function(type, desc, handle) {
   }
   time_idx <- subset$time_idx %||% subset$time
   if (!is.null(time_idx)) {
+    if (length(time_idx) > 0 &&
+        (min(abs(time_idx)) < 1 || max(abs(time_idx)) > nrow(coeff))) {
+      abort_lna(
+        "time indices out of range",
+        .subclass = "lna_error_validation",
+        location = "invert_step.embed"
+      )
+    }
     coeff <- coeff[time_idx, , drop = FALSE]
   }
 
