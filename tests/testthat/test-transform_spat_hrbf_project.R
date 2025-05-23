@@ -72,7 +72,6 @@ test_that("spat.hrbf descriptor-only roundtrip with quant", {
     sigma0 <- p$sigma0
     levels <- p$levels
     radius_factor <- p$radius_factor
-    kernel_type <- p$kernel_type %||% "gaussian"
     seed <- p$seed
     mask_vol <- handle$mask_info$mask
     voxel_to_world <- function(vox_mat) {
@@ -82,15 +81,16 @@ test_that("spat.hrbf descriptor-only roundtrip with quant", {
       sweep(vox_mat - 1, 2, spacing_vec, `*`) +
         matrix(origin_vec, nrow(vox_mat), 3, byrow=TRUE)
     }
-    centres_list <- list()
-    sigs <- numeric()
+    centres_list <- list(); sigs <- numeric(); level_vec <- integer()
     for (j in seq_len(levels + 1L) - 1L) {
       sigma_j <- sigma0 / (2^j)
       r_j <- radius_factor * sigma_j
       vox_centres <- neuroarchive:::poisson_disk_sample_neuroim2(mask_vol, r_j, seed + j)
       if (nrow(vox_centres) > 0) {
         centres_list[[length(centres_list)+1L]] <- voxel_to_world(vox_centres)
-        sigs <- c(sigs, rep(sigma_j, nrow(vox_centres)))
+        n_new <- nrow(vox_centres)
+        sigs <- c(sigs, rep(sigma_j, n_new))
+        level_vec <- c(level_vec, rep(j, n_new))
       }
     }
     C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list) else matrix(numeric(0), ncol=3)
@@ -107,7 +107,7 @@ test_that("spat.hrbf descriptor-only roundtrip with quant", {
       for (kk in seq_len(k)) {
         atom <- neuroarchive:::generate_hrbf_atom(mask_coords_world, mask_idx,
                                                  C_total[kk,], sigma_vec[kk],
-                                                 kernel_type)
+                                                 level_vec[kk], levels, p)
         i_idx <- c(i_idx, rep.int(kk, length(atom$indices)))
         j_idx <- c(j_idx, atom$indices)
         x_val <- c(x_val, atom$values)
