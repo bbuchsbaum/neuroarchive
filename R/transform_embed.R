@@ -1,7 +1,16 @@
 #' Embed Transform - Forward Step
 #'
-
 #' Projects data onto a pre-computed basis matrix.
+#'
+#' @param type Character string identifying the transform ("embed").
+#' @param desc Descriptor list for this step. `desc$params` must include
+#'   `basis_path` and may optionally specify `center_data_with` and
+#'   `scale_data_with` dataset paths.
+#' @param handle `DataHandle` providing access to the HDF5 file, plan and
+#'   runtime stash. The input matrix is retrieved via this handle.
+#'
+#' @return Invisibly returns the updated `DataHandle` with the computed
+#'   coefficients registered in the plan and stash.
 #' @keywords internal
 forward_step.embed <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -80,6 +89,16 @@ forward_step.embed <- function(type, desc, handle) {
 #' Embed Transform - Inverse Step
 #'
 #' Reconstructs data from embedding coefficients using a stored basis matrix.
+#'
+#' @param type Character string identifying the transform ("embed").
+#' @param desc Descriptor list describing the inverse step. `desc$params` should
+#'   contain `basis_path` along with optional `center_data_with` and
+#'   `scale_data_with` dataset paths used for reconstruction.
+#' @param handle `DataHandle` with access to the HDF5 file and stash containing
+#'   the coefficient matrix.
+#'
+#' @return The updated `DataHandle` with the reconstructed dense matrix placed in
+#'   the stash under `desc$inputs[[1]]`.
 #' @keywords internal
 invert_step.embed <- function(type, desc, handle) {
   p <- desc$params %||% list()
