@@ -20,8 +20,29 @@ forward_step.embed <- function(type, desc, handle) {
               .subclass = "lna_error_contract",
               location = "forward_step.embed:basis")
   }
+  if (!is.numeric(basis)) {
+    abort_lna(
+      "basis matrix must be numeric",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:basis"
+    )
+  }
   mean_vec <- if (!is.null(p$center_data_with)) plan$payloads[[p$center_data_with]] else NULL
   scale_vec <- if (!is.null(p$scale_data_with)) plan$payloads[[p$scale_data_with]] else NULL
+  if (!is.null(mean_vec) && !is.numeric(mean_vec)) {
+    abort_lna(
+      "centering vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:center"
+    )
+  }
+  if (!is.null(scale_vec) && !is.numeric(scale_vec)) {
+    abort_lna(
+      "scaling vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "forward_step.embed:scale"
+    )
+  }
 
   input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
   X <- handle$get_inputs(input_key)[[1]]
@@ -105,6 +126,13 @@ invert_step.embed <- function(type, desc, handle) {
               location = "invert_step.embed:basis")
   }
   basis <- h5_read(root, basis_path)
+  if (!is.numeric(basis)) {
+    abort_lna(
+      "basis matrix must be numeric",
+      .subclass = "lna_error_validation",
+      location = "invert_step.embed:basis"
+    )
+  }
   mean_vec <- if (!is.null(p$center_data_with)) {
     if (!path_exists_safely(root, p$center_data_with)) {
       abort_lna(sprintf("dataset '%s' not found", p$center_data_with),
@@ -121,6 +149,20 @@ invert_step.embed <- function(type, desc, handle) {
     }
     h5_read(root, p$scale_data_with)
   } else NULL
+  if (!is.null(mean_vec) && !is.numeric(mean_vec)) {
+    abort_lna(
+      "centering vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "invert_step.embed:center"
+    )
+  }
+  if (!is.null(scale_vec) && !is.numeric(scale_vec)) {
+    abort_lna(
+      "scaling vector must be numeric",
+      .subclass = "lna_error_validation",
+      location = "invert_step.embed:scale"
+    )
+  }
 
 
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
