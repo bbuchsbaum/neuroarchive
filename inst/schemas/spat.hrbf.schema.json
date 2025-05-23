@@ -95,6 +95,44 @@
         "density_factor": { "type": "number", "default": 1.5 }
       },
       "additionalProperties": false
+    },
+    "use_anisotropic_atoms": {
+      "type": "boolean",
+      "default": false
+    },
+    "anisotropy_source_path": { "type": "string" },
+    "orthogonalize_atoms_at_center": {
+      "type": "boolean",
+      "default": false
+    },
+    "include_gaussian_derivatives": {
+      "enum": ["none", "first_order"],
+      "default": "none"
+    },
+    "centre_steering": {
+      "type": "object",
+      "default": {},
+      "properties": {
+        "map_path": {
+          "type": "string",
+          "pattern": "^/.*",
+          "description": "HDF5 path to steering map (NeuroVol compatible)."
+        },
+        "influence_beta": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        }
+      }
+    },
+    "use_differential_encoding": {
+      "type": "boolean",
+      "default": false
+    },
+    "orthogonalize_differential_levels": {
+      "type": "boolean",
+      "default": true
     }
   },
   "oneOf": [
@@ -129,8 +167,18 @@
       "edge_adaptive_sampling": {
         "enable": true,
         "source": "self_mean"
+      },
+      "use_anisotropic_atoms": true,
+      "anisotropy_source_path": "/basis/dti/tensor",
+      "orthogonalize_atoms_at_center": true,
+      "include_gaussian_derivatives": "first_order",
+      "centre_steering": {
+        "map_path": "/maps/task",
+        "influence_beta": 0.5
+      },
+      "use_differential_encoding": true,
+      "orthogonalize_differential_levels": false
       }
-    }
   ],
   "additionalProperties": false
 }
