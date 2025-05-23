@@ -327,13 +327,13 @@ validate_input_data <- function(x, min_dims = 3L) {
 #' @return A 4D array with possible `lna.was_3d` attribute.
 #' @keywords internal
 ensure_lna_array_input <- function(obj) {
-  if (inherits(obj, "DenseNeuroVec")) {
+  if (methods::is(obj, "DenseNeuroVec")) {
     arr <- as.array(obj)
     attr(arr, "lna.was_3d") <- FALSE
     return(arr)
   }
 
-  if (inherits(obj, "DenseNeuroVol")) {
+  if (methods::is(obj, "DenseNeuroVol")) {
     arr <- as.array(obj)
     arr <- array(arr, dim = c(dim(arr), 1L))
     attr(arr, "lna.was_3d") <- TRUE

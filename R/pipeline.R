@@ -46,7 +46,7 @@ lna_pipeline <- R6::R6Class(
       }
 
       validate_single <- function(obj) {
-        if (!(is.array(obj) || is.matrix(obj) || inherits(obj, "NeuroVec"))) {
+        if (!(is.array(obj) || is.matrix(obj) || methods::is(obj, "NeuroVec"))) {
           abort_lna(
             "input must be array, matrix, NeuroVec or list of such objects",
             .subclass = "lna_error_validation",
@@ -55,7 +55,7 @@ lna_pipeline <- R6::R6Class(
         }
       }
 
-      if (is.list(x) && !inherits(x, "NeuroVec")) {
+      if (is.list(x) && !methods::is(x, "NeuroVec")) {
         if (length(x) == 0) {
           abort_lna(
             "input list must contain at least one element",
