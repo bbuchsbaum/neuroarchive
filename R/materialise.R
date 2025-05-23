@@ -29,61 +29,16 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     )
   }
   stopifnot(inherits(plan, "Plan"))
-  if (!is.null(header)) {
-    stopifnot(is.list(header))
-  }
-  if (!is.null(plugins)) {
-    stopifnot(is.list(plugins))
-    if (is.null(names(plugins)) || any(names(plugins) == "")) {
-      stop("plugins must be a named list", call. = FALSE)
-    }
-  }
+
+  header <- validate_named_list(header, "header")
+  plugins <- validate_named_list(plugins, "plugins")
 
   # Create core groups
-  if (h5$exists("transforms")) {
-    obj <- h5[["transforms"]]
-    if (!inherits(obj, "H5Group")) {
-      obj$close()
-      abort_lna(
-        "'/transforms' already exists and is not a group",
-        .subclass = "lna_error_validation",
-        location = "materialise_plan:transforms"
-      )
-    }
-    tf_group <- obj
-  } else {
-    tf_group <- h5$create_group("transforms")
-  }
-
-  if (h5$exists("basis")) {
-    obj <- h5[["basis"]]
-    if (!inherits(obj, "H5Group")) {
-      obj$close()
-      abort_lna(
-        "'/basis' already exists and is not a group",
-        .subclass = "lna_error_validation",
-        location = "materialise_plan:basis"
-      )
-    }
-    obj$close()
-  } else {
-    h5$create_group("basis")
-  }
-
-  if (h5$exists("scans")) {
-    obj <- h5[["scans"]]
-    if (!inherits(obj, "H5Group")) {
-      obj$close()
-      abort_lna(
-        "'/scans' already exists and is not a group",
-        .subclass = "lna_error_validation",
-        location = "materialise_plan:scans"
-      )
-    }
-    obj$close()
-  } else {
-    h5$create_group("scans")
-  }
+  tf_group <- get_or_create_group(
+    h5, "transforms", "materialise_plan:transforms", return_handle = TRUE
+  )
+  get_or_create_group(h5, "basis", "materialise_plan:basis", return_handle = FALSE)
+  get_or_create_group(h5, "scans", "materialise_plan:scans", return_handle = FALSE)
 
   root <- h5[["/"]]
   h5_attr_write(root, "lna_spec", "LNA R v2.0")
@@ -201,57 +156,96 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     }
   }
 
-  if (!is.null(header) && length(header) > 0) {
-    hdr_grp <- if (!h5$exists("header")) h5$create_group("header") else h5[["header"]]
-    g <- if (hdr_grp$exists("global")) hdr_grp[["global"]] else hdr_grp$create_group("global")
-    for (nm in names(header)) {
-      h5_attr_write(g, nm, header[[nm]])
-    }
-  }
-
-  if (!is.null(plugins) && length(plugins) > 0) {
-    pl_grp <- if (!h5$exists("plugins")) h5$create_group("plugins") else h5[["plugins"]]
-    for (nm in names(plugins)) {
-      if (grepl("/", nm)) {
-        abort_lna(
-          sprintf("Plugin name '%s' contains '/' which is not allowed", nm),
-          .subclass = "lna_error_validation",
-          location = sprintf("materialise_plan:plugin[%s]", nm)
-        )
-      }
-      write_json_descriptor(pl_grp, paste0(nm, ".json"), plugins[[nm]])
-    }
-  }
+  write_header_section(h5, header)
+  write_plugins_section(h5, plugins)
 
   if (checksum == "sha256") {
-    # Write a placeholder first, so the subsequent hash is of the file *with* this attribute present (as a placeholder)
-    placeholder_checksum <- paste(rep("0", 64), collapse = "")
-    h5_attr_write(root, "lna_checksum", placeholder_checksum)
-    
-    file_path <- h5$filename
-    # Ensure all data is written and file is closed BEFORE hashing
-    neuroarchive:::close_h5_safely(h5) # IMPORTANT: h5 is closed here
-
-    if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
-      # Calculate hash on the closed file
-      hash_val <- digest::digest(file = file_path, algo = "sha256")
-
-      # Re-open to write the checksum attribute
-      h5_tmp <- NULL # Initialize to NULL for error handling if open_h5 fails
-      tryCatch({
-          h5_tmp <- open_h5(file_path, mode = "r+")
-          root_tmp <- h5_tmp[["/"]]
-          h5_attr_write(root_tmp, "lna_checksum", hash_val)
-      }, finally = {
-          if (!is.null(h5_tmp) && inherits(h5_tmp, "H5File") && h5_tmp$is_valid) {
-              neuroarchive:::close_h5_safely(h5_tmp)
-          }
-      })
-    } else {
-      warning("Checksum requested but file path unavailable or invalid; skipping write of checksum attribute.")
-      # Note: h5 was already closed. The function is documented to return an invalid handle.
-    }
+    write_sha256_checksum(h5, root)
   }
 
   invisible(h5)
+}
+
+# Helper utilities -------------------------------------------------------
+
+get_or_create_group <- function(h5, name, location, return_handle = TRUE) {
+  if (h5$exists(name)) {
+    obj <- h5[[name]]
+    if (!inherits(obj, "H5Group")) {
+      obj$close()
+      abort_lna(
+        sprintf("'/%s' already exists and is not a group", name),
+        .subclass = "lna_error_validation",
+        location = location
+      )
+    }
+  } else {
+    obj <- h5$create_group(name)
+  }
+
+  if (return_handle) {
+    obj
+  } else {
+    obj$close()
+    invisible(NULL)
+  }
+}
+
+write_header_section <- function(h5, header) {
+  if (is.null(header) || length(header) == 0) {
+    return(invisible(NULL))
+  }
+  hdr_grp <- if (!h5$exists("header")) h5$create_group("header") else h5[["header"]]
+  g <- if (hdr_grp$exists("global")) hdr_grp[["global"]] else hdr_grp$create_group("global")
+  for (nm in names(header)) {
+    h5_attr_write(g, nm, header[[nm]])
+  }
+  g$close()
+  hdr_grp$close()
+  invisible(NULL)
+}
+
+write_plugins_section <- function(h5, plugins) {
+  if (is.null(plugins) || length(plugins) == 0) {
+    return(invisible(NULL))
+  }
+  pl_grp <- if (!h5$exists("plugins")) h5$create_group("plugins") else h5[["plugins"]]
+  for (nm in names(plugins)) {
+    if (grepl("/", nm)) {
+      abort_lna(
+        sprintf("Plugin name '%s' contains '/' which is not allowed", nm),
+        .subclass = "lna_error_validation",
+        location = sprintf("materialise_plan:plugin[%s]", nm)
+      )
+    }
+    write_json_descriptor(pl_grp, paste0(nm, ".json"), plugins[[nm]])
+  }
+  pl_grp$close()
+  invisible(NULL)
+}
+
+write_sha256_checksum <- function(h5, root) {
+  placeholder <- paste(rep("0", 64), collapse = "")
+  h5_attr_write(root, "lna_checksum", placeholder)
+
+  file_path <- h5$filename
+  neuroarchive:::close_h5_safely(h5)
+
+  if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
+    hash_val <- digest::digest(file = file_path, algo = "sha256")
+    h5_tmp <- NULL
+    tryCatch({
+      h5_tmp <- open_h5(file_path, mode = "r+")
+      root_tmp <- h5_tmp[["/"]]
+      h5_attr_write(root_tmp, "lna_checksum", hash_val)
+    }, finally = {
+      if (!is.null(h5_tmp) && inherits(h5_tmp, "H5File") && h5_tmp$is_valid) {
+        neuroarchive:::close_h5_safely(h5_tmp)
+      }
+    })
+  } else {
+    warning(
+      "Checksum requested but file path unavailable or invalid; skipping write of checksum attribute.")
+  }
+  invisible(NULL)
 }
