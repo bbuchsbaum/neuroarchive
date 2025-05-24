@@ -65,6 +65,17 @@ LNAFacade <- R6::R6Class(
     #' @param ... Arguments forwarded to \code{read_lna()}
     read = function(file = self$last_output, ...) {
       read_lna(file = file, ...)
+    },
+
+    #' @description
+    #' Execute a pipeline and write an LNA file
+    #' @param pipe An \code{lna_pipeline} object
+    #' @param file Output path
+    #' @param ... Additional arguments forwarded to \code{lna_write()}
+    write_pipeline = function(pipe, file, ...) {
+      res <- lna_write(pipe, file = file, ...)
+      self$last_output <- res$file
+      invisible(res$file)
     }
   )
 )
