@@ -1,7 +1,7 @@
 Package: neuroarchive
 Type: Package
 Title: Latent NeuroArchive Data Format Tools
-Version: 0.1.0
+Version: 0.1.1
 Author: Who wrote it
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: Tools for reading and writing Latent NeuroArchive (LNA) files.

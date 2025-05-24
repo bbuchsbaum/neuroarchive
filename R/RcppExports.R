@@ -17,6 +17,10 @@ omp_encode_rcpp <- function(signal_y, dict_D, residual_norm_sq_tol, max_active_a
     .Call('_neuroarchive_omp_encode_rcpp', PACKAGE = 'neuroarchive', signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L)
 }
 
+quantize_voxel_block_rcpp <- function(block, bits, method, center) {
+    .Call('_neuroarchive_quantize_voxel_block_rcpp', PACKAGE = 'neuroarchive', block, bits, method, center)
+}
+
 #' Fast 3D Sobel Gradient Magnitude
 #'
 #' Computes 3D Sobel gradient magnitude with OpenMP acceleration.
