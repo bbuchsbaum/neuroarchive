@@ -45,8 +45,78 @@ Based on profiling and algorithmic structure, the following kernels are prime ca
         std::string kernel_type,                             // "gaussian" or "wendland_c4"
         double value_threshold = 1e-8                        // To sparsify output
     ) {
-        // ... (Implementation as sketched previously, using float) ...
-        // Returns K_atoms x N_mask_vox sparse matrix
+        const int N = mask_xyz_world.rows();
+        const int K = centres_xyz_world.rows();
+        if (sigma_vec_mm.size() != K) {
+            Rcpp::stop("sigma_vec_mm length must match centres rows");
+        }
+        const bool gaussian = (kernel_type == "gaussian");
+
+        std::vector<Eigen::Triplet<float>> triplets;
+#ifdef _OPENMP
+        int nthreads = omp_get_max_threads();
+        std::vector<std::vector<Eigen::Triplet<float>>> thr_tri(nthreads);
+#pragma omp parallel
+        {
+            int tid = omp_get_thread_num();
+            auto& local = thr_tri[tid];
+#pragma omp for schedule(static)
+            for (int k = 0; k < K; ++k) {
+                float sigma = sigma_vec_mm[k];
+                float inv2 = 1.0f / (2.0f * sigma * sigma);
+                float invs = 1.0f / sigma;
+                for (int n = 0; n < N; ++n) {
+                    float dx = mask_xyz_world(n,0) - centres_xyz_world(k,0);
+                    float dy = mask_xyz_world(n,1) - centres_xyz_world(k,1);
+                    float dz = mask_xyz_world(n,2) - centres_xyz_world(k,2);
+                    float d2 = dx*dx + dy*dy + dz*dz;
+                    float val;
+                    if (gaussian) {
+                        val = std::exp(-d2 * inv2);
+                    } else {
+                        float dist = std::sqrt(d2) * invs;
+                        if (dist >= 1.0f) continue;
+                        float base = 1.0f - dist;
+                        val = std::pow(base,8.0f) * (32.0f*dist*dist*dist +
+                                                   25.0f*dist*dist + 8.0f*dist + 1.0f);
+                    }
+                    if (std::fabs(val) > value_threshold)
+                        local.emplace_back(k, n, val);
+                }
+            }
+        }
+        for (auto& vec : thr_tri) {
+            triplets.insert(triplets.end(), vec.begin(), vec.end());
+        }
+#else
+        for (int k = 0; k < K; ++k) {
+            float sigma = sigma_vec_mm[k];
+            float inv2 = 1.0f / (2.0f * sigma * sigma);
+            float invs = 1.0f / sigma;
+            for (int n = 0; n < N; ++n) {
+                float dx = mask_xyz_world(n,0) - centres_xyz_world(k,0);
+                float dy = mask_xyz_world(n,1) - centres_xyz_world(k,1);
+                float dz = mask_xyz_world(n,2) - centres_xyz_world(k,2);
+                float d2 = dx*dx + dy*dy + dz*dz;
+                float val;
+                if (gaussian) {
+                    val = std::exp(-d2 * inv2);
+                } else {
+                    float dist = std::sqrt(d2) * invs;
+                    if (dist >= 1.0f) continue;
+                    float base = 1.0f - dist;
+                    val = std::pow(base,8.0f) * (32.0f*dist*dist*dist +
+                                               25.0f*dist*dist + 8.0f*dist + 1.0f);
+                }
+                if (std::fabs(val) > value_threshold)
+                    triplets.emplace_back(k, n, val);
+            }
+        }
+#endif
+        Eigen::SparseMatrix<float> out(K, N);
+        if (!triplets.empty())
+            out.setFromTriplets(triplets.begin(), triplets.end());
+        return out;
     }
     ```
 *   **Key Implementation Details:**
