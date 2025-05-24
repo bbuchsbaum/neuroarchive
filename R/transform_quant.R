@@ -128,10 +128,11 @@ forward_step.quant <- function(type, desc, handle) {
   storage_type_str <- if (bits <= 8) "uint8" else "uint16"
 
   run_id <- handle$current_run_id %||% "run-01"
+  paths <- quant_paths(run_id)
   run_id <- sanitize_run_id(run_id)
-  data_path <- paste0("/scans/", run_id, "/quantized")
-  scale_path <- paste0("/scans/", run_id, "/quant_scale")
-  offset_path <- paste0("/scans/", run_id, "/quant_offset")
+  data_path <- paths$data
+  scale_path <- paths$scale
+  offset_path <- paths$offset
 
   blockwise <- identical(scope, "voxel") && !is.null(handle$h5) && handle$h5$is_valid
   if (blockwise) {
@@ -343,10 +344,11 @@ forward_step.quant <- function(type, desc, handle) {
 #' @keywords internal
 invert_step.quant <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
+  paths <- quant_paths(run_id)
   run_id <- sanitize_run_id(run_id)
-  data_path <- paste0("/scans/", run_id, "/quantized")
-  scale_path <- paste0("/scans/", run_id, "/quant_scale")
-  offset_path <- paste0("/scans/", run_id, "/quant_offset")
+  data_path <- paths$data
+  scale_path <- paths$scale
+  offset_path <- paths$offset
 
   root <- handle$h5[["/"]]
   dset <- NULL
