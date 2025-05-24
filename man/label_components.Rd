@@ -16,6 +16,8 @@ A list with elements `count` (number of components) and `labels`
 \description{
 Provides a minimal 6-neighbourhood connected component labeller used by the
 HRBF helpers. When available and enabled, a faster Rcpp implementation is
-utilised. Otherwise a pure-R fallback is employed.
+utilised. The behaviour is controlled by the option
+\code{lna.hrbf.use_rcpp_helpers}; set it to \code{FALSE} to force the
+pure-R fallback.
 }
 \keyword{internal}

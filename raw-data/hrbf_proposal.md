@@ -32,6 +32,7 @@ This appendix details the `spat.hrbf` transform, an analytic, descriptor-only sp
 *   **Multiresolution & Locality:** Inherently captures data at multiple spatial scales with localized basis functions.
 *   **Provable Coverage & Near-Orthogonality:** Poisson-disk sampling and whitening ensure good properties.
 *   **Fast Evaluation:** Generating atoms and projecting data involves `exp()` and sparse matrix operations; no iterative eigen-solvers.
+*   **Rcpp-Accelerated Helpers:** Core loops for Poisson-disk sampling, connected component labeling and OMP encoding are implemented in C++ via Rcpp.  These provide substantial speedups over the pure-R fallbacks.  Set `options(lna.hrbf.use_rcpp_helpers = FALSE)` to force the R implementations (useful for debugging or on systems without a C++ toolchain).
 *   **LNA Compatibility:** Fits the standard `basis`/`embed` contract.
 
 ### 3. LNA Implementation & Schemas

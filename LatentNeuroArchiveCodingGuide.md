@@ -172,6 +172,7 @@ lna_options <- function(...) { # Uses internal package environment }
     *   `lna::scaffold_transform(type)`: Generates template files, including a stub using `lna:::default_params()`.
     *   `lna:::schema_cache_clear()`: Exposes cache clearing for tests.
 *   **Progress Reporting:** Check `!progressr::handlers_is_empty()` before invoking `progressr`.
+*   **Rcpp Acceleration Toggle:** HRBF-related helpers use C++ implementations when available.  This behaviour is controlled by `getOption("lna.hrbf.use_rcpp_helpers", TRUE)` (see `rcpp_control()`).  Setting it to `FALSE` forces the pure-R fallbacks.
 
 **8. Package Structure**
 
