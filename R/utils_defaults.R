@@ -55,6 +55,19 @@ required_param_cache_clear <- function() {
     }
   }
 
+  # Handle oneOf patterns where actual properties are in oneOf[0]
+  if (is.list(node$oneOf) && length(node$oneOf) > 0) {
+    first_option <- node$oneOf[[1]]
+    if (is.list(first_option$properties)) {
+      for (nm in names(first_option$properties)) {
+        val <- .extract_schema_defaults(first_option$properties[[nm]])
+        if (!is.null(val)) {
+          defaults[[nm]] <- val
+        }
+      }
+    }
+  }
+
   if (is.list(node$items)) {
     if (is.null(names(node$items))) {
       item_vals <- lapply(node$items, .extract_schema_defaults)
@@ -101,7 +114,14 @@ default_params_impl <- function(type) {
   } else {
     schema <- jsonlite::read_json(schema_path, simplifyVector = FALSE)
     assign(type, schema, envir = .schema_cache)
+    
     defaults <- .extract_schema_defaults(schema) %||% list()
+    
+    # Special handling for params.oneOf pattern (e.g., delta.schema.json)
+    # If the extraction found defaults nested under 'params', flatten them to top level
+    if (length(defaults) == 1 && !is.null(defaults$params) && is.list(defaults$params)) {
+      defaults <- defaults$params
+    }
   }
 
   assign(type, defaults, envir = cache)

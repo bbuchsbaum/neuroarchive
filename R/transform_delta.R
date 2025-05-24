@@ -261,40 +261,77 @@ invert_step.delta <- function(type, desc, handle) {
   }
 
   if (!is.null(time_idx)) {
-    idx <- as.integer(time_idx)
-    max_idx <- if (length(idx) > 0) max(idx) else 0L
-    if (max_idx > 1) {
-      # Only access deltas if we have rows to access
-      n_rows_needed <- max_idx - 1
-      if (n_rows_needed > 0 && nrow(deltas) >= n_rows_needed) {
-        cums <- .col_cumsums(deltas[seq_len(n_rows_needed), , drop = FALSE])
-      } else {
-        cums <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
-      }
+    original_idx <- as.integer(time_idx)
+    valid_t_values <- original_idx[original_idx > 0 & original_idx <= (nrow(deltas) + 1)]
+
+    if (length(valid_t_values) == 0) {
+        recon <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
+        dims[axis] <- 0L
     } else {
-      cums <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
+        idx <- valid_t_values 
+        max_idx <- max(idx) 
+
+        if (max_idx > 1) {
+          nrow_for_cums <- min(max_idx - 1, nrow(deltas))
+          if (nrow_for_cums > 0) {
+            cums <- .col_cumsums(deltas[seq_len(nrow_for_cums), , drop = FALSE])
+          } else {
+            cums <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
+          }
+        } else { 
+          cums <- matrix(numeric(0), nrow = 0, ncol = ncol(deltas))
+        }
+
+        recon <- matrix(0, nrow = length(idx), ncol = ncol(deltas))
+        for (i in seq_along(idx)) {
+          t <- idx[i]
+          if (t == 1) {
+            recon[i, ] <- first_vals
+          } else {
+            # The following check should ideally not be needed if valid_t_values logic is correct
+            # but kept for safety during debugging this complex interaction.
+            if ((t - 1) > nrow(cums) || (t-1) <= 0) {
+                stop(sprintf("Internal error in delta invert: trying to access cums[%d,], but cums only has %d rows or t-1 is invalid. t=%d, valid_idx_max=%d, nrow_for_cums=%d, nrow_deltas=%d, p$orig_dims[axis]=%d",
+                             t-1, nrow(cums), t, max_idx, 
+                             if(exists("nrow_for_cums")) nrow_for_cums else NA, 
+                             nrow(deltas), p$orig_dims[axis]))
+            }
+            recon[i, ] <- first_vals + cums[t - 1, ]
+          }
+        }
+        dims[axis] <- length(idx) 
     }
-    recon <- matrix(0, nrow = length(idx), ncol = ncol(deltas))
-    for (i in seq_along(idx)) {
-      t <- idx[i]
-      if (t == 1) {
-        recon[i, ] <- first_vals
-      } else {
-        recon[i, ] <- first_vals + cums[t - 1, ]
-      }
-    }
-    dims[axis] <- length(idx)
   } else {
     cums <- .col_cumsums(deltas)
     recon <- rbind(first_vals, sweep(cums, 2, first_vals, "+"))
   }
 
-  perm <- c(axis, setdiff(seq_along(dims), axis))
-  recon_perm <- array(recon, dim = dims[perm])
-  if (length(dims) > 1) {
-    out <- aperm(recon_perm, order(perm))
+  # Determine output format based on subsetting
+  subset <- handle$subset
+  roi_applied <- !is.null(subset$roi_mask)
+  time_applied <- !is.null(subset$time_idx)
+  
+  if (roi_applied && time_applied) {
+    # When both ROI and time subsetting are applied, return as matrix (voxels x time)
+    out <- t(recon)
+  } else if (roi_applied || time_applied) {
+    # When only one type of subsetting is applied, maintain original structure but with reduced dimensions
+    perm <- c(axis, setdiff(seq_along(dims), axis))
+    recon_perm <- array(recon, dim = dims[perm])
+    if (length(dims) > 1) {
+      out <- aperm(recon_perm, order(perm))
+    } else {
+      out <- as.vector(recon_perm)
+    }
   } else {
-    out <- as.vector(recon_perm)
+    # No subsetting applied, restore original array structure
+    perm <- c(axis, setdiff(seq_along(dims), axis))
+    recon_perm <- array(recon, dim = dims[perm])
+    if (length(dims) > 1) {
+      out <- aperm(recon_perm, order(perm))
+    } else {
+      out <- as.vector(recon_perm)
+    }
   }
 
   input_key <- desc$inputs[[1]] %||% "input"

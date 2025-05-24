@@ -10,11 +10,13 @@ test_that("LogicalNeuroVol mask warns on space mismatch", {
   as.array.FakeLogicalNeuroVol <- function(x, ...) x$arr
   space.DenseNeuroVec <- function(x, ...) attr(x, "space")
 
-  mask <- structure(list(arr = array(TRUE, dim = c(2,2,2))), class = "LogicalNeuroVol")
+  mask <- structure(list(arr = array(TRUE, dim = c(2,2,2))), class = c("FakeLogicalNeuroVol", "LogicalNeuroVol"))
   attr(mask, "space") <- FakeSpace(c(2,2,2), matrix(1:16, 4,4))
 
-  input <- structure(list(), class = "DenseNeuroVec")
-  attr(input, "space") <- FakeSpace(c(2,2,2), diag(4))
+  # Create a simple object with the necessary attributes, not a list
+  input_obj <- 1 
+  attr(input_obj, "space") <- FakeSpace(c(2,2,2), diag(4))
+  class(input_obj) <- "DenseNeuroVec"
 
   withr::defer({
     rm(FakeSpace, trans.FakeSpace, dim.FakeSpace, space, space.FakeLogicalNeuroVol,
@@ -29,7 +31,7 @@ test_that("LogicalNeuroVol mask warns on space mismatch", {
   assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir = .GlobalEnv)
   assign("space.DenseNeuroVec", space.DenseNeuroVec, envir = .GlobalEnv)
 
-  expect_warning(neuroarchive:::validate_mask(mask, input),
+  expect_warning(neuroarchive:::validate_mask(mask, input_obj),
                  "Mask orientation/space differs")
 })
 

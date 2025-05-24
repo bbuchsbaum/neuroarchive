@@ -1,4 +1,3 @@
-
 #' Inverse step for 'basis.empirical_hrbf_compressed'
 #'
 #' Reconstructs an empirical basis matrix from quantized HRBF
@@ -34,25 +33,65 @@ invert_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   }
   codes <- handle$get_inputs(codes_key)[[codes_key]]
 
+  # Handle structured codes format from forward step
+  if (is.list(codes) && length(codes) > 0 && is.list(codes[[1]])) {
+    # Reconstruct sparse codes matrix directly - no dense intermediate
+    n_components <- length(codes)
+    
+    # Load HRBF dictionary to get dimensions
+    root <- handle$h5[["/"]]
+    path_parts <- strsplit(dict_path, "/")[[1]]
+    dname <- tail(path_parts, 1)
+    gpath <- paste(head(path_parts, -1), collapse = "/")
+    if (gpath == "") gpath <- "/"
+    tf_group <- root[[gpath]]
+    dict_desc <- read_json_descriptor(tf_group, dname)
+    if (inherits(tf_group, "H5Group")) tf_group$close()
+    
+    mask_neurovol <- handle$mask_info$mask
+    if (is.null(mask_neurovol)) {
+      abort_lna("mask_info$mask missing",
+                .subclass = "lna_error_validation",
+                location = "invert_step.basis.empirical_hrbf_compressed:mask")
+    }
+    B_dict <- hrbf_basis_from_params(dict_desc$params, mask_neurovol)
+    n_atoms <- nrow(B_dict)
+    
+    # Pre-allocate vectors to avoid quadratic concatenation
+    lens <- vapply(codes, function(z) length(z$indices), integer(1))
+    nz_tot <- sum(lens)
+    i_idx <- integer(nz_tot)
+    j_idx <- integer(nz_tot) 
+    x_val <- numeric(nz_tot)
+    pos <- 1L
+    
+    for (j in seq_len(n_components)) {
+      m <- lens[j]
+      if (m > 0) {
+        # Dequantize weights
+        weights <- codes[[j]]$q * codes[[j]]$scale
+        rng <- pos:(pos + m - 1L)
+        i_idx[rng] <- j
+        j_idx[rng] <- codes[[j]]$indices
+        x_val[rng] <- weights
+        pos <- pos + m
+      }
+    }
+    
+    codes <- Matrix::sparseMatrix(i = i_idx, j = j_idx, x = x_val,
+                                  dims = c(n_components, n_atoms))
+  }
+
   root <- handle$h5[["/"]]
   Vt <- h5_read(root, vt_path)
 
-  # Load HRBF dictionary descriptor
-  path_parts <- strsplit(dict_path, "/")[[1]]
-  dname <- tail(path_parts, 1)
-  gpath <- paste(head(path_parts, -1), collapse = "/")
-  if (gpath == "") gpath <- "/"
-  tf_group <- root[[gpath]]
-  dict_desc <- read_json_descriptor(tf_group, dname)
-  if (inherits(tf_group, "H5Group")) tf_group$close()
-
-  mask_neurovol <- handle$mask_info$mask
-  if (is.null(mask_neurovol)) {
-    abort_lna("mask_info$mask missing",
-              .subclass = "lna_error_validation",
-              location = "invert_step.basis.empirical_hrbf_compressed:mask")
+  # B_dict should already be loaded from the structured-code branch above
+  # If not, we have a logic error since codes should always be structured format
+  if (!exists("B_dict")) {
+    abort_lna("B_dict not found - codes format not recognized",
+              .subclass = "lna_error_validation", 
+              location = "invert_step.basis.empirical_hrbf_compressed:missing_dict")
   }
-  B_dict <- hrbf_basis_from_params(dict_desc$params, mask_neurovol)
 
   bits <- p$omp_quant_bits %||% 5
   if (inherits(codes, "integer")) {
@@ -64,6 +103,11 @@ invert_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
 
   U_sigma <- codes_num %*% B_dict
   basis_reco <- t(Vt) %*% U_sigma
+  
+  # Convert to regular matrix if sparse
+  if (inherits(basis_reco, "sparseMatrix")) {
+    basis_reco <- as.matrix(basis_reco)
+  }
 
   handle$update_stash(keys = codes_key,
                       new_values = setNames(list(basis_reco), input_key))
@@ -102,7 +146,9 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   B <- as_dense_mat(inp$value)
 
   r <- min(as.integer(svd_rank), min(dim(B)))
-  if (requireNamespace("irlba", quietly = TRUE)) {
+  # Use irlba only if the rank is small enough relative to matrix dimensions
+  use_irlba <- requireNamespace("irlba", quietly = TRUE) && r < min(dim(B))
+  if (use_irlba) {
     sv <- irlba::irlba(B, nv = r, nu = r)
     U <- sv$u
     V <- sv$v
@@ -142,7 +188,7 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
-  desc$outputs <- character()
+  desc$outputs <- c("hrbf_codes")
   desc$datasets <- list(list(path = vt_path, role = "svd_vt"),
                         list(path = codes_path, role = "hrbf_codes"))
   desc$params <- p
@@ -223,15 +269,24 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   k_actual <- nrow(C_total)
 
   if (k_actual > 0) {
-    i_idx <- integer(); j_idx <- integer(); x_val <- numeric()
+    # Pre-allocate lists to avoid quadratic concatenation
+    trip_i <- vector("list", k_actual)
+    trip_j <- vector("list", k_actual)
+    trip_x <- vector("list", k_actual)
+    
     for (kk in seq_len(k_actual)) {
       atom <- generate_hrbf_atom(mask_coords_world, mask_linear_indices,
-                                 C_total[kk,], sigma_vec[kk],
-                                 level_vec[kk], levels, p)
-      i_idx <- c(i_idx, rep.int(kk, length(atom$indices)))
-      j_idx <- c(j_idx, atom$indices)
-      x_val <- c(x_val, atom$values)
+                                 C_total[kk,], sigma_vec[kk], kernel_type)
+      trip_i[[kk]] <- rep.int(kk, length(atom$indices))
+      trip_j[[kk]] <- atom$indices
+      trip_x[[kk]] <- atom$values
     }
+    
+    # Flatten lists efficiently
+    i_idx <- unlist(trip_i, use.names = FALSE)
+    j_idx <- unlist(trip_j, use.names = FALSE)
+    x_val <- unlist(trip_x, use.names = FALSE)
+    
     Matrix::sparseMatrix(i = i_idx, j = j_idx, x = x_val,
                          dims = c(k_actual, n_total_vox))
   } else {
@@ -241,14 +296,16 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
 }
 
 .omp_encode <- function(y, D, tol = 1e-3, max_nonzero = 32L) {
+  # Keep D sparse for memory efficiency - use Matrix operations
   r <- y
   idx <- integer(); coeff <- numeric()
   while (sum(r^2) > tol^2 && length(idx) < max_nonzero) {
-    corr <- as.numeric(crossprod(D, r))
+    corr <- as.numeric(Matrix::crossprod(D, r))
     j <- which.max(abs(corr))
     idx <- unique(c(idx, j))
     D_sub <- D[, idx, drop = FALSE]
-    coeff <- as.numeric(qr.solve(D_sub, y))
+    # Use Matrix operations for sparse-aware solving
+    coeff <- as.numeric(Matrix::solve(Matrix::crossprod(D_sub), Matrix::crossprod(D_sub, y)))
     r <- y - D_sub %*% coeff
   }
   list(idx = idx, coeff = coeff)

@@ -116,6 +116,7 @@ apply_invert_transforms <- function(handle, transforms, tf_group, validate, h5) 
       desc <- read_json_descriptor(tf_group, name)
 
       h <- run_transform_step("invert", type, desc, h, step_idx)
+
       if (validate) runtime_validate_step(type, desc, h5)
     }
     h

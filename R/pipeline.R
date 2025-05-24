@@ -31,8 +31,8 @@ lna_pipeline <- R6::R6Class(
     input_summary = "",
     #' @field runs Character vector of run identifiers
     runs = character(),
-    #' @field steps List of transform step specifications
-    steps = list(),
+    #' @field step_list List of transform step specifications
+    step_list = list(),
     #' @field engine_opts Optional list of hints for core_write
     engine_opts = list(),
 
@@ -42,7 +42,7 @@ lna_pipeline <- R6::R6Class(
       self$input <- NULL
       self$input_summary <- ""
       self$runs <- character()
-      self$steps <- list()
+      self$step_list <- list()
       self$engine_opts <- list()
     },
 
@@ -179,7 +179,7 @@ lna_pipeline <- R6::R6Class(
 
       if (is.null(step_spec$params)) step_spec$params <- list()
 
-      self$steps[[length(self$steps) + 1]] <- step_spec
+      self$step_list[[length(self$step_list) + 1]] <- step_spec
       invisible(self)
     },
 
@@ -192,12 +192,12 @@ lna_pipeline <- R6::R6Class(
       } else {
         cat("  Input: (not set)\n")
       }
-      step_count <- length(self$steps)
+      step_count <- length(self$step_list)
       cat("  Steps:", step_count, "\n")
 
       if (step_count > 0) {
-        for (i in seq_along(self$steps)) {
-          step <- self$steps[[i]]
+        for (i in seq_along(self$step_list)) {
+          step <- self$step_list[[i]]
           type <- step$type
           params <- step$params %||% list()
 
@@ -228,7 +228,14 @@ lna_pipeline <- R6::R6Class(
     #' @description
     #' Return the internal list of step specifications
     get_steps_list = function() {
-      self$steps
+      self$step_list
+    },
+
+    #' @description
+    #' Return the internal list of step specifications
+    #' @return List of step specifications
+    steps = function() {
+      self$step_list
     },
 
     #' @description
@@ -239,17 +246,17 @@ lna_pipeline <- R6::R6Class(
     get_step = function(index_or_type) {
       if (is.numeric(index_or_type)) {
         idx <- as.integer(index_or_type[1])
-        if (idx < 1 || idx > length(self$steps)) {
+        if (idx < 1 || idx > length(self$step_list)) {
           return(NULL)
         }
-        return(self$steps[[idx]])
+        return(self$step_list[[idx]])
       } else if (is.character(index_or_type)) {
         typ <- as.character(index_or_type[1])
-        matches <- which(vapply(self$steps, function(s) identical(s$type, typ), logical(1)))
+        matches <- which(vapply(self$step_list, function(s) identical(s$type, typ), logical(1)))
         if (length(matches) == 0) {
           return(NULL)
         }
-        return(self$steps[[matches[length(matches)]]])
+        return(self$step_list[[matches[length(matches)]]])
       } else {
         abort_lna(
           "index_or_type must be numeric or character",
@@ -263,8 +270,8 @@ lna_pipeline <- R6::R6Class(
     #' Return the specification of the most recently added step, or `NULL`
     #' if no steps have been added yet.
     get_last_step_spec = function() {
-      if (length(self$steps) > 0) {
-        self$steps[[length(self$steps)]]
+      if (length(self$step_list) > 0) {
+        self$step_list[[length(self$step_list)]]
       } else {
         NULL
       }
@@ -284,7 +291,7 @@ lna_pipeline <- R6::R6Class(
         )
       }
 
-      idx <- find_step_index(self$steps, index_or_type)
+      idx <- find_step_index(self$step_list, index_or_type)
       if (is.na(idx)) {
         abort_lna(
           "Specified step not found",
@@ -293,7 +300,7 @@ lna_pipeline <- R6::R6Class(
         )
       }
 
-      step <- self$steps[[idx]]
+      step <- self$step_list[[idx]]
       merged <- utils::modifyList(step$params, new_params_list)
       merged <- merged[!vapply(merged, is.null, logical(1))]
 
@@ -303,7 +310,7 @@ lna_pipeline <- R6::R6Class(
       )
       step$params <- utils::modifyList(base, merged)
 
-      self$steps[[idx]] <- step
+      self$step_list[[idx]] <- step
       invisible(self)
     },
 
@@ -311,7 +318,7 @@ lna_pipeline <- R6::R6Class(
     #' Remove a step from the pipeline.
     #' @param index_or_type Integer index or type string identifying the step.
     remove_step = function(index_or_type) {
-      idx <- find_step_index(self$steps, index_or_type)
+      idx <- find_step_index(self$step_list, index_or_type)
       if (is.na(idx)) {
         abort_lna(
           "Specified step not found",
@@ -320,7 +327,7 @@ lna_pipeline <- R6::R6Class(
         )
       }
 
-      self$steps[[idx]] <- NULL
+      self$step_list[[idx]] <- NULL
       invisible(self)
     },
 
@@ -349,7 +356,7 @@ lna_pipeline <- R6::R6Class(
       }
 
       if (!is.null(after_index_or_type)) {
-        idx <- find_step_index(self$steps, after_index_or_type)
+        idx <- find_step_index(self$step_list, after_index_or_type)
         if (is.na(idx)) {
           abort_lna(
             "Specified step not found",
@@ -357,9 +364,9 @@ lna_pipeline <- R6::R6Class(
             location = "lna_pipeline:insert_step"
           )
         }
-        self$steps <- append(self$steps, list(step_spec), after = idx)
+        self$step_list <- append(self$step_list, list(step_spec), after = idx)
       } else if (!is.null(before_index_or_type)) {
-        idx <- find_step_index(self$steps, before_index_or_type)
+        idx <- find_step_index(self$step_list, before_index_or_type)
         if (is.na(idx)) {
           abort_lna(
             "Specified step not found",
@@ -367,9 +374,9 @@ lna_pipeline <- R6::R6Class(
             location = "lna_pipeline:insert_step"
           )
         }
-        self$steps <- append(self$steps, list(step_spec), after = idx - 1L)
+        self$step_list <- append(self$step_list, list(step_spec), after = idx - 1L)
       } else {
-        self$steps <- append(self$steps, list(step_spec), after = length(self$steps))
+        self$step_list <- append(self$step_list, list(step_spec), after = length(self$step_list))
       }
       invisible(self)
     },
@@ -395,8 +402,8 @@ lna_pipeline <- R6::R6Class(
 
       pkgs <- unique(c("neuroarchive", loadedNamespaces()))
 
-      for (i in seq_along(self$steps)) {
-        step <- self$steps[[i]]
+      for (i in seq_along(self$step_list)) {
+        step <- self$step_list[[i]]
         type <- step$type
         params <- step$params %||% list()
 
@@ -454,14 +461,14 @@ lna_pipeline <- R6::R6Class(
       }
 
       nodes <- list(sprintf('n0 [label="Input\n%s"];', self$input_summary))
-      for (i in seq_along(self$steps)) {
-        step <- self$steps[[i]]
+      for (i in seq_along(self$step_list)) {
+        step <- self$step_list[[i]]
         lbl <- sprintf("%d: %s", i, step$type)
         psum <- param_summary(step$params %||% list())
         if (nzchar(psum)) lbl <- paste(lbl, psum, sep = "\n")
         nodes[[length(nodes) + 1]] <- sprintf("n%d [label=\"%s\"];", i, lbl)
       }
-      out_idx <- length(self$steps) + 1L
+      out_idx <- length(self$step_list) + 1L
       nodes[[length(nodes) + 1]] <- sprintf("n%d [label=\"Output\"];", out_idx)
 
       edges <- vapply(seq_len(out_idx), function(j) {

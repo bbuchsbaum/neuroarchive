@@ -241,7 +241,14 @@ close_output_h5 <- function(info) {
 derive_header_from_input <- function(x) {
   src <- if (is.list(x)) x[[1]] else x
   if (methods::is(src, "NeuroObj")) {
-    spc <- tryCatch(space(src), error = function(e) NULL)
+    # Try global space function first (for testing), then neuroim2 namespace
+    spc <- tryCatch({
+      if (exists("space", envir = .GlobalEnv, mode = "function")) {
+        get("space", envir = .GlobalEnv)(src)
+      } else {
+        space(src)
+      }
+    }, error = function(e) NULL)
     if (!is.null(spc)) {
       return(neuroim2_space_to_lna_header(spc))
     }

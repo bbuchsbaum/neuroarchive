@@ -72,14 +72,18 @@ apply_template <- function(pipeline_obj, template_name, ...) {
   fun <- get(template_name, envir = reg)
   args <- list(...)
   
-  # Separate parameter overrides (with dots) from regular template arguments
+  # Separate parameter overrides (with dots) from other arguments
   param_overrides <- args[grepl("\\.", names(args))]
-  template_args <- args[!grepl("\\.", names(args))]
   
-  # Call template function with only non-dotted arguments
+  # Separate list-valued arguments (for parameter modifications) from regular template arguments
+  remaining_args <- args[!grepl("\\.", names(args))]
+  list_param_args <- remaining_args[vapply(remaining_args, is.list, logical(1))]
+  template_args <- remaining_args[!vapply(remaining_args, is.list, logical(1))]
+  
+  # Call template function with only non-list, non-dotted arguments
   pipe <- do.call(fun, c(list(pipeline_obj), template_args))
   
-  # Apply parameter overrides
+  # Apply parameter overrides (dot notation)
   if (length(param_overrides)) {
     for (nm in names(param_overrides)) {
       val <- param_overrides[[nm]]
@@ -93,11 +97,10 @@ apply_template <- function(pipeline_obj, template_name, ...) {
     }
   }
   
-  # Apply remaining list-valued arguments
-  non_override_args <- args[!grepl("\\.", names(args)) & vapply(args, is.list, logical(1))]
-  if (length(non_override_args)) {
-    for (nm in names(non_override_args)) {
-      pipe$modify_step(nm, non_override_args[[nm]])
+  # Apply list-valued arguments (parameter modifications)
+  if (length(list_param_args)) {
+    for (nm in names(list_param_args)) {
+      pipe$modify_step(nm, list_param_args[[nm]])
     }
   }
   

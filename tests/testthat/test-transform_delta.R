@@ -17,7 +17,8 @@ test_that("default_params for delta loads schema", {
 
 test_that("delta transform forward and inverse roundtrip", {
   arr <- matrix(1:10, nrow = 5, ncol = 2)
-  tmp <- local_tempfile(fileext = ".h5")
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
 
   res <- write_lna(arr, file = tmp, transforms = "delta")
   expect_true(file.exists(tmp))
@@ -44,7 +45,8 @@ test_that("forward_step.delta uses custom desc$outputs for stash", {
 
 test_that("delta transform with rle coding works", {
   arr <- matrix(rep(1:5, each = 2), nrow = 5, ncol = 2)
-  tmp <- local_tempfile(fileext = ".h5")
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
 
   res <- write_lna(arr, file = tmp, transforms = "delta",
                    transform_params = list(delta = list(coding_method = "rle")))
@@ -64,12 +66,13 @@ test_that("delta transform with rle coding works", {
 
 test_that("delta transform rejects unsupported coding_method", {
   arr <- matrix(1:4, nrow = 2)
-  tmp <- local_tempfile(fileext = ".h5")
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
 
   expect_error(
     write_lna(arr, file = tmp, transforms = "delta",
               transform_params = list(delta = list(coding_method = "bogus"))),
-    class = "lna_error_validation",
+    class = "lna_error_transform_step",
     regexp = "coding_method"
   )
 })
@@ -129,7 +132,8 @@ test_that("rle coding compresses delta stream for matrix input", {
 
 test_that("read_lna applies roi_mask and time_idx for delta", {
   arr <- array(seq_len(40), dim = c(2,2,2,5))
-  tmp <- local_tempfile(fileext = ".h5")
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
   write_lna(arr, file = tmp, transforms = "delta")
   roi <- array(c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE), dim = c(2,2,2))
   h <- read_lna(tmp, roi_mask = roi, time_idx = c(2,5))

@@ -81,21 +81,15 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
   stopifnot(inherits(handle, "DataHandle"))
   stopifnot(is.numeric(step_idx), length(step_idx) == 1)
 
-  # Define fun_name based on direction
   fun_name <- if (identical(direction, "forward")) "forward_step" else "invert_step"
   
-
-  # Original call to S3 generic for dynamic dispatch
-  # fun <- if (direction == "forward") forward_step else invert_step
-  
   method_specific_fun <- getS3method(fun_name, type, optional = TRUE)
-
+  
   if (is.null(method_specific_fun)) {
     msg <- sprintf(
       "No S3 method '%s.%s' found for transform type '%s' during %s step.",
       fun_name, type, type, direction
     )
-    # Check if a forward method exists if an inverse one is missing, and vice-versa
     opposite_fun_name <- if (identical(direction, "forward")) "invert_step" else "forward_step"
     opposite_method <- getS3method(opposite_fun_name, type, optional = TRUE)
     if (!is.null(opposite_method)) {
@@ -107,40 +101,30 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
     abort_lna(
       sprintf("S3 method %s.%s found but is not a function. Object class: %s",
               fun_name, type, class(method_specific_fun)[1]),
-      .subclass = "lna_error_internal", # Or a new specific error class
+      .subclass = "lna_error_internal",
       location = sprintf("run_transform_step:%s:%s", direction, type)
     )
   }
 
-  # Construct the class vector for S3 dispatch within the method if it uses UseMethod again on type
-  # This ensures that if 'type' is e.g. "mytransform", the dispatch inside the method
-  # sees class c("mytransform", "character").
-  # This is now handled by directly calling method_specific_fun
-  # result_handle <- fun(structure(type, class = c(type, "character")), desc, handle)
-  
-  # Call the resolved S3 method directly
-  result_handle <- tryCatch({
-    method_specific_fun(type = structure(type, class = c(type, "character")),
-                        desc = desc, handle = handle)
+  res_handle <- tryCatch({
+    method_specific_fun(type = type, desc = desc, handle = handle)
   }, error = function(e) {
-    #browser()
-    # Enhance error message with step context
-    abort_lna(
-      sprintf("Error in %s for transform '%s' (step %d): %s",
-              fun_name, type, step_idx, conditionMessage(e)),
-      .subclass = "lna_error_transform_step",
-      location = sprintf("%s:%s[%d]", fun_name, type, step_idx),
-      parent = e
-    )
+    detailed_msg <- sprintf("Error in %s for transform '%s' (step %d): %s", 
+                            fun_name, type, step_idx, conditionMessage(e))
+    abort_lna(detailed_msg, 
+              .subclass = "lna_error_transform_step", 
+              parent_error = e, 
+              location = sprintf("%s:%s:step%d", fun_name, type, step_idx))
   })
-
-  if (!inherits(result_handle, "DataHandle")) {
+  
+  if (!inherits(res_handle, "DataHandle")) {
     abort_lna(
-      sprintf("%s for '%s' did not return a DataHandle object. Got: %s",
-              fun_name, type, class(result_handle)[1]),
+      sprintf("Transform step %s for type '%s' did not return a DataHandle object. Returned class: %s", 
+              fun_name, type, class(res_handle)[1]),
       .subclass = "lna_error_transform_step_return",
-      location = sprintf("%s:%s", fun_name, type)
+      location = sprintf("%s:%s:return_check", fun_name, type)
     )
   }
-  result_handle
+  
+  res_handle
 }

@@ -278,16 +278,10 @@ h5_write_dataset <- function(h5_group, path, data,
     stop("Unable to determine valid dimensions for data")
   }
   
-  message(sprintf("[DEBUG h5_write_dataset BEFORE] path: %s, data_dims: %s, class: %s", 
-                  path, paste(data_dims, collapse="x"), class(data)[1]))
-
   is_empty_array <- any(data_dims == 0)
 
   if (is_empty_array) {
-    message(sprintf("[DEBUG h5_write_dataset EMPTY] original data_dims: %s", paste(data_dims, collapse="x")))
     placeholder_data <- array(as.integer(data_dims), dim = c(length(data_dims), 1))
-    message(sprintf("[DEBUG h5_write_dataset EMPTY] placeholder_data_dims: %s, placeholder_data: %s", 
-                    paste(dim(placeholder_data), collapse="x"), paste(placeholder_data, collapse=",")))
     
     data_to_write_final <- placeholder_data
     dtype_final <- map_dtype("int32") 
@@ -553,7 +547,8 @@ h5_read <- function(h5_group, path) {
   result <- NULL
   tryCatch({
     dset <- h5_group[[path]]
-    result <- dset$read()
+    # If not a placeholder, read the dataset normally
+    result <- dset$read(drop = FALSE) 
     
     # Check for the empty array placeholder attribute
     is_placeholder <- FALSE
@@ -567,14 +562,10 @@ h5_read <- function(h5_group, path) {
       if (is.vector(result) && !is.list(result) && is.numeric(result) && 
           all(result >= 0) && all(result == as.integer(result))) {
         orig_dims <- as.integer(result)
-        message(sprintf("[DEBUG h5_read PLACEHOLDER_VECTOR] path: %s, reconstructed dims: %s", 
-                        path, paste(orig_dims, collapse="x")))
         result <- array(numeric(0), dim = orig_dims)
       } else if (is.matrix(result) && ncol(result) == 1 && is.numeric(result) && 
           all(result >= 0) && all(result == as.integer(result))) {
         orig_dims <- as.integer(result[,1])
-        message(sprintf("[DEBUG h5_read PLACEHOLDER_MATRIX] path: %s, reconstructed dims: %s", 
-                        path, paste(orig_dims, collapse="x")))
         result <- array(numeric(0), dim = orig_dims)
       } else {
         # This case should ideally not happen if writing was correct

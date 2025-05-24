@@ -135,9 +135,11 @@ invert_step.embed.transfer_hrbf_basis <- function(type, desc, handle) {
   B_dict <- hrbf_basis_from_params(dict_desc$params, mask_neurovol)
 
   bits <- desc$params$omp_quant_bits %||% 5
+  # codes_mat written to HDF5 already had q*scale applied during forward_step
+  # So, 'codes' read here are the scaled coefficients.
   codes_num <- if (inherits(codes, "integer")) as.numeric(codes) else codes
-  codes_num <- codes_num / (2^bits - 1)
 
   U_sigma <- codes_num %*% B_dict
-  t(Vt) %*% U_sigma
+  res <- t(Vt) %*% U_sigma
+  as.matrix(res) # Ensure dense matrix output
 }

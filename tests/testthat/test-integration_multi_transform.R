@@ -17,8 +17,9 @@ test_that("basis -> embed -> quant pipeline roundtrip", {
 
   h <- read_lna(tmp)
   out <- h$stash$input
-  expect_equal(dim(out), dim(arr))
-  expect_lt(mean(abs(out - arr)), 1)
+  arr_dense <- neuroarchive:::as_dense_mat(arr)
+  expect_equal(dim(out), dim(arr_dense))
+  expect_lt(mean(abs(out - arr_dense)), 1)
 })
 
 
@@ -49,6 +50,7 @@ test_that("lna_reader works for multi-transform pipeline", {
 
   reader <- read_lna(tmp, lazy = TRUE)
   out <- reader$data()$stash$input
-  expect_equal(dim(out), dim(arr))
+  arr_dense <- neuroarchive:::as_dense_mat(arr)
+  expect_equal(dim(out), dim(arr_dense))
   reader$close()
 })

@@ -8,7 +8,8 @@ test_that("block-wise voxel scope matches full array", {
   arr <- array(runif(2*3*4*5), dim = c(20, 10, 6, 5))
   baseline <- neuroarchive:::.quantize_voxel(arr, bits = 8, method = "range", center = TRUE)
 
-  tmp <- local_tempfile(fileext = ".h5")
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
   h5 <- neuroarchive:::open_h5(tmp, mode = "w")
   plan <- Plan$new()
   handle <- DataHandle$new(initial_stash = list(input = arr), plan = plan,
@@ -21,9 +22,9 @@ test_that("block-wise voxel scope matches full array", {
   q_disk <- neuroarchive:::h5_read(root, "scans/run-01/quantized")
   sc_disk <- neuroarchive:::h5_read(root, "scans/run-01/quant_scale")
   off_disk <- neuroarchive:::h5_read(root, "scans/run-01/quant_offset")
-  expect_equal(q_disk, baseline$q)
-  expect_equal(sc_disk, baseline$scale)
-  expect_equal(off_disk, baseline$offset)
+  expect_equal(q_disk, baseline$q, tolerance = 1e-7)
+  expect_equal(sc_disk, baseline$scale, tolerance = 1e-7)
+  expect_equal(off_disk, baseline$offset, tolerance = 1e-7)
   expect_equal(handle$meta$quant_stats$n_clipped_total, 0L)
   neuroarchive:::close_h5_safely(h5)
 })

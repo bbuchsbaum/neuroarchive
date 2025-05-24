@@ -1,11 +1,14 @@
 #' Basis Transform - Inverse Step
 #'
 #' Reconstructs data from coefficients using a stored basis matrix.
-#'
 #' The `basis` dataset may be stored either as a component-by-voxel matrix
 #' (`storage_order = "component_x_voxel"`) or as a voxel-by-component matrix
 #' (`storage_order = "voxel_x_component"`). After optional transposition, it
 #' should have dimensions `n_voxel x n_component` for reconstruction.
+#' @param type the transform type string
+#' @param desc the transform descriptor
+#' @param handle the LNA data handle
+#' @return the updated LNA data handle
 #' @keywords internal
 invert_step.basis <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -65,16 +68,17 @@ invert_step.basis <- function(type, desc, handle) {
   }
 
   if (identical(storage_order, "component_x_voxel")) {
-    basis <- t(basis)
-  }
-
-  if (nrow(basis) == ncol(coeff)) {
+    # Basis is stored as component x voxel, coefficients are time x component
+    # Reconstruction: coeff %*% basis -> (time x component) %*% (component x voxel) = time x voxel
     dense <- coeff %*% basis
   } else {
+    # Basis is stored as voxel x component, need to transpose for multiplication
+    # Reconstruction: coeff %*% t(basis) -> (time x component) %*% (component x voxel) = time x voxel
     dense <- coeff %*% t(basis)
   }
 
-  handle$update_stash(keys = coeff_key, new_values = setNames(list(dense), input_key))
+  handle$update_stash(keys = coeff_key,
+                      new_values = setNames(list(dense), input_key))
 }
 
 #' Basis Transform - Forward Step
@@ -188,7 +192,9 @@ forward_step.basis <- function(type, desc, handle) {
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
-  desc$outputs <- character()
+  
+  output_key_for_stash <- desc$outputs[[1]]
+
   datasets <- list(list(path = matrix_path, role = "basis_matrix"))
   if (!is.null(mean_vec)) datasets[[length(datasets) + 1]] <- list(path = center_path, role = "center")
   if (!is.null(scale_vec)) datasets[[length(datasets) + 1]] <- list(path = scale_path, role = "scale")
@@ -198,21 +204,26 @@ forward_step.basis <- function(type, desc, handle) {
   plan$add_payload(matrix_path, basis_mat)
   plan$add_dataset_def(matrix_path, "basis_matrix", type,
                        plan$origin_label, as.integer(step_index),
-                       params_json, matrix_path, "eager", dtype = NA_character_)
+                       params_json, matrix_path, "eager")
+
   if (!is.null(mean_vec)) {
     plan$add_payload(center_path, mean_vec)
     plan$add_dataset_def(center_path, "center", type,
                          plan$origin_label, as.integer(step_index),
-                         params_json, center_path, "eager", dtype = NA_character_)
+                         params_json, center_path, "eager")
   }
   if (!is.null(scale_vec)) {
     plan$add_payload(scale_path, scale_vec)
     plan$add_dataset_def(scale_path, "scale", type,
                          plan$origin_label, as.integer(step_index),
-                         params_json, scale_path, "eager", dtype = NA_character_)
+                         params_json, scale_path, "eager")
   }
-
+  
   handle$plan <- plan
-  # keep input in the stash for subsequent transforms (e.g., 'embed')
-  handle
+  output_key_for_stash <- desc$outputs[[1]]
+  
+  # Stash the original input X, not the PCA scores (fit$x).
+  # embed transform will take this X and project it using the stored basis.
+  handle <- handle$update_stash(keys = input_key, new_values = setNames(list(X), output_key_for_stash))
+  return(handle) # Explicitly return the updated handle
 }

@@ -23,7 +23,10 @@
               "type": "string",
               "enum": ["component_x_voxel", "voxel_x_component"],
               "default": "component_x_voxel"
-            }
+            },
+            "k_eff": {"type": "integer", "minimum": 0},
+            "original_V_dim": {"type": "integer", "minimum": 0},
+            "backend": {"type": "string"}
           },
           "additionalProperties": false
         },

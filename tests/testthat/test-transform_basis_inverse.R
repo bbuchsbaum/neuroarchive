@@ -11,7 +11,8 @@ test_that("invert_step.basis reconstructs dense data for both storage orders", {
   base_mat_vxc <- t(base_mat_cxv)                      # voxel x component
 
   for (ord in c("component_x_voxel", "voxel_x_component")) {
-    tmp <- local_tempfile(fileext = ".h5")
+    tmp <- tempfile(fileext = ".h5")
+    on.exit(unlink(tmp), add = TRUE)
     h5 <- H5File$new(tmp, mode = "w")
     mat <- if (identical(ord, "component_x_voxel")) base_mat_cxv else base_mat_vxc
     neuroarchive:::h5_write_dataset(h5[["/"]], "/basis/test/matrix", mat)
@@ -55,7 +56,8 @@ test_that("invert_step.basis applies subset", {
   base_mat_vxc <- t(base_mat_cxv)
 
   for (ord in c("component_x_voxel", "voxel_x_component")) {
-    tmp <- local_tempfile(fileext = ".h5")
+    tmp <- tempfile(fileext = ".h5")
+    on.exit(unlink(tmp), add = TRUE)
     h5 <- H5File$new(tmp, mode = "w")
     mat <- if (identical(ord, "component_x_voxel")) base_mat_cxv else base_mat_vxc
     neuroarchive:::h5_write_dataset(h5[["/"]], "/basis/test/matrix", mat)
@@ -77,7 +79,8 @@ test_that("invert_step.basis applies subset", {
 test_that("invert_step.basis honours subset$roi and subset$time", {
   coef_mat <- matrix(1:6, nrow = 3, ncol = 2)
   subset <- list(roi = c(TRUE, FALSE, TRUE), time = c(1,3))
-  tmp <- local_tempfile(fileext = ".h5")
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
   h5 <- H5File$new(tmp, mode = "w")
   neuroarchive:::h5_write_dataset(h5[["/"]], "/basis/test/matrix", matrix(c(1,0,0,1,1,1), nrow = 2))
   desc <- list(
@@ -94,7 +97,8 @@ test_that("invert_step.basis honours subset$roi and subset$time", {
 })
 
 test_that("invert_step.basis validates storage_order", {
-  tmp <- local_tempfile(fileext = ".h5")
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
   h5 <- H5File$new(tmp, mode = "w")
   neuroarchive:::h5_write_dataset(h5[["/"]], "/basis/test/matrix", matrix(1))
   desc <- list(

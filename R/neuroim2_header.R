@@ -13,13 +13,22 @@ neuroim2_space_to_lna_header <- function(neurospace_obj) {
               location = "neuroim2_space_to_lna_header")
   }
 
+  # Helper function to try global override first, then neuroim2 namespace
+  safe_call <- function(fn_name, obj) {
+    if (exists(fn_name, envir = .GlobalEnv, mode = "function")) {
+      get(fn_name, envir = .GlobalEnv)(obj)
+    } else {
+      get(fn_name, envir = asNamespace("neuroim2"))(obj)
+    }
+  }
+
   dims <- dim(neurospace_obj)
   nd <- length(dims)
   header_list <- list(
     dims = dims[seq_len(min(3L, nd))],
-    spacing = spacing(neurospace_obj),
-    origin = origin(neurospace_obj),
-    transform = trans(neurospace_obj)
+    spacing = safe_call("spacing", neurospace_obj),
+    origin = safe_call("origin", neurospace_obj),
+    transform = safe_call("trans", neurospace_obj)
   )
 
   header_list

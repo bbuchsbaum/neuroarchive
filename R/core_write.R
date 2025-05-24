@@ -193,17 +193,36 @@ validate_mask <- function(mask, input = NULL) {
     return(list(array = NULL, active_voxels = NULL))
   }
 
+  # Helper function to try global override first, then neuroim2 namespace
+  safe_call_method <- function(fn_name, obj) {
+    if (exists(fn_name, envir = .GlobalEnv, mode = "function")) {
+      global_fn <- get(fn_name, envir = .GlobalEnv)
+      # Try direct S3 dispatch if global generic exists
+      if (methods::isGeneric(fn_name)) {
+        method_name <- paste0(fn_name, ".", class(obj)[1])
+        if (exists(method_name, envir = .GlobalEnv, mode = "function")) {
+          return(get(method_name, envir = .GlobalEnv)(obj))
+        }
+      }
+      # Fallback to calling the global generic/function itself
+      return(global_fn(obj))
+    } else if (exists(fn_name, envir = asNamespace("neuroim2"), mode = "function")) {
+      return(get(fn_name, envir = asNamespace("neuroim2"))(obj))
+    }
+    NULL # Should not happen if function is expected to exist
+  }
+
   if (inherits(mask, "LogicalNeuroVol")) {
-    mask_space <- tryCatch(space(mask), error = function(e) NULL)
+    mask_space <- tryCatch(safe_call_method("space", mask), error = function(e) NULL)
 
     if (!is.null(input)) {
       x_run <- if (is.list(input)) input[[1]] else input
-      input_space <- tryCatch(space(x_run), error = function(e) NULL)
+      input_space <- tryCatch(safe_call_method("space", x_run), error = function(e) NULL)
       if (!is.null(mask_space) && !is.null(input_space)) {
-        mask_dims <- tryCatch(dim(mask_space)[1:3], error = function(e) NULL)
-        input_dims <- tryCatch(dim(input_space)[1:3], error = function(e) NULL)
-        mask_trans <- tryCatch(trans(mask_space), error = function(e) NULL)
-        input_trans <- tryCatch(trans(input_space), error = function(e) NULL)
+        mask_dims <- tryCatch(safe_call_method("dim", mask_space)[1:3], error = function(e) NULL)
+        input_dims <- tryCatch(safe_call_method("dim", input_space)[1:3], error = function(e) NULL)
+        mask_trans <- tryCatch(safe_call_method("trans", mask_space), error = function(e) NULL)
+        input_trans <- tryCatch(safe_call_method("trans", input_space), error = function(e) NULL)
 
         if (!is.null(mask_dims) && !is.null(input_dims) &&
             (!identical(mask_dims, input_dims) ||
@@ -213,7 +232,7 @@ validate_mask <- function(mask, input = NULL) {
       }
     }
 
-    arr <- as.array(mask)
+    arr <- safe_call_method("as.array", mask)
   } else if (is.array(mask) && length(dim(mask)) == 3 && is.logical(mask)) {
     arr <- mask
   } else {

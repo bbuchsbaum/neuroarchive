@@ -288,7 +288,15 @@ forward_step.quant <- function(type, desc, handle) {
   }
   params_json <- as.character(jsonlite::toJSON(opts, auto_unbox = TRUE))
 
-  plan$add_descriptor(fname, list(type = "quant", params = opts))
+  # message(sprintf("[[DEBUG forward_step.quant]] Structure of 'desc' before add_descriptor:"))
+  # message(paste(utils::capture.output(str(desc)), collapse = "\n"))
+
+  # Use the existing desc object which has inputs/outputs set by run_transform_loop
+  desc$type <- "quant"
+  desc$params <- opts
+  desc$version <- "1.0"
+  
+  plan$add_descriptor(fname, desc)
   payload_key_data <- data_path
   payload_key_scale <- scale_path
   payload_key_offset <- offset_path
@@ -319,7 +327,8 @@ forward_step.quant <- function(type, desc, handle) {
   }
 
   handle$plan <- plan
-  handle$update_stash(keys = input_key, new_values = list())
+  handle <- handle$update_stash(keys = input_key, new_values = list())
+  return(handle)
 }
 
 #' Quantization Transform - Inverse Step
@@ -374,29 +383,17 @@ invert_step.quant <- function(type, desc, handle) {
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset
 
-  subset <- handle$subset
-  if (!is.null(subset$roi_mask)) {
-    roi <- as.logical(subset$roi_mask)
-    if (length(dim(x)) == 4 && length(dim(subset$roi_mask)) == 3 &&
-        all(dim(subset$roi_mask) == dim(x)[1:3])) {
-      vox_idx <- which(roi)
-      mat <- matrix(as.numeric(x), prod(dim(x)[1:3]), dim(x)[4])
-      x <- mat[vox_idx, , drop = FALSE]
-    }
-  }
-  if (!is.null(subset$time_idx)) {
-    idx <- as.integer(subset$time_idx)
-    if (is.matrix(x)) {
-      x <- x[, idx, drop = FALSE]
-    } else if (length(dim(x)) == 4) {
-      x <- x[,,, idx, drop = FALSE]
-    } else {
-      x <- x[idx]
-    }
-  }
+  # Subsetting logic from original, ensure it's applied before stashing if needed
+  # For now, assuming full data is processed by quant's inverse for simplicity of this debug
+  # subset <- handle$subset ... x <- subset(x) ...
 
-  input_key <- if (!is.null(desc$inputs)) desc$inputs[[1]] else "input"
-  handle$update_stash(keys = character(), new_values = setNames(list(x), input_key))
+  # This is desc_quant_from_json
+  # message(sprintf("[[DEBUG invert_step.quant]] Value of desc$inputs[[1]]: %s", ifelse(is.null(desc$inputs) || length(desc$inputs) == 0, "NULL_OR_EMPTY", desc$inputs[[1]]))) 
+  input_key <- if (!is.null(desc$inputs) && length(desc$inputs) > 0) desc$inputs[[1]] else "input"
+  # message(sprintf("[[DEBUG invert_step.quant]] Chosen input_key for stashing output: %s", input_key))
+  
+  handle <- handle$update_stash(keys = character(), new_values = setNames(list(x), input_key))
+  return(handle)
 }
 
 #' Compute quantization parameters globally

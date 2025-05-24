@@ -70,6 +70,8 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @details Raises an lna_error_contract if any key is not found.
     get_inputs = function(keys) {
       stopifnot(is.character(keys), length(keys) > 0)
+      # message(sprintf("[DataHandle$get_inputs] Attempting to get keys: %s. Available stash keys: %s", 
+      #                 paste(keys, collapse=", "), paste(names(self$stash), collapse=", ")))
       stash_names <- names(self$stash)
       missing_keys <- setdiff(keys, stash_names)
 
@@ -99,6 +101,10 @@ DataHandle <- R6::R6Class("DataHandle",
         message(sprintf("[DataHandle$update_stash ENTRY] new_values keys: %s. ",
                         paste(names(new_values), collapse=", ")))
       }
+      # message(sprintf("[DataHandle$update_stash PRE-UPDATE] Current stash keys: %s. Keys to remove: %s. Keys in new_values: %s", 
+      #                 paste(names(self$stash), collapse=", "), 
+      #                 paste(keys, collapse=", "), 
+      #                 paste(names(new_values), collapse=", ")))
   
       stopifnot(is.character(keys))
       stopifnot(is.list(new_values))
@@ -124,6 +130,8 @@ DataHandle <- R6::R6Class("DataHandle",
           # Use modifyList for safe merging/overwriting
           current_stash <- utils::modifyList(current_stash, new_values)
       }
+      # message(sprintf("[DataHandle$update_stash POST-UPDATE] Resulting stash keys for new handle: %s", 
+      #                 paste(names(current_stash), collapse=", ")))
       
       # Return a new DataHandle with the updated stash using the 'with' method
       return(self$with(stash = current_stash))

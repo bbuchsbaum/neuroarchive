@@ -14,7 +14,7 @@ test_that("embed transform errors when basis_path missing", {
   X <- matrix(rnorm(10), nrow = 5)
   expect_error(
     core_write(X, transforms = "embed"),
-    class = "lna_error_validation",
+    class = "lna_error_transform_step",
     regexp = "basis_path"
   )
 })

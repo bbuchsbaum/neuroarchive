@@ -39,8 +39,8 @@ lna_write <- function(pipeline_obj, file, ...,
     )
   }
 
-  transform_types <- vapply(pipeline_obj$steps, function(s) s$type, character(1))
-  transform_params_list <- lapply(pipeline_obj$steps, function(s) s$params)
+  transform_types <- vapply(pipeline_obj$step_list, function(s) s$type, character(1))
+  transform_params_list <- lapply(pipeline_obj$step_list, function(s) s$params)
   names(transform_params_list) <- transform_types
 
   extra_args <- utils::modifyList(pipeline_obj$engine_opts %||% list(), list(...))
