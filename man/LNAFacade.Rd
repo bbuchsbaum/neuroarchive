@@ -89,13 +89,13 @@ including elements \code{file}, \code{plan} and \code{header}.
 \subsection{Method \code{read()}}{
 Read data from an LNA file
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$read(file, ...)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$read(file = self$last_output, ...)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{file}}{Path to an LNA file}
+\item{\code{file}}{Path to an LNA file. Uses \code{last_output} from the most recent \code{$write()} if missing}
 
 \item{\code{...}}{Arguments forwarded to \code{read_lna()}}
 }

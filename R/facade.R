@@ -50,9 +50,10 @@ LNAFacade <- R6::R6Class(
 
     #' @description
     #' Read data from an LNA file
-    #' @param file Path to an LNA file
+    #' @param file Path to an LNA file. If missing, uses \code{last_output}
+    #'   from the most recent call to \code{$write()}.
     #' @param ... Arguments forwarded to \code{read_lna()}
-    read = function(file, ...) {
+    read = function(file = self$last_output, ...) {
       read_lna(file = file, ...)
     }
   )
