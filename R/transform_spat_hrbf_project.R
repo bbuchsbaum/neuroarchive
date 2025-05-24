@@ -30,7 +30,7 @@ forward_step.spat.hrbf_project <- function(type, desc, handle) {
               location = "forward_step.spat.hrbf_project:params")
   }
 
-  B_final <- hrbf_generate_basis(p, mask_neurovol,
+  B_final <- hrbf_basis_from_params(p, mask_neurovol,
                                  if (!is.null(handle$h5)) handle$h5[["/"]] else NULL)
   p$k_actual <- nrow(B_final)
   mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256")
@@ -90,7 +90,7 @@ invert_step.spat.hrbf_project <- function(type, desc, handle) {
   if (centres_stored && !is.null(centres_path) && !is.null(sigma_vec_path)) {
     p_local <- modifyList(p, list(centres_stored = TRUE))
     root <- handle$h5[["/"]]
-    B_final <- hrbf_generate_basis(p_local, mask_neurovol, root)
+    B_final <- hrbf_basis_from_params(p_local, mask_neurovol, root)
   } else {
     if (is.null(seed)) {
       abort_lna("seed missing for analytic regeneration",
@@ -98,7 +98,7 @@ invert_step.spat.hrbf_project <- function(type, desc, handle) {
                 location = "invert_step.spat.hrbf_project:seed")
     }
     p_local <- modifyList(p, list(centres_stored = FALSE))
-    B_final <- hrbf_generate_basis(p_local, mask_neurovol,
+    B_final <- hrbf_basis_from_params(p_local, mask_neurovol,
                                    if (!is.null(handle$h5)) handle$h5[["/"]] else NULL)
   }
 

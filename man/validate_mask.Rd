@@ -8,7 +8,8 @@ validate_mask(mask, input = NULL)
 }
 \arguments{
 \item{mask}{Optional mask object.}
-\item{input}{Optional input object used for space comparison.}
+
+\item{input}{Optional input object used to compare mask space/orientation.}
 }
 \value{
 List with `array` and `active_voxels` entries.

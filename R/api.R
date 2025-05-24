@@ -1,4 +1,3 @@
-#' @importFrom hdf5r H5File
 #' Write data to an LNA file
 #'
 #' Compresses one or more fMRI runs using a sequence of transforms and
@@ -46,6 +45,7 @@
 #' arr <- array(rnorm(64), dim = c(4, 4, 4, 1))
 #' write_lna(arr, tmp, transforms = "quant")
 #' read_lna(tmp)
+#' @importFrom hdf5r H5File
 #' @export
 write_lna <- function(x, ...) {
   UseMethod("write_lna")

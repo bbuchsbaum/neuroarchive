@@ -7,7 +7,8 @@
 \method{forward_step}{embed.transfer_hrbf_basis}(type, desc, handle)
 }
 \description{
-Applies an empirical HRBF basis from a source LNA file to new data and
-stores the resulting coefficient matrix.
+Applies an empirical HRBF basis learned in a source LNA file to new
+target data. The basis is reconstructed on-the-fly from the
+compressed representation stored in the source file.
 }
 \keyword{internal}

@@ -10,7 +10,7 @@
 Daubechies 4 ("db4") tends to balance temporal resolution and smoothness
 for fMRI applications, so it is used as the default.
 Any wavelet supported by the `wavelets` package may be supplied. The
-computation is vectorised with \code{vapply} to avoid creating an explicit
+computation is vectorised with `vapply` to avoid creating an explicit
 identity matrix.
 }
 \keyword{internal}

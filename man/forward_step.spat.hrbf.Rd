@@ -2,13 +2,15 @@
 % Please edit documentation in R/transform_spat_hrbf.R
 \name{forward_step.spat.hrbf}
 \alias{forward_step.spat.hrbf}
-\title{Analytic HRBF Transform - Forward Step}
+\title{Analytic HRBF Transform - Forward Step (centre generation)}
 \usage{
 \method{forward_step}{spat.hrbf}(type, desc, handle)
 }
 \description{
-Generates HRBF centres via Poisson-disk sampling or loads them from HDF5,
-then computes coefficients for the input data. Centres and other metadata
-are stored in the stash for later steps.
+Implements the centre generation and parameter bookkeeping portion of
+the `spat.hrbf` transform. This step either analytically generates
+RBF centres via Poisson-disk sampling or loads them from an HDF5
+location. The generated centres and their corresponding sigma values
+are stored in the handle's stash for use by later steps.
 }
 \keyword{internal}

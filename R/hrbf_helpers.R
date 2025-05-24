@@ -295,6 +295,7 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
     }
     if (num_extra_fine_levels > 0L) {
       for (j_extra in seq_len(num_extra_fine_levels)) {
+        j_level <- levels + j_extra
         sigma_new <- sigma0 / (2^(levels + j_extra))
         r_new <- radius_factor * sigma_new
         vox_centres <- poisson_disk_sample_neuroim2(
@@ -302,14 +303,15 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
         )
         if (nrow(vox_centres) > 0) {
           centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
-          sigs <- c(sigs, rep(sigma_new, nrow(vox_centres)))
+          n_new <- nrow(vox_centres)
+          sigs <- c(sigs, rep(sigma_new, n_new))
+          level_vec <- c(level_vec, rep(j_level, n_new))
         }
       }
     }
     C_total <- if (length(centres_list) > 0) do.call(rbind, centres_list)
                else matrix(numeric(0), ncol = 3)
     sigma_vec <- sigs
-    level_vec <- level_vec
   } else {
     abort_lna("Insufficient parameters to regenerate HRBF basis",
               .subclass = "lna_error_descriptor",
@@ -321,7 +323,9 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
   }
   if (is.null(mask_world_coords)) {
     mask_coords_vox <- which(mask_arr, arr.ind = TRUE)
-    mask_world_coords <- voxel_to_world(mask_coords_vox)
+    mask_coords_world <- voxel_to_world(mask_coords_vox)
+  } else {
+    mask_coords_world <- mask_world_coords
   }
   if (is.null(mask_linear_indices)) {
     mask_linear_indices <- as.integer(which(mask_arr))
@@ -359,6 +363,16 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
 #' `source_spec`, either computes a Sobel gradient magnitude from the
 #' current data or loads a pre-computed gradient map.
 #'
+#' @details 
+#' **Performance Warning:** The `self_mean` mode computes 3D Sobel gradients 
+#' using pure R, which is extremely slow on large volumes (≈10 min for 64³). 
+#' For performance-critical applications, consider:
+#' \itemize{
+#'   \item Pre-computing structural gradients and using `structural_path` mode
+#'   \item Installing the Rcpp acceleration (when available): 30-100× faster
+#'   \item Disabling edge-adaptive sampling via parameters
+#' }
+#'
 #' @param source_spec Character string specifying the source of the
 #'   gradient map ("self_mean" or "structural_path").
 #' @param data_handle A `DataHandle` providing access to the input data
@@ -381,6 +395,40 @@ compute_edge_map_neuroim2 <- function(source_spec, data_handle,
   thresh_k <- p$edge_thresh_k %||% 3.0
 
   sobel_mag <- function(vol) {
+    # Try fast Rcpp implementation first
+    use_rcpp <- isTRUE(getOption("lna.edge_adaptive.use_rcpp", TRUE))
+    if (use_rcpp) {
+      # Check if function is available in the package DLL
+      dll_routines <- tryCatch(
+        getDLLRegisteredRoutines("neuroarchive"),
+        error = function(e) NULL
+      )
+      use_rcpp <- !is.null(dll_routines) && 
+        "sobel3d_magnitude_rcpp" %in% names(dll_routines$`.Call`)
+    }
+    
+    if (use_rcpp) {
+      result <- tryCatch(
+        sobel3d_magnitude_rcpp(vol),
+        error = function(e) NULL
+      )
+      if (!is.null(result)) {
+        return(result)
+      }
+    }
+    
+    # Performance warning for large volumes
+    nvox <- prod(dim(vol))
+    if (nvox > 50000) {  # Warn for volumes larger than ~37³
+      warn_lna(
+        sprintf("Computing 3D Sobel gradients on %dx%dx%d volume in pure R. This may take several minutes. Consider pre-computing gradients or installing Rcpp acceleration.",
+                dim(vol)[1], dim(vol)[2], dim(vol)[3]),
+        .subclass = "lna_warning_performance",
+        location = "compute_edge_map_neuroim2:sobel_mag"
+      )
+    }
+    
+    # Pure R fallback implementation
     w <- matrix(c(1,2,1,2,4,2,1,2,1), nrow = 3, byrow = TRUE)
     kx <- array(0, c(3,3,3)); ky <- array(0, c(3,3,3)); kz <- array(0, c(3,3,3))
     for (i in 1:3) for (j in 1:3) {
@@ -433,5 +481,78 @@ compute_edge_map_neuroim2 <- function(source_spec, data_handle,
   med_val <- median(abs(as.numeric(grad_map[mask_arr])), na.rm = TRUE)
   edge_binary <- grad_map > (thresh_k * med_val)
   array(as.logical(edge_binary), dim = dims)
+}
+
+#' Check edge-adaptive HRBF sampling availability and performance
+#'
+#' Helper to determine if edge-adaptive sampling should be used based on
+#' volume size and available acceleration.
+#'
+#' @param dims Vector of 3D dimensions
+#' @param warn_large Logical, whether to warn about large volumes
+#' @return List with recommendations and performance info
+#' @export
+check_edge_adaptive_performance <- function(dims, warn_large = TRUE) {
+  nvox <- prod(dims)
+  # Check if Rcpp implementation is available
+  dll_routines <- tryCatch(
+    getDLLRegisteredRoutines("neuroarchive"),
+    error = function(e) NULL
+  )
+  has_rcpp <- !is.null(dll_routines) && 
+    "sobel3d_magnitude_rcpp" %in% names(dll_routines$`.Call`)
+  
+  # Performance thresholds
+  small_vol <- nvox <= 10000    # ~21³, fast even in R
+  medium_vol <- nvox <= 100000  # ~46³, manageable in R
+  large_vol <- nvox > 100000    # >46³, very slow in R
+  
+  recommendation <- if (has_rcpp) {
+    "fast" # Can handle any size with Rcpp
+  } else if (small_vol) {
+    "acceptable" # Small enough for R
+  } else if (medium_vol) {
+    "slow" # Will be slow but doable
+  } else {
+    "disable" # Too slow, recommend disabling
+  }
+  
+  estimated_time_r <- if (nvox <= 1000) {
+    "< 1 sec"
+  } else if (nvox <= 10000) {
+    "< 10 sec" 
+  } else if (nvox <= 50000) {
+    "< 1 min"
+  } else if (nvox <= 100000) {
+    "1-5 min"
+  } else {
+    "> 5 min"
+  }
+  
+  if (warn_large && recommendation %in% c("slow", "disable")) {
+    if (has_rcpp) {
+      message(sprintf("Volume %dx%dx%d is large but Rcpp acceleration available", 
+                     dims[1], dims[2], dims[3]))
+    } else {
+      msg <- sprintf(paste0(
+        "Volume %dx%dx%d will be very slow for edge-adaptive sampling (est. %s). ",
+        "Consider: (1) Installing Rcpp acceleration, (2) Pre-computing structural gradients, ",
+        "or (3) Disabling edge-adaptive sampling"),
+        dims[1], dims[2], dims[3], estimated_time_r)
+      if (recommendation == "disable") {
+        warning(msg, call. = FALSE)
+      } else {
+        message(msg)
+      }
+    }
+  }
+  
+  list(
+    nvox = nvox,
+    has_rcpp = has_rcpp,
+    recommendation = recommendation,
+    estimated_time_r = estimated_time_r,
+    dims_str = paste(dims, collapse = "×")
+  )
 }
 

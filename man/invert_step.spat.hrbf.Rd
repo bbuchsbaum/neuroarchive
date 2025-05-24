@@ -2,13 +2,14 @@
 % Please edit documentation in R/transform_spat_hrbf.R
 \name{invert_step.spat.hrbf}
 \alias{invert_step.spat.hrbf}
-\title{Analytic HRBF Transform - Inverse Step}
+\title{Inverse step for the 'spat.hrbf' transform}
 \usage{
 \method{invert_step}{spat.hrbf}(type, desc, handle)
 }
 \description{
-Reconstructs dense data from HRBF coefficients. The HRBF basis is
-regenerated analytically unless stored in the file. A mask hash mismatch
-issues a warning or error depending on reader options.
+Reconstructs dense data from HRBF coefficients. The basis is regenerated
+analytically unless stored in the file. A mask hash mismatch triggers
+a warning or an error depending on
+`lna_options("read.strict_mask_hash_validation")`.
 }
 \keyword{internal}

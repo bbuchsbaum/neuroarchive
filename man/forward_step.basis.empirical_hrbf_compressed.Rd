@@ -7,8 +7,9 @@
 \method{forward_step}{basis.empirical_hrbf_compressed}(type, desc, handle)
 }
 \description{
-Compresses a dense empirical basis matrix using SVD and sparse HRBF
-re-expansion. Stores the quantised codes and the truncated V^T matrix in
-HDF5 for later reconstruction.
+Compresses a dense empirical basis matrix via SVD and sparse
+HRBF re-expansion. This is a minimal implementation following the
+HRBF proposal. The dictionary regeneration and OMP coding are
+simplified and may be extended.
 }
 \keyword{internal}

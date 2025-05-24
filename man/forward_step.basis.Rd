@@ -7,7 +7,8 @@
 \method{forward_step}{basis}(type, desc, handle)
 }
 \description{
-Computes a basis matrix (e.g., via PCA) from the input data and
-registers the datasets in the write plan.
+Computes a PCA basis matrix from the input data and registers the
+datasets in the write plan. Only the "pca" method is currently
+implemented; specifying any other `method` results in an error.
 }
 \keyword{internal}

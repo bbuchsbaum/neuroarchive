@@ -7,6 +7,7 @@
 .dpss_basis(n_time, n_basis, NW)
 }
 \description{
-Generate DPSS basis matrix using \code{multitaper::dpss.taper} when available
+Uses \code{multitaper::dpss.taper()} when available to avoid constructing
+large Toeplitz matrices.
 }
 \keyword{internal}

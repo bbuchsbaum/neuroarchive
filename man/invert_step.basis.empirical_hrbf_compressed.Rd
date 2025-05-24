@@ -2,13 +2,14 @@
 % Please edit documentation in R/transform_basis_empirical_hrbf_compressed.R
 \name{invert_step.basis.empirical_hrbf_compressed}
 \alias{invert_step.basis.empirical_hrbf_compressed}
-\title{Empirical HRBF Compressed Basis - Inverse Step}
+\title{Inverse step for 'basis.empirical_hrbf_compressed'}
 \usage{
 \method{invert_step}{basis.empirical_hrbf_compressed}(type, desc, handle)
 }
 \description{
-Reconstructs an empirical basis matrix from quantised HRBF codes and the
-stored SVD V^T matrix. The HRBF dictionary is regenerated from the
-referenced descriptor.
+Reconstructs an empirical basis matrix from quantized HRBF
+dictionary codes and the stored SVD \eqn{V^T} matrix. The HRBF
+dictionary is regenerated from the descriptor referenced by
+`hrbf_dictionary_descriptor_path`.
 }
 \keyword{internal}

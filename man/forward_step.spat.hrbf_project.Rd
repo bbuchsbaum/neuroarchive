@@ -7,7 +7,8 @@
 \method{forward_step}{spat.hrbf_project}(type, desc, handle)
 }
 \description{
-Projects input data onto an analytic HRBF basis without storing the basis
-or centres in the file. Only the coefficient matrix is returned in the stash.
+Projects input data onto an analytic HRBF basis without storing the
+basis or centres to HDF5. Only the resulting coefficient matrix is
+placed in the stash for downstream transforms.
 }
 \keyword{internal}

@@ -8,6 +8,6 @@
 }
 \description{
 Reconstructs data from stored temporal basis coefficients.
-Debug output is controlled by the \code{lna.debug.temporal} option.
+Debug messages are controlled by the `lna.debug.temporal` option.
 }
 \keyword{internal}

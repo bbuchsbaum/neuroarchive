@@ -9,15 +9,16 @@
 \arguments{
 \item{type}{Character string identifying the transform ("embed").}
 
-\item{desc}{Descriptor list for the step. `desc$params` must include
-  `basis_path` and may optionally specify paths for centering or scaling.}
+\item{desc}{Descriptor list for this step. `desc$params` must include
+`basis_path` and may optionally specify `center_data_with` and
+`scale_data_with` dataset paths.}
 
-\item{handle}{\code{DataHandle} giving access to the HDF5 file, write plan and
-  runtime stash.}
+\item{handle}{`DataHandle` providing access to the HDF5 file, plan and
+runtime stash. The input matrix is retrieved via this handle.}
 }
 \value{
-Invisibly returns the updated \code{DataHandle} with coefficients stored in the
-plan and stash.
+Invisibly returns the updated `DataHandle` with the computed
+  coefficients registered in the plan and stash.
 }
 \description{
 Projects data onto a pre-computed basis matrix.

@@ -155,7 +155,7 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
 
 
 
-  B_final <- hrbf_generate_basis(
+  B_final <- hrbf_basis_from_params(
     p, mask_neurovol,
     if (!is.null(handle$h5)) handle$h5[["/"]] else NULL,
     mask_world_coords = cached_mask_world_coords,
@@ -298,7 +298,7 @@ invert_step.spat.hrbf <- function(type, desc, handle) {
     root <- handle$h5[["/"]]
     B_final <- h5_read(root, basis_path)
   } else {
-    B_final <- hrbf_generate_basis(p, mask_neurovol,
+    B_final <- hrbf_basis_from_params(p, mask_neurovol,
                                    if (!is.null(handle$h5)) handle$h5[["/"]] else NULL)
   }
 

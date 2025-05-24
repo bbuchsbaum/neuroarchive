@@ -7,7 +7,7 @@
 \method{invert_step}{embed.transfer_hrbf_basis}(type, desc, handle)
 }
 \description{
-Reconstructs dense data from coefficients using an HRBF basis stored in a
-source LNA file.
+Reconstructs dense data from coefficients using the HRBF basis
+stored in a source LNA file.
 }
 \keyword{internal}

@@ -9,15 +9,16 @@
 \arguments{
 \item{type}{Character string identifying the transform ("embed").}
 
-\item{desc}{Descriptor list describing the inverse step. Must specify
-  `basis_path` and may reference centering or scaling datasets.}
+\item{desc}{Descriptor list describing the inverse step. `desc$params` should
+contain `basis_path` along with optional `center_data_with` and
+`scale_data_with` dataset paths used for reconstruction.}
 
-\item{handle}{\code{DataHandle} giving access to the coefficients and output
-  storage.}
+\item{handle}{`DataHandle` with access to the HDF5 file and stash containing
+the coefficient matrix.}
 }
 \value{
-Updated \code{DataHandle} with the reconstructed dense matrix placed in the
-stash under the name listed in \code{desc$inputs[[1]]}.
+The updated `DataHandle` with the reconstructed dense matrix placed in
+  the stash under `desc$inputs[[1]]`.
 }
 \description{
 Reconstructs data from embedding coefficients using a stored basis matrix.

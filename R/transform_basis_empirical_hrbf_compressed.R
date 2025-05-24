@@ -245,6 +245,7 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   }
   if (num_extra_fine_levels > 0L) {
     for (j_extra in seq_len(num_extra_fine_levels)) {
+      j_level <- levels + j_extra
       sigma_new <- sigma0 / (2^(levels + j_extra))
       r_new <- radius_factor * sigma_new
       vox_centres <- poisson_disk_sample_neuroim2(
@@ -252,7 +253,9 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
       )
       if (nrow(vox_centres) > 0) {
         centres_list[[length(centres_list) + 1L]] <- voxel_to_world(vox_centres)
-        sigs <- c(sigs, rep(sigma_new, nrow(vox_centres)))
+        n_new <- nrow(vox_centres)
+        sigs <- c(sigs, rep(sigma_new, n_new))
+        level_vec <- c(level_vec, rep(j_level, n_new))
       }
     }
   }
@@ -276,7 +279,8 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
     
     for (kk in seq_len(k_actual)) {
       atom <- generate_hrbf_atom(mask_coords_world, mask_linear_indices,
-                                 C_total[kk,], sigma_vec[kk], kernel_type)
+                                 C_total[kk,], sigma_vec[kk],
+                                 level_vec[kk], levels, p)
       trip_i[[kk]] <- rep.int(kk, length(atom$indices))
       trip_j[[kk]] <- atom$indices
       trip_x[[kk]] <- atom$values

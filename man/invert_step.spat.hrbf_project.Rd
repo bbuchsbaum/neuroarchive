@@ -2,12 +2,13 @@
 % Please edit documentation in R/transform_spat_hrbf_project.R
 \name{invert_step.spat.hrbf_project}
 \alias{invert_step.spat.hrbf_project}
-\title{HRBF Project Transform - Inverse Step}
+\title{Inverse step for the 'spat.hrbf_project' transform}
 \usage{
 \method{invert_step}{spat.hrbf_project}(type, desc, handle)
 }
 \description{
-Reconstructs data from HRBF coefficients by regenerating the analytic
-basis on-the-fly or loading stored centres if provided.
+Reconstructs dense data from HRBF coefficients using an analytically
+generated HRBF basis. Centres are regenerated from the descriptor
+parameters or loaded from HDF5 if provided.
 }
 \keyword{internal}

@@ -23,19 +23,17 @@ core_read(
 against available run groups under `/scans`.}
 
 \item{allow_plugins}{Character. How to handle transforms requiring
-external packages. One of "installed" (default), "none", or "prompt".
-"installed" attempts to use a transform if its implementation is
-available, issuing a warning when missing. "prompt" in interactive
-sessions asks whether to continue when a transform implementation is
-missing (non-affirmative answers abort). Non-interactive sessions treat
-"prompt" the same as "installed". "none" errors immediately when an
-implementation is missing.}
+external packages. One of "installed" (default), "none", or "prompt".}
 
 \item{validate}{Logical flag indicating if validation should be
 performed via `validate_lna()` before reading.}
 
 \item{output_dtype}{Desired output data type. One of
 `"float32"`, `"float64"`, or `"float16"`.}
+
+\item{roi_mask}{Optional logical mask to subset voxels.}
+
+\item{time_idx}{Optional integer vector selecting time points.}
 
 \item{lazy}{Logical. If `TRUE`, the HDF5 file handle remains open
 after return (for lazy reading).}
@@ -47,7 +45,6 @@ If a single run is selected, a `DataHandle` object. When
 }
 \description{
 Opens an LNA HDF5 file, discovers available transform
-  descriptors and runs the inverse transform chain. This is a
-  minimal skeleton used during early development.
+  descriptors and runs the inverse transform chain.
 }
 \keyword{internal}

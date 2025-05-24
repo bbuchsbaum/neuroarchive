@@ -6,10 +6,18 @@
 \usage{
 \method{invert_step}{basis}(type, desc, handle)
 }
+\arguments{
+\item{type}{the transform type string}
+
+\item{desc}{the transform descriptor}
+
+\item{handle}{the LNA data handle}
+}
+\value{
+the updated LNA data handle
+}
 \description{
 Reconstructs data from coefficients using a stored basis matrix.
-}
-\details{
 The `basis` dataset may be stored either as a component-by-voxel matrix
 (`storage_order = "component_x_voxel"`) or as a voxel-by-component matrix
 (`storage_order = "voxel_x_component"`). After optional transposition, it

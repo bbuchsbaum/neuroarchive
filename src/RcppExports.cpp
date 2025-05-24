@@ -35,10 +35,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// sobel3d_magnitude_rcpp
+NumericVector sobel3d_magnitude_rcpp(NumericVector vol);
+RcppExport SEXP _neuroarchive_sobel3d_magnitude_rcpp(SEXP volSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type vol(volSEXP);
+    rcpp_result_gen = Rcpp::wrap(sobel3d_magnitude_rcpp(vol));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_openmp_threads
+int get_openmp_threads();
+RcppExport SEXP _neuroarchive_get_openmp_threads() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_openmp_threads());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_neuroarchive_label_components_6N_rcpp", (DL_FUNC) &_neuroarchive_label_components_6N_rcpp, 2},
     {"_neuroarchive_poisson_disk_sample_component_rcpp", (DL_FUNC) &_neuroarchive_poisson_disk_sample_component_rcpp, 3},
+    {"_neuroarchive_sobel3d_magnitude_rcpp", (DL_FUNC) &_neuroarchive_sobel3d_magnitude_rcpp, 1},
+    {"_neuroarchive_get_openmp_threads", (DL_FUNC) &_neuroarchive_get_openmp_threads, 0},
     {NULL, NULL, 0}
 };
 
