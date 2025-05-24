@@ -33,6 +33,9 @@ LNAFacade <- R6::R6Class(
     #' @param transforms Character vector of transforms
     #' @param transform_params Optional named list overriding defaults
     #' @param ... Additional arguments forwarded to \code{write_lna()}
+    #' @return Invisibly returns the \code{lna_write_result} from
+    #'   \code{write_lna()}, including elements \code{file}, \code{plan},
+    #'   and \code{header}.
     write = function(x, file, transforms, transform_params = NULL, ...) {
       params <- utils::modifyList(
         self$default_transform_params,
@@ -42,7 +45,7 @@ LNAFacade <- R6::R6Class(
       res <- write_lna(x = x, file = file, transforms = transforms,
                        transform_params = params, ...)
       self$last_output <- res$file
-      invisible(res$file)
+      invisible(res)
     },
 
     #' @description

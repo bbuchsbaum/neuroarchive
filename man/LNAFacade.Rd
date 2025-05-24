@@ -78,6 +78,10 @@ Write data to an LNA file
 }
 \if{html}{\out{</div>}}
 }
+\subsection{Returns}{
+Invisibly returns the \code{lna_write_result} from \code{write_lna()},
+including elements \code{file}, \code{plan} and \code{header}.
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LNAFacade-read"></a>}}
