@@ -52,62 +52,39 @@ test_that("write_lna omits plugins group when list is empty", {
   neuroarchive:::close_h5_safely(h5)
 })
 
+
 # Parameter forwarding for write_lna
 
 test_that("write_lna forwards arguments to core_write and materialise_plan", {
-  skip("Mocking internal calls is unreliable with devtools::load_all() for this scenario.")
+  tmp <- local_tempfile(fileext = ".h5")
+  arr <- array(1:8, dim = c(2, 2, 2, 1))
 
-  captured <- list()
-  fake_plan <- Plan$new()
-  fake_handle <- DataHandle$new()
-
-  local_mocked_bindings(
-    core_write = function(x, transforms, transform_params, mask = NULL,
-                          header = NULL, plugins = NULL) {
-      captured$core <<- list(x = x, transforms = transforms,
-                            transform_params = transform_params,
-                            header = header, plugins = plugins)
-      list(handle = fake_handle, plan = fake_plan)
-    },
-    materialise_plan = function(h5, plan, checksum = "none", header = NULL,
-                                plugins = NULL) {
-      captured$mat <<- list(is_h5 = inherits(h5, "H5File"), plan = plan,
-                           header = header, plugins = plugins)
-    },
-    .env = asNamespace("neuroarchive")
+  res <- write_lna(
+    x = arr,
+    file = tmp,
+    transforms = "quant",
+    transform_params = list(quant = list(bits = 5L)),
+    header = list(foo = 123L),
+    plugins = list(p1 = list(val = 2))
   )
 
-  write_lna(
-    x = array(42, dim = c(1,1,1)),
-    file = tempfile(fileext = ".h5"),
-    transforms = c("tA"),
-    transform_params = list(tA = list(foo = "bar")),
-    header = list(a = 1),
-    plugins = list(p = list(val = 2)))
+  expect_true(file.exists(tmp))
 
-  expect_equal(captured$core$x, array(42, dim = c(1,1,1)))
-  expect_equal(captured$core$transforms, c("tA"))
-  expect_equal(captured$core$transform_params, list(tA = list(foo = "bar")))
-  expect_true(captured$mat$is_h5)
-  expect_identical(captured$mat$plan, fake_plan)
-  expect_equal(captured$core$header, list(a = 1))
-  expect_equal(captured$mat$header, list(a = 1))
-  expect_equal(captured$core$plugins, list(p = list(val = 2)))
-  expect_equal(captured$mat$plugins, list(p = list(val = 2)))
+  # core_write should have produced a plan with the quant descriptor and params
+  expect_equal(res$plan$descriptors[[1]]$type, "quant")
+  expect_equal(res$plan$descriptors[[1]]$params$bits, 5L)
 
-  # Check if mock flags were set (these will likely fail if mocks didn't run)
-  # expect_true(get0(".GlobalEnv$mock_core_write_flag", ifnotfound = FALSE),
-  #             label = "Mock for core_write was not executed")
-  # expect_true(get0(".GlobalEnv$mock_materialise_plan_flag", ifnotfound = FALSE),
-  #             label = "Mock for materialise_plan was not executed")
+  # header and plugins are forwarded to materialise_plan and written to disk
+  expect_identical(res$header$foo, 123L)
 
-  # Cleanup global flags
-  # if (exists("mock_core_write_flag", envir = .GlobalEnv)) {
-  #   rm(list = "mock_core_write_flag", envir = .GlobalEnv)
-  # }
-  # if (exists("mock_materialise_plan_flag", envir = .GlobalEnv)) {
-  #   rm(list = "mock_materialise_plan_flag", envir = .GlobalEnv)
-  # }
+  h5 <- neuroarchive:::open_h5(tmp, mode = "r")
+  grp <- h5[["header/global"]]
+  expect_identical(h5_attr_read(grp, "foo"), 123L)
+  expect_true(h5$exists("plugins/p1.json"))
+  pdesc <- read_json_descriptor(h5[["plugins"]], "p1.json")
+  expect_identical(pdesc, list(val = 2))
+  expect_true(h5$exists("scans/run-01/quantized"))
+  neuroarchive:::close_h5_safely(h5)
 })
 
 # Parameter forwarding for read_lna
