@@ -21,7 +21,7 @@
       "type": "integer",
       "minimum": 0,
       "default": 0,
-      "description": "Additional dyadic levels beyond 'levels'. Functionality pending future implementation."
+      "description": "Additional dyadic levels beyond 'levels'. Each extra level halves sigma and samples a denser set of centres."
     },
     "radius_factor": {
       "type": "number",

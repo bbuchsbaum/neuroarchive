@@ -11,6 +11,8 @@ Implements the centre generation and parameter bookkeeping portion of
 the `spat.hrbf` transform. This step either analytically generates
 RBF centres via Poisson-disk sampling or loads them from an HDF5
 location. The generated centres and their corresponding sigma values
-are stored in the handle's stash for use by later steps.
+are stored in the handle's stash for use by later steps. Set
+\code{num_extra_fine_levels} to generate additional dyadic scales
+beyond \code{levels}.
 }
 \keyword{internal}

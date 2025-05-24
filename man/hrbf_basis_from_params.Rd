@@ -25,6 +25,8 @@ Sparse matrix with one row per HRBF atom and columns matching
   mask voxels.
 }
 \description{
-Regenerate an analytic HRBF basis matrix from descriptor parameters
+Regenerate an analytic HRBF basis matrix from descriptor parameters.
+The `params` list may include `num_extra_fine_levels` to add extra
+dyadic scales when recreating the dictionary.
 }
 \keyword{internal}

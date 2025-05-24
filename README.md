@@ -100,6 +100,11 @@ outside of the LNA pipeline.  Given a mask and HRBF parameter list these
 helpers generate the basis, project dense data to coefficients and
 reconstruct dense matrices.
 
+The HRBF parameter list now supports `num_extra_fine_levels` for adding
+additional dyadic scales beyond `levels`.  Setting this to a positive
+integer densifies the finest scale of the dictionary by repeatedly
+halving `sigma` and sampling extra centres.
+
 ```r
 coeff <- hrbf_project_matrix(X, mask, params)
 reconstructed <- hrbf_reconstruct_matrix(coeff, mask, params)
