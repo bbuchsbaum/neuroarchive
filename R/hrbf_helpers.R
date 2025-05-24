@@ -338,6 +338,36 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
   k_actual <- nrow(C_total)
 
   if (k_actual > 0) {
+    use_rcpp <- isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
+      exists("hrbf_atoms_rcpp")
+
+    if (use_rcpp) {
+      B_try <- tryCatch(
+        hrbf_atoms_rcpp(
+          as.matrix(mask_coords_world),
+          as.matrix(C_total),
+          as.numeric(sigma_vec),
+          kernel_type,
+          value_threshold = 1e-8
+        ),
+        error = function(e) NULL
+      )
+
+      if (!is.null(B_try)) {
+        # Ensure orientation atoms x voxels
+        if (nrow(B_try) == n_total_vox && ncol(B_try) == k_actual) {
+          B_try <- Matrix::t(B_try)
+        }
+
+        # Normalize each atom over the mask voxels
+        norms <- sqrt(Matrix::rowSums(B_try^2))
+        norms[norms == 0] <- 1
+        B_try <- Matrix::Diagonal(x = 1 / norms) %*% B_try
+
+        return(B_try)
+      }
+    }
+
     triplet_i_list <- vector("list", k_actual)
     triplet_j_list <- vector("list", k_actual)
     triplet_x_list <- vector("list", k_actual)
