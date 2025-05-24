@@ -36,6 +36,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// quantize_voxel_block_rcpp
+Rcpp::List quantize_voxel_block_rcpp(NumericVector block, int bits, std::string method, bool center);
+RcppExport SEXP _neuroarchive_quantize_voxel_block_rcpp(SEXP blockSEXP, SEXP bitsSEXP, SEXP methodSEXP, SEXP centerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type block(blockSEXP);
+    Rcpp::traits::input_parameter< int >::type bits(bitsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(quantize_voxel_block_rcpp(block, bits, method, center));
+    return rcpp_result_gen;
+END_RCPP
+}
 // hrbf_atoms_rcpp
 Eigen::SparseMatrix<float> hrbf_atoms_rcpp(const Eigen::Map<Eigen::MatrixXf> mask_xyz_world, const Eigen::Map<Eigen::MatrixXf> centres_xyz_world, const Eigen::Map<Eigen::VectorXf> sigma_vec_mm, std::string kernel_type, double value_threshold);
 RcppExport SEXP _neuroarchive_hrbf_atoms_rcpp(SEXP mask_xyz_worldSEXP, SEXP centres_xyz_worldSEXP, SEXP sigma_vec_mmSEXP, SEXP kernel_typeSEXP, SEXP value_thresholdSEXP) {
@@ -93,6 +107,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_neuroarchive_omp_encode_rcpp", (DL_FUNC) &_neuroarchive_omp_encode_rcpp, 4},
     {"_neuroarchive_sobel3d_magnitude_rcpp", (DL_FUNC) &_neuroarchive_sobel3d_magnitude_rcpp, 1},
     {"_neuroarchive_get_openmp_threads", (DL_FUNC) &_neuroarchive_get_openmp_threads, 0},
+    {"_neuroarchive_quantize_voxel_block_rcpp", (DL_FUNC) &_neuroarchive_quantize_voxel_block_rcpp, 4},
     {NULL, NULL, 0}
 };
 

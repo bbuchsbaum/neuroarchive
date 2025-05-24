@@ -167,7 +167,7 @@ forward_step.quant <- function(type, desc, handle) {
         for (x0 in seq(1, dims[1], by = slab[1])) {
           xi <- x0:min(x0 + slab[1] - 1, dims[1])
           block <- input_data[xi, yi, zi, , drop = FALSE]
-          res <- .quantize_voxel_block(block, bits, method, center)
+          res <- quantize_voxel_block_rcpp(block, bits, method, center)
           idx <- list(xi, yi, zi, seq_len(dims[4]))
           dset_q$write(args = idx, res$q)
           dset_scale$write(args = idx[1:3], res$scale)
