@@ -142,10 +142,55 @@ Based on profiling and algorithmic structure, the following kernels are prime ca
         double residual_norm_sq_tol,                           // Squared norm tolerance for residual
         int max_active_atoms_L                                 // Sparsity limit
     ) {
-        // ... (Implementation as sketched previously) ...
-        // Returns List::create(Named("indices_0based") = active_indices_0based_std_vector,
-        //                     Named("coefficients") = final_coeffs_std_vector,
-        //                     Named("max_iter_reached") = bool_flag)
+        Eigen::VectorXd residual = signal_y;
+        const Eigen::SparseMatrix<double> Dt = dict_D.transpose();
+        std::vector<int> active;
+        std::vector<double> coeff_vec;
+        Eigen::VectorXd proj;
+
+        for (int iter = 0; iter < max_active_atoms_L; ++iter) {
+            proj = Dt * residual;
+            int best = -1;
+            double best_val = 0.0;
+            for (int k = 0; k < proj.size(); ++k) {
+                if (std::find(active.begin(), active.end(), k) == active.end()) {
+                    double cand = std::abs(proj[k]);
+                    if (cand > best_val) {
+                        best_val = cand;
+                        best = k;
+                    }
+                }
+            }
+            if (best < 0)
+                break;
+            active.push_back(best);
+
+            Eigen::SparseMatrix<double> Dsub(dict_D.rows(), active.size());
+            std::vector<Eigen::Triplet<double>> trip;
+            for (size_t i = 0; i < active.size(); ++i) {
+                int col = active[i];
+                for (Eigen::SparseMatrix<double>::InnerIterator it(dict_D, col); it; ++it) {
+                    trip.emplace_back(it.row(), i, it.value());
+                }
+            }
+            Dsub.setFromTriplets(trip.begin(), trip.end());
+
+            Eigen::VectorXd rhs = Dsub.transpose() * signal_y;
+            Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver(Dsub.transpose() * Dsub);
+            Eigen::VectorXd c = solver.solve(rhs);
+
+            residual = signal_y - Dsub * c;
+            coeff_vec.assign(c.data(), c.data() + c.size());
+            if (residual.squaredNorm() <= residual_norm_sq_tol)
+                break;
+        }
+
+        bool max_flag = (active.size() == static_cast<size_t>(max_active_atoms_L) &&
+                          residual.squaredNorm() > residual_norm_sq_tol);
+
+        return Rcpp::List::create(Rcpp::Named("indices_0based") = active,
+                                  Rcpp::Named("coefficients") = coeff_vec,
+                                  Rcpp::Named("max_iter_reached") = max_flag);
     }
     ```
 *   **Key Implementation Details:**
