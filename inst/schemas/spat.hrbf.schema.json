@@ -18,10 +18,10 @@
       "description": "Number of dyadic levels (0 to J)."
     },
     "num_extra_fine_levels": {
-      "type": "integer",
+        "type": "integer",
       "minimum": 0,
       "default": 0,
-      "description": "Additional dyadic levels beyond 'levels'. Functionality pending future implementation."
+      "description": "Additional dyadic levels beyond 'levels'. Extra centres are placed at finer scales."
     },
     "radius_factor": {
       "type": "number",

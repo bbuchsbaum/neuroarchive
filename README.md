@@ -105,6 +105,7 @@ coeff <- hrbf_project_matrix(X, mask, params)
 reconstructed <- hrbf_reconstruct_matrix(coeff, mask, params)
 ```
 
+Set `num_extra_fine_levels` in the parameter list to add additional fine-scale levels beyond `levels`.
 ### Validation and Fork Safety
 
 `validate_lna()` uses cached compiled JSON schemas. When running validation inside forked workers (e.g., with `future::plan(multicore)`), clear this cache in each worker using `lna:::schema_cache_clear()` to avoid potential fork-safety issues.
