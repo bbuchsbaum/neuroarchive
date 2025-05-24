@@ -13,6 +13,10 @@ hrbf_atoms_rcpp <- function(mask_xyz_world, centres_xyz_world, sigma_vec_mm, ker
     .Call('_neuroarchive_hrbf_atoms_rcpp', PACKAGE = 'neuroarchive', mask_xyz_world, centres_xyz_world, sigma_vec_mm, kernel_type, value_threshold)
 }
 
+omp_encode_rcpp <- function(signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L) {
+    .Call('_neuroarchive_omp_encode_rcpp', PACKAGE = 'neuroarchive', signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L)
+}
+
 #' Fast 3D Sobel Gradient Magnitude
 #'
 #' Computes 3D Sobel gradient magnitude with OpenMP acceleration.
