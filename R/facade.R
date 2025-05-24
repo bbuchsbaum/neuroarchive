@@ -27,6 +27,16 @@ LNAFacade <- R6::R6Class(
     },
 
     #' @description
+    #' Replace the default transform parameters
+    #' @param params Named list of default transform parameters
+    #' @return The \code{LNAFacade} object, invisibly
+    set_defaults = function(params) {
+      stopifnot(is.list(params))
+      self$default_transform_params <- params
+      invisible(self)
+    },
+
+    #' @description
     #' Write data to an LNA file
     #' @param x Array or list of arrays
     #' @param file Output path
