@@ -13,7 +13,7 @@
         {
           "type": "object",
           "properties": {
-            "kind": {"type": "string", "enum": ["dct", "bspline", "dpss", "polynomial", "wavelet"], "default": "dct"},
+            "kind": {"type": "string", "enum": ["dct", "bspline", "dpss", "polynomial", "wavelet", "modwt", "modwt_sym8", "modwt_coif6", "modwt_db8"], "default": "dct"},
             "n_basis": {"type": "integer", "minimum": 0, "default": 20},
             "order": {"type": "integer", "minimum": 1, "default": 3},
             "knot_vector_path": {"type": "string", "default": ""},
@@ -21,7 +21,14 @@
             "time_bandwidth_product": {"type": "number", "default": 3.0},
             "n_tapers": {"type": "integer", "minimum": 1, "default": 1},
             "wavelet": {"type": "string", "default": "db4"},
-            "scope": {"type": "string", "enum": ["global", "voxelwise"], "default": "global"}
+            "scope": {"type": "string", "enum": ["global", "voxelwise"], "default": "global"},
+            "threshold_type": {"type": "string", "enum": ["none", "soft", "hard", "energy", "adaptive", "bayes_shrink", "sure", "fdr"], "default": "none"},
+            "threshold_value": {"type": "number", "minimum": 0},
+            "keep_energy": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.99},
+            "noise_estimator": {"type": "string", "enum": ["mad", "bayes", "std"], "default": "mad"},
+            "robust_lifting": {"type": "boolean", "default": false},
+            "fdr_alpha": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.05},
+            "levels": {"type": "integer", "minimum": 1, "maximum": 10}
           },
           "additionalProperties": false
         },

@@ -2,19 +2,19 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 label_components_6N_rcpp <- function(flat_mask, dims) {
-    .Call('_neuroarchive_label_components_6N_rcpp', PACKAGE = 'neuroarchive', flat_mask, dims)
+    .Call(`_neuroarchive_label_components_6N_rcpp`, flat_mask, dims)
 }
 
 poisson_disk_sample_component_rcpp <- function(component_vox_coords_0based, radius_vox_sq, component_seed) {
-    .Call('_neuroarchive_poisson_disk_sample_component_rcpp', PACKAGE = 'neuroarchive', component_vox_coords_0based, radius_vox_sq, component_seed)
+    .Call(`_neuroarchive_poisson_disk_sample_component_rcpp`, component_vox_coords_0based, radius_vox_sq, component_seed)
 }
 
 hrbf_atoms_rcpp <- function(mask_xyz_world, centres_xyz_world, sigma_vec_mm, kernel_type, value_threshold = 1e-8) {
-    .Call('_neuroarchive_hrbf_atoms_rcpp', PACKAGE = 'neuroarchive', mask_xyz_world, centres_xyz_world, sigma_vec_mm, kernel_type, value_threshold)
+    .Call(`_neuroarchive_hrbf_atoms_rcpp`, mask_xyz_world, centres_xyz_world, sigma_vec_mm, kernel_type, value_threshold)
 }
 
 omp_encode_rcpp <- function(signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L) {
-    .Call('_neuroarchive_omp_encode_rcpp', PACKAGE = 'neuroarchive', signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L)
+    .Call(`_neuroarchive_omp_encode_rcpp`, signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L)
 }
 
 #' Fast 3D Sobel Gradient Magnitude
@@ -34,12 +34,12 @@ omp_encode_rcpp <- function(signal_y, dict_D, residual_norm_sq_tol, max_active_a
 #' @return Numeric 3D array of gradient magnitudes
 #' @export
 sobel3d_magnitude_rcpp <- function(vol) {
-    .Call('_neuroarchive_sobel3d_magnitude_rcpp', PACKAGE = 'neuroarchive', vol)
+    .Call(`_neuroarchive_sobel3d_magnitude_rcpp`, vol)
 }
 
 #' Get OpenMP thread count
 #' @export
 get_openmp_threads <- function() {
-    .Call('_neuroarchive_get_openmp_threads', PACKAGE = 'neuroarchive')
+    .Call(`_neuroarchive_get_openmp_threads`)
 }
 
