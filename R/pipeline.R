@@ -217,8 +217,13 @@ lna_pipeline <- R6::R6Class(
             }
           }, character(1))
 
-          cat(sprintf("  %d: %s [%s]\n", i, type,
-                      paste(param_text, collapse = ", ")))
+          # Clip long parameter lists for readability
+          param_line <- paste(param_text, collapse = ", ")
+          if (nchar(param_line) > 50) {
+            param_line <- paste0(substr(param_line, 1, 47), style_subtle("..."))
+          }
+
+          cat(sprintf("  %d: %s [%s]\n", i, type, param_line))
         }
       }
 

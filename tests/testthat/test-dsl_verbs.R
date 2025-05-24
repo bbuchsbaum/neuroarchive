@@ -9,7 +9,7 @@ test_that("quant() merges defaults, options, and user args", {
 
   lna_options(quant = list(bits = 10L, method = "sd"))
   pipe <- quant(array(1:4), center = FALSE)
-  step <- pipe$steps[[1]]
+  step <- pipe$steps()[[1]]
 
   expect_equal(step$type, "quant")
   expect_equal(step$params$bits, 10L)
@@ -17,7 +17,7 @@ test_that("quant() merges defaults, options, and user args", {
   expect_false(step$params$center)
 
   pipe2 <- quant(array(1:4), bits = 6)
-  step2 <- pipe2$steps[[1]]
+  step2 <- pipe2$steps()[[1]]
   expect_equal(step2$params$bits, 6)
 })
 
@@ -27,7 +27,7 @@ test_that("pca() merges defaults, options, and user args", {
 
   lna_options(basis = list(k = 30L))
   pipe <- pca(matrix(rnorm(20), nrow = 4), center = FALSE)
-  step <- pipe$steps[[1]]
+  step <- pipe$steps()[[1]]
 
   expect_equal(step$type, "basis")
   expect_equal(step$params$k, 30L)
@@ -35,7 +35,7 @@ test_that("pca() merges defaults, options, and user args", {
   expect_false(step$params$center)
 
   pipe2 <- pca(matrix(rnorm(20), nrow = 4), k = 12)
-  step2 <- pipe2$steps[[1]]
+  step2 <- pipe2$steps()[[1]]
   expect_equal(step2$params$k, 12)
 })
 
@@ -57,7 +57,7 @@ test_that("quant() pipeline executes via lna_write", {
   lna_write(pipe, file = "foo.h5")
 
   expect_equal(captured$transforms, "quant")
-  expect_equal(captured$transform_params$quant$bits, 8)
+  expect_equal(captured$transform_params$step_01$bits, 8)
 })
 
 test_that("pca -> embed -> quant pipeline executes", {
@@ -80,9 +80,9 @@ test_that("pca -> embed -> quant pipeline executes", {
   lna_write(pipe, file = "bar.h5")
 
   expect_equal(captured$transforms, c("basis", "embed.pca", "quant"))
-  expect_equal(captured$transform_params$basis$k, 2)
-  expect_equal(captured$transform_params$quant$bits, 6)
-  expect_equal(captured$transform_params$`embed.pca`$basis_path, "/basis/00_basis/matrix")
+  expect_equal(captured$transform_params$step_01$k, 2)
+  expect_equal(captured$transform_params$step_03$bits, 6)
+  expect_equal(captured$transform_params$step_02$basis_path, "/basis/00_basis/matrix")
 })
 
 test_that("embed() without prior basis step errors", {

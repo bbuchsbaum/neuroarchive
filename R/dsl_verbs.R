@@ -15,6 +15,22 @@ as_pipeline <- function(x, run_ids = NULL, chunk_mb_suggestion = NULL) {
   pipe
 }
 
+#' Resolve parameters for pipeline steps
+#' 
+#' Internal helper to merge schema defaults, global options, and user parameters
+#' 
+#' @param transform_type Character string identifying the transform type
+#' @param user_params Named list of user-supplied parameters
+#' @return Merged parameter list
+#' @keywords internal
+resolve_params <- function(transform_type, user_params) {
+  pars <- default_params(transform_type)
+  opts <- lna_options(transform_type)[[transform_type]] %||% list()
+  pars <- utils::modifyList(pars, opts)
+  pars <- utils::modifyList(pars, user_params)
+  pars
+}
+
 #' Execute an LNA pipeline
 #'
 #' Translates an `lna_pipeline` object into a call to `write_lna()` and
@@ -41,7 +57,8 @@ lna_write <- function(pipeline_obj, file, ...,
 
   transform_types <- vapply(pipeline_obj$step_list, function(s) s$type, character(1))
   transform_params_list <- lapply(pipeline_obj$step_list, function(s) s$params)
-  names(transform_params_list) <- transform_types
+  # Name by position to avoid duplicates when same type appears multiple times
+  names(transform_params_list) <- sprintf("step_%02d", seq_along(transform_params_list))
 
   extra_args <- utils::modifyList(pipeline_obj$engine_opts %||% list(), list(...))
 
@@ -130,10 +147,7 @@ quant <- function(data_or_pipe, bits = NULL, ...) {
   user_params <- c(list(bits = bits), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  pars <- default_params("quant")
-  opts <- lna_options("quant")$quant %||% list()
-  pars <- utils::modifyList(pars, opts)
-  pars <- utils::modifyList(pars, user_params)
+  pars <- resolve_params("quant", user_params)
 
   step_spec <- list(type = "quant", params = pars)
   pipe$add_step(step_spec)
@@ -167,11 +181,9 @@ pca <- function(data_or_pipe, k = NULL, ...) {
   user_params <- c(list(k = k), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  pars <- default_params("basis")
-  opts <- lna_options("basis")$basis %||% list()
-  pars <- utils::modifyList(pars, opts)
-  pars <- utils::modifyList(pars, list(method = "pca"))
-  pars <- utils::modifyList(pars, user_params)
+  # Force PCA method and merge with user params
+  forced_params <- utils::modifyList(list(method = "pca"), user_params)
+  pars <- resolve_params("basis", forced_params)
 
   step_spec <- list(type = "basis", params = pars)
 
@@ -223,21 +235,46 @@ infer_embed_step <- function(prev_step, prev_index) {
 #'
 #' @param data_or_pipe Data object or `lna_pipeline`.
 #' @param basis_path Optional explicit HDF5 path to the basis matrix.
+#' @param basis_step Optional step index or type to use for basis inference
+#'   instead of the immediately preceding step.
 #' @param ... Additional parameters for the embed transform.
 #'
 #' @return An `lna_pipeline` object with the embed step appended.
 #' @export
-embed <- function(data_or_pipe, basis_path = NULL, ...) {
+embed <- function(data_or_pipe, basis_path = NULL, basis_step = NULL, ...) {
   pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
     data_or_pipe
   } else {
     as_pipeline(data_or_pipe)
   }
 
-  prev <- pipe$get_last_step_spec()
+  # Determine which step to use for basis inference
+  if (!is.null(basis_step)) {
+    prev <- pipe$get_step(basis_step)
+    if (is.null(prev)) {
+      abort_lna(
+        sprintf("basis_step '%s' not found in pipeline", basis_step),
+        .subclass = "lna_error_validation",
+        location = "embed:basis_step"
+      )
+    }
+    # Find the index of this step
+    step_idx <- if (is.numeric(basis_step)) {
+      as.integer(basis_step[1])
+    } else {
+      # Find last matching step by type
+      steps <- pipe$step_list
+      matches <- which(vapply(steps, function(s) identical(s$type, basis_step), logical(1)))
+      if (length(matches) == 0) NA_integer_ else matches[length(matches)]
+    }
+  } else {
+    prev <- pipe$get_last_step_spec()
+    step_idx <- length(pipe$step_list)
+  }
+  
   if (is.null(prev)) {
     abort_lna(
-      "embed() must follow a basis-producing step",
+      "embed() must follow or reference a basis-producing step",
       .subclass = "lna_error_validation",
       location = "embed:context"
     )
@@ -246,13 +283,9 @@ embed <- function(data_or_pipe, basis_path = NULL, ...) {
   user_params <- c(list(basis_path = basis_path), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  info <- infer_embed_step(prev, length(pipe$steps))
+  info <- infer_embed_step(prev, step_idx)
   embed_type <- info$type
   default_path <- info$basis_path
-
-  pars <- default_params(embed_type)
-  opts <- lna_options(embed_type)[[embed_type]] %||% list()
-  pars <- utils::modifyList(pars, opts)
 
   if (is.null(user_params$basis_path)) {
     if (!is.null(default_path)) {
@@ -266,7 +299,7 @@ embed <- function(data_or_pipe, basis_path = NULL, ...) {
     }
   }
 
-  pars <- utils::modifyList(pars, user_params)
+  pars <- resolve_params(embed_type, user_params)
 
   step_spec <- list(type = embed_type, params = pars)
   pipe$add_step(step_spec)
@@ -300,10 +333,7 @@ delta <- function(data_or_pipe, order = NULL, ...) {
   user_params <- c(list(order = order), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  pars <- default_params("delta")
-  opts <- lna_options("delta")$delta %||% list()
-  pars <- utils::modifyList(pars, opts)
-  pars <- utils::modifyList(pars, user_params)
+  pars <- resolve_params("delta", user_params)
 
   step_spec <- list(type = "delta", params = pars)
   pipe$add_step(step_spec)
@@ -336,10 +366,7 @@ temporal <- function(data_or_pipe, kind = NULL, ...) {
   user_params <- c(list(kind = kind), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  pars <- default_params("temporal")
-  opts <- lna_options("temporal")[["temporal"]] %||% list()
-  pars <- utils::modifyList(pars, opts)
-  pars <- utils::modifyList(pars, user_params)
+  pars <- resolve_params("temporal", user_params)
 
   step_spec <- list(type = "temporal", params = pars)
   pipe$add_step(step_spec)
@@ -373,12 +400,30 @@ hrbf <- function(data_or_pipe, levels = NULL, ...) {
   user_params <- c(list(levels = levels), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
 
-  pars <- default_params("spat.hrbf")
-  opts <- lna_options("spat.hrbf")[["spat.hrbf"]] %||% list()
-  pars <- utils::modifyList(pars, opts)
-  pars <- utils::modifyList(pars, user_params)
+  pars <- resolve_params("spat.hrbf", user_params)
 
   step_spec <- list(type = "spat.hrbf", params = pars)
   pipe$add_step(step_spec)
   pipe
 }
+
+# S3 methods for seamless verb chaining
+# These allow using verbs directly on data without explicit as_pipeline() calls
+
+#' @export
+quant.default <- quant
+
+#' @export
+pca.default <- pca
+
+#' @export
+embed.default <- embed
+
+#' @export
+delta.default <- delta
+
+#' @export
+temporal.default <- temporal
+
+#' @export
+hrbf.default <- hrbf

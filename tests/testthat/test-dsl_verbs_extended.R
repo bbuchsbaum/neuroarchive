@@ -12,7 +12,7 @@ test_that("delta() merges parameters and executes", {
   lna_options(delta = list(order = 2L))
   arr <- array(1, dim = c(1,1,1))
   pipe <- delta(arr, order = 3L)
-  step <- pipe$steps[[1]]
+  step <- pipe$steps()[[1]]
   expect_equal(step$type, "delta")
   expect_equal(step$params$order, 3L)
 
@@ -35,7 +35,7 @@ test_that("temporal() verb adds step and executes", {
   lna_options(temporal = list(kind = "dct"))
   arr <- array(1, dim = c(1,1,1))
   pipe <- temporal(arr, kind = "bspline")
-  step <- pipe$steps[[1]]
+  step <- pipe$steps()[[1]]
   expect_equal(step$type, "temporal")
   expect_equal(step$params$kind, "bspline")
 
@@ -57,7 +57,7 @@ test_that("hrbf() verb works", {
   clear_opts()
   arr <- array(1, dim = c(1,1,1))
   pipe <- hrbf(arr, levels = 3)
-  step <- pipe$steps[[1]]
+  step <- pipe$steps()[[1]]
   expect_equal(step$type, "spat.hrbf")
   expect_equal(step$params$levels, 3)
 })
@@ -67,7 +67,7 @@ test_that("embed() infers path after hrbf", {
   arr <- array(1, dim = c(1,1,1))
   pipe <- hrbf(arr)
   pipe <- embed(pipe)
-  step <- pipe$steps[[2]]
+  step <- pipe$steps()[[2]]
   expect_equal(step$type, "embed.hrbf_analytic")
   expect_true(grepl("/basis/00_spat.hrbf/matrix", step$params$basis_path))
 })
@@ -94,12 +94,12 @@ test_that("template registration and application with overrides", {
 
   pipe <- as_pipeline(array(1))
   pipe <- apply_template(pipe, "simple", bits = 6)
-  step <- pipe$steps[[1]]
+  step <- pipe$steps()[[1]]
   expect_equal(step$type, "quant")
   expect_equal(step$params$bits, 6)
 
   pipe2 <- as_pipeline(array(1))
   pipe2 <- apply_template(pipe2, "simple", quant.bits = 7)
-  step2 <- pipe2$steps[[1]]
+  step2 <- pipe2$steps()[[1]]
   expect_equal(step2$params$bits, 7)
 })
