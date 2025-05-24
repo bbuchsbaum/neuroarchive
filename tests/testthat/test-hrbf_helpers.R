@@ -154,6 +154,40 @@ test_that("compute_edge_map_neuroim2 structural_path", {
   expect_true(all(edge))
 })
 
+test_that("compute_edge_map_neuroim2 resamples structural with affine", {
+  mask <- array(TRUE, dim = c(2,2,2))
+  vol <- structure(list(arr = mask), class = "LogicalNeuroVol")
+  attr(vol, "space") <- FakeSpace(c(2,2,2), c(1,1,1))
+
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
+  h5 <- H5File$new(tmp, mode = "w")
+  h5[["grad"]] <- array(1, dim = c(3,3,3))
+  h5[["aff"]] <- diag(4)
+  h5$close_all()
+  h5 <- H5File$new(tmp, mode = "r")
+
+  assign("FakeSpace", FakeSpace, envir=.GlobalEnv)
+  assign("space.LogicalNeuroVol", space.LogicalNeuroVol, envir=.GlobalEnv)
+  assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
+  assign("resample", function(v, m, a) array(v[1], dim = dim(m$arr)), envir=.GlobalEnv)
+  withr::defer({
+    rm(FakeSpace, space.LogicalNeuroVol, spacing.FakeSpace,
+       as.array.LogicalNeuroVol, resample, envir=.GlobalEnv)
+    h5$close_all()
+  }, envir = parent.frame())
+
+  h <- DataHandle$new(h5 = h5, mask_info = list(mask = vol))
+  edge <- neuroarchive:::compute_edge_map_neuroim2(
+    "structural_path", h,
+    list(structural_path = "grad",
+         structural_to_epi_affine_path = "aff",
+         edge_thresh_k = 0)
+  )
+  expect_equal(dim(edge), dim(mask))
+})
+
 
 test_that("poisson_disk_sample_neuroim2 edge adaptation favors edges", {
   mask <- array(TRUE, dim = c(5,5,1))
