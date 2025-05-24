@@ -18,7 +18,7 @@
       "description": "Number of dyadic levels (0 to J)."
     },
     "num_extra_fine_levels": {
-      "type": "integer",
+        "type": "integer",
       "minimum": 0,
       "default": 0,
       "description": "Additional dyadic levels beyond 'levels'. Each extra level halves sigma and samples a denser set of centres."

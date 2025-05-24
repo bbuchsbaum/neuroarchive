@@ -24,6 +24,7 @@ without keeping the dense basis matrix:
 ```r
 write_lna(x, "analytic.h5", transforms = "spat.hrbf")
 ```
+Extra dyadic levels can be added with the `num_extra_fine_levels` parameter.
 
 Set `compute_atom_importance = TRUE` when writing to record per-atom
 importance metrics which can later be used to keep only the top

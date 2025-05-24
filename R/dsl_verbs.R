@@ -358,6 +358,7 @@ temporal <- function(data_or_pipe, kind = NULL, ...) {
 #'
 #' @param data_or_pipe Data object or `lna_pipeline`.
 #' @param levels Optional number of HRBF resolution levels.
+#' @param num_extra_fine_levels Number of additional finest dyadic levels. Default: 0.
 #' @param ... Additional parameters for the HRBF transform.
 #'
 #' @return An `lna_pipeline` object with the HRBF step appended.
