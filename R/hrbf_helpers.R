@@ -373,6 +373,11 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
 #'   \item Disabling edge-adaptive sampling via parameters
 #' }
 #'
+#' If `structural_to_epi_affine_path` is supplied and the structural
+#' gradient map's dimensions do not match the mask, the map is
+#' resampled using `neuroim2` with that affine. When dimensions differ
+#' and no affine is provided, a `lna_error_validation` is thrown.
+#'
 #' @param source_spec Character string specifying the source of the
 #'   gradient map ("self_mean" or "structural_path").
 #' @param data_handle A `DataHandle` providing access to the input data
@@ -464,9 +469,35 @@ compute_edge_map_neuroim2 <- function(source_spec, data_handle,
     grad_map <- h5_read(root, p$structural_path)
     if (!all(dim(grad_map) == dims)) {
       if (!is.null(p$structural_to_epi_affine_path)) {
-        abort_lna("Affine resampling not implemented",
-                  .subclass = "lna_error_unimplemented",
-                  location = "compute_edge_map_neuroim2")
+        affine <- h5_read(root, p$structural_to_epi_affine_path)
+        if (!is.matrix(affine) || !all(dim(affine) == c(4L, 4L))) {
+          abort_lna("Invalid structural_to_epi affine",
+                    .subclass = "lna_error_validation",
+                    location = "compute_edge_map_neuroim2")
+        }
+
+        safe_call <- function(fn_name, ...) {
+          if (exists(fn_name, envir = .GlobalEnv, mode = "function")) {
+            get(fn_name, envir = .GlobalEnv)(...)
+          } else if (exists(fn_name,
+                            envir = asNamespace("neuroim2"), mode = "function")) {
+            get(fn_name, envir = asNamespace("neuroim2"))(...)
+          } else {
+            stop(sprintf("Function %s not found", fn_name), call. = FALSE)
+          }
+        }
+
+        resampled <- safe_call("resample", grad_map, mask_nv, affine)
+        grad_map <- if (inherits(resampled, "NeuroObj")) {
+          safe_call("as.array", resampled)
+        } else {
+          resampled
+        }
+        if (!all(dim(grad_map) == dims)) {
+          abort_lna("Resampled gradient map dims mismatch mask",
+                    .subclass = "lna_error_validation",
+                    location = "compute_edge_map_neuroim2")
+        }
       } else {
         abort_lna("Gradient map dims mismatch mask",
                   .subclass = "lna_error_validation",
