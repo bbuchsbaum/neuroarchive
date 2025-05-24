@@ -247,15 +247,7 @@ basis_time <- function(n_timepoints,
     )
   }
   
-  # Create parameter list for internal function
-  params <- list(
-    type = basis_type,
-    n_components = as.integer(n_components),
-    ...
-  )
-  
-  # Call internal temporal basis generation
-  # Use the existing temporal_basis S3 methods with correct signature
+  # Call internal temporal basis generation using the existing S3 methods
   neuroarchive::temporal_basis(basis_type, n_timepoints, n_components, ...)
 }
 
