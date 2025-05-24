@@ -30,6 +30,11 @@ Set `compute_atom_importance = TRUE` when writing to record per-atom
 importance metrics which can later be used to keep only the top
 contributing atoms during reconstruction.
 
+From version 0.1.0 the parameters also include
+`num_extra_fine_levels` which adds extra dyadic levels beyond
+`levels`.  Each additional level halves `sigma` again and samples a
+denser set of centres for capturing fine details.
+
 ## Project then Embed
 
 `spat.hrbf_project` provides a lightweight way to project data onto an

@@ -251,6 +251,10 @@ generate_hrbf_atom <- function(mask_coords_world, mask_linear_indices,
 #' @param h5_root Optional H5 group if centres are stored in the file.
 #' @return Sparse matrix with one row per HRBF atom and columns matching
 #'   mask voxels.
+#'
+#' The parameter list may include `num_extra_fine_levels` to generate
+#' additional dyadic levels beyond `levels`. Each extra level halves
+#' `sigma` and samples a denser set of centres.
 #' @keywords internal
 hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
                                    mask_world_coords = NULL, mask_arr = NULL,
