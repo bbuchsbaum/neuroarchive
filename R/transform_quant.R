@@ -291,8 +291,6 @@ forward_step.quant <- function(type, desc, handle) {
   }
   params_json <- as.character(jsonlite::toJSON(opts, auto_unbox = TRUE))
 
-  # message(sprintf("[[DEBUG forward_step.quant]] Structure of 'desc' before add_descriptor:"))
-  # message(paste(utils::capture.output(str(desc)), collapse = "\n"))
 
   # Use the existing desc object which has inputs/outputs set by run_transform_loop
   desc$type <- "quant"
@@ -387,14 +385,8 @@ invert_step.quant <- function(type, desc, handle) {
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset
 
-  # Subsetting logic from original, ensure it's applied before stashing if needed
-  # For now, assuming full data is processed by quant's inverse for simplicity of this debug
-  # subset <- handle$subset ... x <- subset(x) ...
-
-  # This is desc_quant_from_json
-  # message(sprintf("[[DEBUG invert_step.quant]] Value of desc$inputs[[1]]: %s", ifelse(is.null(desc$inputs) || length(desc$inputs) == 0, "NULL_OR_EMPTY", desc$inputs[[1]]))) 
+  # Subsetting logic from original could be applied here if needed
   input_key <- if (!is.null(desc$inputs) && length(desc$inputs) > 0) desc$inputs[[1]] else "input"
-  # message(sprintf("[[DEBUG invert_step.quant]] Chosen input_key for stashing output: %s", input_key))
   
   handle <- handle$update_stash(keys = character(), new_values = setNames(list(x), input_key))
   return(handle)
