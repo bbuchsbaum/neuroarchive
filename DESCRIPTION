@@ -26,7 +26,8 @@ Imports:
     jsonvalidate,
     withr,
     methods,
-    wavelets
+    wavelets,
+    matrixStats
 Suggests:
     sparsepca,
     irlba,

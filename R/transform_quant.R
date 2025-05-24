@@ -478,10 +478,10 @@ invert_step.quant <- function(type, desc, handle) {
   time <- dims[4]
   mat <- matrix(as.numeric(x), vox, time)
 
-  m <- rowMeans(mat)
-  s <- apply(mat, 1, stats::sd)
-  rng_lo <- apply(mat, 1, min)
-  rng_hi <- apply(mat, 1, max)
+  m <- matrixStats::rowMeans2(mat)
+  s <- matrixStats::rowSds(mat)
+  rng_lo <- matrixStats::rowMins(mat)
+  rng_hi <- matrixStats::rowMaxs(mat)
 
   if (center) {
     max_abs <- if (identical(method, "sd")) 3 * s else pmax(abs(rng_hi - m), abs(rng_lo - m))
