@@ -22,6 +22,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// omp_encode_rcpp
+Rcpp::List omp_encode_rcpp(const Eigen::Map<Eigen::VectorXd> signal_y, const Eigen::MappedSparseMatrix<double> dict_D, double residual_norm_sq_tol, int max_active_atoms_L);
+RcppExport SEXP _neuroarchive_omp_encode_rcpp(SEXP signal_ySEXP, SEXP dict_DSEXP, SEXP residual_norm_sq_tolSEXP, SEXP max_active_atoms_LSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type signal_y(signal_ySEXP);
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double> >::type dict_D(dict_DSEXP);
+    Rcpp::traits::input_parameter< double >::type residual_norm_sq_tol(residual_norm_sq_tolSEXP);
+    Rcpp::traits::input_parameter< int >::type max_active_atoms_L(max_active_atoms_LSEXP);
+    rcpp_result_gen = Rcpp::wrap(omp_encode_rcpp(signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L));
+    return rcpp_result_gen;
+END_RCPP
+}
 // hrbf_atoms_rcpp
 Eigen::SparseMatrix<float> hrbf_atoms_rcpp(const Eigen::Map<Eigen::MatrixXf> mask_xyz_world, const Eigen::Map<Eigen::MatrixXf> centres_xyz_world, const Eigen::Map<Eigen::VectorXf> sigma_vec_mm, std::string kernel_type, double value_threshold);
 RcppExport SEXP _neuroarchive_hrbf_atoms_rcpp(SEXP mask_xyz_worldSEXP, SEXP centres_xyz_worldSEXP, SEXP sigma_vec_mmSEXP, SEXP kernel_typeSEXP, SEXP value_thresholdSEXP) {
@@ -76,6 +90,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_neuroarchive_label_components_6N_rcpp", (DL_FUNC) &_neuroarchive_label_components_6N_rcpp, 2},
     {"_neuroarchive_poisson_disk_sample_component_rcpp", (DL_FUNC) &_neuroarchive_poisson_disk_sample_component_rcpp, 3},
     {"_neuroarchive_hrbf_atoms_rcpp", (DL_FUNC) &_neuroarchive_hrbf_atoms_rcpp, 5},
+    {"_neuroarchive_omp_encode_rcpp", (DL_FUNC) &_neuroarchive_omp_encode_rcpp, 4},
     {"_neuroarchive_sobel3d_magnitude_rcpp", (DL_FUNC) &_neuroarchive_sobel3d_magnitude_rcpp, 1},
     {"_neuroarchive_get_openmp_threads", (DL_FUNC) &_neuroarchive_get_openmp_threads, 0},
     {NULL, NULL, 0}
