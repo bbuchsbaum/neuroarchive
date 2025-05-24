@@ -9,6 +9,10 @@ poisson_disk_sample_component_rcpp <- function(component_vox_coords_0based, radi
     .Call('_neuroarchive_poisson_disk_sample_component_rcpp', PACKAGE = 'neuroarchive', component_vox_coords_0based, radius_vox_sq, component_seed)
 }
 
+hrbf_atoms_rcpp <- function(mask_xyz_world, centres_xyz_world, sigma_vec_mm, kernel_type, value_threshold = 1e-8) {
+    .Call('_neuroarchive_hrbf_atoms_rcpp', PACKAGE = 'neuroarchive', mask_xyz_world, centres_xyz_world, sigma_vec_mm, kernel_type, value_threshold)
+}
+
 #' Fast 3D Sobel Gradient Magnitude
 #'
 #' Computes 3D Sobel gradient magnitude with OpenMP acceleration.
