@@ -176,7 +176,8 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
     q <- .quantize_weights(enc$coeff, bits = omp_quant_bits)
     codes[[j]] <- list(indices = as.integer(enc$idx),
                        q = q$q,
-                       scale = q$scale)
+                       scale = q$scale,
+                       max_iter_reached = isTRUE(enc$max_iter_reached))
   }
 
   plan <- handle$plan
@@ -299,8 +300,7 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   }
 }
 
-.omp_encode <- function(y, D, tol = 1e-3, max_nonzero = 32L) {
-  # Keep D sparse for memory efficiency - use Matrix operations
+.omp_encode_R <- function(y, D, tol = 1e-3, max_nonzero = 32L) {
   r <- y
   idx <- integer(); coeff <- numeric()
   while (sum(r^2) > tol^2 && length(idx) < max_nonzero) {
@@ -308,11 +308,36 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
     j <- which.max(abs(corr))
     idx <- unique(c(idx, j))
     D_sub <- D[, idx, drop = FALSE]
-    # Use Matrix operations for sparse-aware solving
     coeff <- as.numeric(Matrix::solve(Matrix::crossprod(D_sub), Matrix::crossprod(D_sub, y)))
     r <- y - D_sub %*% coeff
   }
-  list(idx = idx, coeff = coeff)
+  list(idx = idx, coeff = coeff, max_iter_reached = length(idx) >= max_nonzero && sum(r^2) > tol^2)
+}
+
+.omp_encode <- function(y, D, tol = 1e-3, max_nonzero = 32L) {
+  use_rcpp <- isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
+    exists("omp_encode_rcpp")
+
+  if (use_rcpp) {
+    res <- tryCatch(
+      omp_encode_rcpp(as.numeric(y), D, tol^2, as.integer(max_nonzero)),
+      error = function(e) NULL
+    )
+    if (!is.null(res)) {
+      if (isTRUE(res$max_iter_reached)) {
+        warning("OMP residual tolerance not reached before hitting sparsity limit", call. = FALSE)
+      }
+      return(list(idx = as.integer(res$indices_0based) + 1L,
+                  coeff = as.numeric(res$coefficients),
+                  max_iter_reached = isTRUE(res$max_iter_reached)))
+    }
+  }
+
+  if (!exists(".omp_encode_R", inherits = FALSE)) {
+    stop("omp_encode_rcpp unavailable and R fallback missing", call. = FALSE)
+  }
+
+  .omp_encode_R(y, D, tol = tol, max_nonzero = max_nonzero)
 }
 
 .quantize_weights <- function(w, bits = 5L) {
