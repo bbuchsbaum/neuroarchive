@@ -72,6 +72,8 @@ forward_step.quant <- function(type, desc, handle) {
     )
   }
 
+  numeric_input <- as.numeric(input_data)
+
   if (identical(scope, "voxel")) {
     if (length(dim(input_data)) < 4) {
       warning("scale_scope='voxel' requires 4D data; falling back to global")
@@ -82,7 +84,7 @@ forward_step.quant <- function(type, desc, handle) {
   if (identical(scope, "voxel")) {
     params <- .quantize_voxel(input_data, bits, method, center)
   } else {
-    params <- .quantize_global(as.numeric(input_data), bits, method, center)
+    params <- .quantize_global(numeric_input, bits, method, center)
     params$q <- array(params$q, dim = dim(input_data))
   }
 
@@ -210,12 +212,12 @@ forward_step.quant <- function(type, desc, handle) {
     offset <- NULL
   }
 
-  input_range <- range(as.numeric(input_data))
+  input_range <- range(numeric_input)
   qs <- handle$meta$quant_stats
   if (!identical(scope, "voxel")) {
-    var_x <- stats::var(as.numeric(input_data))
+    var_x <- stats::var(numeric_input)
     snr_db <- 10 * log10(var_x / ((qs$scale_val)^2 / 12))
-    hist_info <- hist(as.numeric(quantized_vals), breaks = 64, plot = FALSE)
+    counts <- tabulate(quantized_vals + 1L, nbins = 2^bits)
     quant_report <- list(
       report_version = "1.0",
       clipped_samples_count = qs$n_clipped_total,
@@ -225,8 +227,8 @@ forward_step.quant <- function(type, desc, handle) {
       effective_offset = qs$offset_val,
       estimated_snr_db = snr_db,
       histogram_quantized_values = list(
-        breaks = hist_info$breaks,
-        counts = unname(hist_info$counts)
+        breaks = seq(-0.5, 2^bits - 0.5, by = 1),
+        counts = unname(counts)
       )
     )
   } else {
@@ -235,7 +237,7 @@ forward_step.quant <- function(type, desc, handle) {
     # Sample only a fraction of voxels to estimate SNR quickly when the
     # volume is large. This keeps memory usage and runtime manageable.
     sample_n <- max(1L, floor(vox * snr_sample_frac))
-    mat <- matrix(as.numeric(input_data), vox, dims[4])
+    mat <- matrix(numeric_input, vox, dims[4])
     idx <- sample(vox, sample_n)
     var_x <- stats::var(as.numeric(mat[idx, , drop = FALSE]))
     snr_db <- 10 * log10(var_x / ((qs$scale_mean)^2 / 12))
