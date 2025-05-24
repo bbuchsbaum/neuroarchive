@@ -22,6 +22,9 @@ Invisibly returns a list of current option values
 \description{
 Enable or disable Rcpp acceleration for neuroarchive functions.
 When disabled, pure R implementations are used as fallbacks.
+The HRBF helpers consult the option \code{lna.hrbf.use_rcpp_helpers}
+(default \code{TRUE}).  You can also adjust this option directly or via
+\code{rcpp_control()}.
 }
 \examples{
 \donttest{
