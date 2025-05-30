@@ -124,9 +124,8 @@ check_mask_against_input <- function(mask_array, active_voxels, x) {
 run_transform_loop <- function(handle, transforms, params) {
   if (length(transforms) == 0) return(handle)
 
-  progress_enabled <- is_progress_globally_enabled()
-  step_loop <- function(h) {
-    p <- if (progress_enabled) progressr::progressor(steps = length(transforms)) else NULL
+  step_loop <- function(p) {
+    h <- handle
     current_key <- "input"
     for (type in transforms) {
       if (!is.null(p)) p(message = type)
@@ -143,11 +142,8 @@ run_transform_loop <- function(handle, transforms, params) {
     }
     h
   }
-  if (progress_enabled) {
-    progressr::with_progress(step_loop(handle))
-  } else {
-    step_loop(handle)
-  }
+
+  with_progress_loop(length(transforms), step_loop)
 }
 
 add_initial_data <- function(handle) {
