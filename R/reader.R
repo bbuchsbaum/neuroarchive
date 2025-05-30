@@ -160,10 +160,7 @@ lna_reader <- R6::R6Class("lna_reader",
       )
       tf_group <- h5[["transforms"]]
       transforms <- discover_transforms(tf_group)
-      allow_plugins <- self$allow_plugins
-      if (identical(allow_plugins, "prompt") && !rlang::is_interactive()) {
-        allow_plugins <- "installed"
-      }
+      allow_plugins <- normalize_allow_plugins(self$allow_plugins)
       if (nrow(transforms) > 0) {
         missing_methods <- transforms$type[
           vapply(
