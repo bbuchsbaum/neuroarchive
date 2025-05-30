@@ -80,3 +80,99 @@ morton_indices_to_hash <- function(ordered_indices_vector) {
                              serialize = TRUE)
   paste0("sha1:", hash_val)
 }
+
+#' Precompute scaling factors for Haar lifting
+#'
+#' Returns a list with one element per decomposition level. Each element
+#' contains numeric vectors `sqrt_nvalid` and `sqrt_nvalid_div_8`
+#' representing the $\sqrt{n_{valid}}$ and $\sqrt{n_{valid}/8}$ factors
+#' for all conceptual $2 \times 2 \times 2$ blocks in Morton order.
+#' @keywords internal
+precompute_haar_scalings <- function(mask_3d_array, levels) {
+  if (!is.array(mask_3d_array) || length(dim(mask_3d_array)) != 3L) {
+    abort_lna("mask_3d_array must be a 3D array",
+              .subclass = "lna_error_validation",
+              location = "precompute_haar_scalings:mask")
+  }
+
+  mask_logical <- as.logical(mask_3d_array)
+  scalings <- vector("list", levels)
+  current <- mask_logical
+  for (lvl in seq_len(levels)) {
+    dims <- dim(current)
+    x_seq <- seq(1L, dims[1], by = 2L)
+    y_seq <- seq(1L, dims[2], by = 2L)
+    z_seq <- seq(1L, dims[3], by = 2L)
+    counts <- integer(length(x_seq) * length(y_seq) * length(z_seq))
+    idx <- 1L
+    for (x in x_seq) {
+      for (y in y_seq) {
+        for (z in z_seq) {
+          block <- current[
+            x:min(x + 1L, dims[1]),
+            y:min(y + 1L, dims[2]),
+            z:min(z + 1L, dims[3])
+          ]
+          counts[idx] <- sum(block)
+          idx <- idx + 1L
+        }
+      }
+    }
+    scalings[[lvl]] <- list(
+      sqrt_nvalid = sqrt(as.numeric(counts)),
+      sqrt_nvalid_div_8 = sqrt(as.numeric(counts) / 8)
+    )
+    current <- array(counts > 0,
+                     dim = c(length(x_seq), length(y_seq), length(z_seq)))
+  }
+  scalings
+}
+
+#' Perform forward Haar lifting analysis
+#'
+#' Orchestrates the recursive lifting for a full Time x MaskedVoxels
+#' matrix. Columns of `data_matrix_T_x_Nmask` are reordered to Morton
+#' order and each time point processed with `forward_lift_rcpp`.
+#' @keywords internal
+perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
+                                       levels, z_order_seed = 42L) {
+  if (!is.matrix(data_matrix_T_x_Nmask)) {
+    abort_lna("data_matrix_T_x_Nmask must be a matrix",
+              .subclass = "lna_error_validation",
+              location = "perform_haar_lift_analysis:data")
+  }
+
+  morton_idx <- get_morton_ordered_indices(mask_3d_array, z_order_seed)
+  mask_linear <- which(as.logical(mask_3d_array))
+  perm <- match(morton_idx, mask_linear)
+  data_morton <- data_matrix_T_x_Nmask[, perm, drop = FALSE]
+
+  full_order <- get_morton_ordered_indices(array(TRUE, dim(mask_3d_array)),
+                                           z_order_seed)
+  mask_flat <- as.logical(mask_3d_array)
+  mask_flat_morton <- mask_flat[full_order]
+
+  scalings <- precompute_haar_scalings(mask_3d_array, levels)
+
+  n_time <- nrow(data_morton)
+  n_vox <- length(morton_idx)
+  root_coeffs <- matrix(0, nrow = n_time, ncol = 1)
+  detail_coeffs <- lapply(seq_len(levels),
+                          function(i) matrix(0, nrow = n_time, ncol = n_vox))
+
+  for (tt in seq_len(n_time)) {
+    res <- forward_lift_rcpp(
+      data_morton[tt, ],
+      mask_flat_morton,
+      dim(mask_3d_array),
+      levels,
+      scalings
+    )
+    root_coeffs[tt, 1] <- res$root_coeff
+    for (lvl in seq_len(levels)) {
+      detail_coeffs[[lvl]][tt, ] <- res$detail_coeffs_by_level[[lvl]]
+    }
+  }
+
+  list(root = root_coeffs, detail = detail_coeffs)
+}
