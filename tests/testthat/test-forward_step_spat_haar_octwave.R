@@ -51,3 +51,38 @@ test_that("forward_step.spat.haar_octwave basic IO", {
   expect_equal(dim(stash_mat), c(2,9))
 })
 
+test_that("forward_step.spat.haar_octwave sparsifies details", {
+  mask <- array(TRUE, dim = c(2,2,2))
+  X <- array(1:16, dim = c(2,2,2,2))
+  plan <- Plan$new()
+  h <- DataHandle$new(initial_stash = list(input = X),
+                      plan = plan,
+                      mask_info = list(mask = mask, active_voxels = 8),
+                      run_ids = "run-01", current_run_id = "run-01")
+  desc <- list(type = "spat.haar_octwave",
+               params = list(levels = 1,
+                              detail_threshold_type = "absolute",
+                              detail_threshold_value = 0.5))
+
+  detail_in <- matrix(c(0.1, 0.6, -0.2, 1.0, 0.4, -0.7, 2.0, 0.3,
+                         0.4, -0.8, 0.1, 1.2, -0.1, 0.2, 2.5, -0.4),
+                       nrow = 2, byrow = TRUE)
+
+  testthat::local_mocked_bindings(
+    perform_haar_lift_analysis = function(data_matrix_T_x_Nmask, mask_3d_array,
+                                          levels, z_order_seed = 42L) {
+      list(
+        root = matrix(1, nrow = 2, ncol = 1),
+        detail = list(detail_in)
+      )
+    },
+    .env = asNamespace("neuroarchive")
+  )
+
+  out <- neuroarchive:::forward_step.spat.haar_octwave("spat.haar_octwave", desc, h)
+
+  dmat <- out$plan$payloads[["/wavelet/level_0/detail_coefficients"]]
+  expect_true(all(abs(dmat[abs(detail_in) < 0.5]) == 0))
+  expect_true(all(dmat[abs(detail_in) >= 0.5] == detail_in[abs(detail_in) >= 0.5]))
+})
+

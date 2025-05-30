@@ -33,6 +33,29 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
   coeffs <- perform_haar_lift_analysis(t(X_masked_vox_time), mask_arr,
                                        levels, z_seed)
 
+  # Optional sparsification of detail coefficients -----------------------------
+  thresh_type <- p$detail_threshold_type %||% "none"
+  if (!identical(thresh_type, "none")) {
+    thresh_val <- as.numeric(p$detail_threshold_value %||% 0)
+    if (is.na(thresh_val)) thresh_val <- 0
+    if (identical(thresh_type, "absolute")) {
+      actual_threshold <- thresh_val
+    } else if (identical(thresh_type, "relative_to_root_std")) {
+      base_sd <- stats::sd(c(as.vector(coeffs$root),
+                             as.vector(coeffs$detail[[levels]])))
+      actual_threshold <- thresh_val * base_sd
+    } else {
+      actual_threshold <- 0
+    }
+    if (actual_threshold > 0) {
+      for (lv in seq_len(levels)) {
+        m <- coeffs$detail[[lv]]
+        m[abs(m) < actual_threshold] <- 0
+        coeffs$detail[[lv]] <- m
+      }
+    }
+  }
+
   # Metadata -------------------------------------------------------------
   vox_coords <- which(as.logical(mask_arr), arr.ind = TRUE)
   bbox <- c(min(vox_coords[, 1]) - 1L, max(vox_coords[, 1]) - 1L,
