@@ -202,7 +202,25 @@ invert_step.spat.haar_octwave <- function(type, desc, handle) {
 
   h5root <- handle$h5[["/"]]
   root_coeffs <- h5_read(h5root, root_path)
-  detail_coeffs <- lapply(detail_paths, function(pp) h5_read(h5root, pp))
+
+  roi_mask <- handle$subset$roi_mask %||% handle$subset$roi
+  valid_path <- p$valid_finest_blocks_path
+  if (!is.null(roi_mask) && !is.null(valid_path) && h5root$exists(valid_path)) {
+    indices_by_level <- get_roi_detail_indices(roi_mask, mask_arr,
+                                               p$levels %||% length(detail_paths))
+    detail_coeffs <- vector("list", length(detail_paths))
+    for (lv in seq_along(detail_paths)) {
+      idx <- indices_by_level[[lv]]
+      if (length(idx) > 0) {
+        detail_coeffs[[lv]] <- h5_read_subset(h5root, detail_paths[[lv]],
+                                              list(NULL, idx))
+      } else {
+        detail_coeffs[[lv]] <- matrix(nrow = nrow(root_coeffs), ncol = 0)
+      }
+    }
+  } else {
+    detail_coeffs <- lapply(detail_paths, function(pp) h5_read(h5root, pp))
+  }
 
   subset <- handle$subset
   time_idx <- subset$time_idx %||% subset$time
