@@ -137,6 +137,11 @@ get_morton_ordered_indices <- function(mask_3d_array, z_order_seed = 42L) {
 #' @return Character scalar ``"sha1:<hash>"``.
 #' @keywords internal
 morton_indices_to_hash <- function(ordered_indices_vector) {
+  use_rcpp <- isTRUE(getOption("lna.hwt.use_rcpp", TRUE)) &&
+    exists("morton_indices_to_hash_rcpp")
+  if (use_rcpp) {
+    return(morton_indices_to_hash_rcpp(as.integer(ordered_indices_vector)))
+  }
   hash_val <- digest::digest(ordered_indices_vector, algo = "sha1",
                              serialize = TRUE)
   paste0("sha1:", hash_val)

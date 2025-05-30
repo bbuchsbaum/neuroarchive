@@ -15,6 +15,7 @@ Imports:
     Matrix,
     Rcpp,
     RcppEigen,
+    openssl,
     rlang,
     R6,
     tibble,
@@ -35,5 +36,5 @@ Suggests:
     multitaper
 Config/testthat/edition: 3
 RoxygenNote: 7.3.2.9000
-LinkingTo: Rcpp, RcppEigen
+LinkingTo: Rcpp, RcppEigen, openssl
 SystemRequirements: C++14

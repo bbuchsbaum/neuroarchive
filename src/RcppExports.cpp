@@ -86,6 +86,18 @@ BEGIN_RCPP
 END_RCPP
 }
 
+// morton_indices_to_hash_rcpp
+std::string morton_indices_to_hash_rcpp(IntegerVector voxelIdx);
+RcppExport SEXP _neuroarchive_morton_indices_to_hash_rcpp(SEXP voxelIdxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type voxelIdx(voxelIdxSEXP);
+    rcpp_result_gen = Rcpp::wrap(morton_indices_to_hash_rcpp(voxelIdx));
+    return rcpp_result_gen;
+END_RCPP
+}
+
 // hrbf_atoms_rcpp
 Eigen::SparseMatrix<float> hrbf_atoms_rcpp(const Eigen::Map<Eigen::MatrixXf> mask_xyz_world, const Eigen::Map<Eigen::MatrixXf> centres_xyz_world, const Eigen::Map<Eigen::VectorXf> sigma_vec_mm, std::string kernel_type, double value_threshold);
 RcppExport SEXP _neuroarchive_hrbf_atoms_rcpp(SEXP mask_xyz_worldSEXP, SEXP centres_xyz_worldSEXP, SEXP sigma_vec_mmSEXP, SEXP kernel_typeSEXP, SEXP value_thresholdSEXP) {
@@ -146,6 +158,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_neuroarchive_quantize_voxel_block_rcpp", (DL_FUNC) &_neuroarchive_quantize_voxel_block_rcpp, 4},
     {"_neuroarchive_forward_lift_rcpp", (DL_FUNC) &_neuroarchive_forward_lift_rcpp, 5},
     {"_neuroarchive_inverse_lift_rcpp", (DL_FUNC) &_neuroarchive_inverse_lift_rcpp, 6},
+    {"_neuroarchive_morton_indices_to_hash_rcpp", (DL_FUNC) &_neuroarchive_morton_indices_to_hash_rcpp, 1},
     {NULL, NULL, 0}
 };
 
