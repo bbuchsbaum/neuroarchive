@@ -51,6 +51,7 @@ BEGIN_RCPP
 END_RCPP
 }
 
+
 // forward_lift_rcpp
 List forward_lift_rcpp(NumericVector data_masked_morton_ordered, LogicalVector mask_flat_morton_ordered, IntegerVector mask_dims, int levels, List scaling_factors_per_level);
 RcppExport SEXP _neuroarchive_forward_lift_rcpp(SEXP data_masked_morton_orderedSEXP, SEXP mask_flat_morton_orderedSEXP, SEXP mask_dimsSEXP, SEXP levelsSEXP, SEXP scaling_factors_per_levelSEXP) {
@@ -66,6 +67,7 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+
 
 // inverse_lift_rcpp
 NumericVector inverse_lift_rcpp(double root_coeff, List detail_coeffs_by_level, LogicalVector mask_flat_morton_ordered, IntegerVector mask_dims, int levels, List scaling_factors_per_level);
@@ -83,6 +85,7 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+
 // hrbf_atoms_rcpp
 Eigen::SparseMatrix<float> hrbf_atoms_rcpp(const Eigen::Map<Eigen::MatrixXf> mask_xyz_world, const Eigen::Map<Eigen::MatrixXf> centres_xyz_world, const Eigen::Map<Eigen::VectorXf> sigma_vec_mm, std::string kernel_type, double value_threshold);
 RcppExport SEXP _neuroarchive_hrbf_atoms_rcpp(SEXP mask_xyz_worldSEXP, SEXP centres_xyz_worldSEXP, SEXP sigma_vec_mmSEXP, SEXP kernel_typeSEXP, SEXP value_thresholdSEXP) {
