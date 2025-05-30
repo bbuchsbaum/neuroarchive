@@ -31,6 +31,30 @@ resolve_params <- function(transform_type, user_params) {
   pars
 }
 
+#' Append a transform step to a pipeline
+#'
+#' Internal helper used by DSL verbs to create or coerce a pipeline,
+#' resolve parameters and add the step.
+#'
+#' @param data_or_pipe Data object or `lna_pipeline`.
+#' @param type Transform type string.
+#' @param param_list Named list of user parameters.
+#' @return An updated `lna_pipeline` object.
+#' @keywords internal
+append_lna_step <- function(data_or_pipe, type, param_list = list()) {
+  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
+    data_or_pipe
+  } else {
+    as_pipeline(data_or_pipe)
+  }
+
+  param_list <- param_list[!vapply(param_list, is.null, logical(1))]
+  pars <- resolve_params(type, param_list)
+  step_spec <- list(type = type, params = pars)
+  pipe$add_step(step_spec)
+  pipe
+}
+
 #' Execute an LNA pipeline
 #'
 #' Translates an `lna_pipeline` object into a call to `write_lna()` and
@@ -138,20 +162,11 @@ lna_write <- function(pipeline_obj, file, ...,
 #'
 #' @export
 quant <- function(data_or_pipe, bits = NULL, ...) {
-  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
-    data_or_pipe
-  } else {
-    as_pipeline(data_or_pipe)
-  }
-
-  user_params <- c(list(bits = bits), list(...))
-  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
-
-  pars <- resolve_params("quant", user_params)
-
-  step_spec <- list(type = "quant", params = pars)
-  pipe$add_step(step_spec)
-  pipe
+  append_lna_step(
+    data_or_pipe,
+    "quant",
+    c(list(bits = bits), list(...))
+  )
 }
 
 
@@ -172,23 +187,10 @@ quant <- function(data_or_pipe, bits = NULL, ...) {
 #' @return An `lna_pipeline` object with the PCA step appended.
 #' @export
 pca <- function(data_or_pipe, k = NULL, ...) {
-  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
-    data_or_pipe
-  } else {
-    as_pipeline(data_or_pipe)
-  }
-
   user_params <- c(list(k = k), list(...))
   user_params <- user_params[!vapply(user_params, is.null, logical(1))]
-
-  # Force PCA method and merge with user params
   forced_params <- utils::modifyList(list(method = "pca"), user_params)
-  pars <- resolve_params("basis", forced_params)
-
-  step_spec <- list(type = "basis", params = pars)
-
-  pipe$add_step(step_spec)
-  pipe
+  append_lna_step(data_or_pipe, "basis", forced_params)
 }
 
 
@@ -299,11 +301,7 @@ embed <- function(data_or_pipe, basis_path = NULL, basis_step = NULL, ...) {
     }
   }
 
-  pars <- resolve_params(embed_type, user_params)
-
-  step_spec <- list(type = embed_type, params = pars)
-  pipe$add_step(step_spec)
-  pipe
+  append_lna_step(pipe, embed_type, user_params)
 }
 
 ##' Finite Difference (Delta) DSL verb
@@ -323,21 +321,11 @@ embed <- function(data_or_pipe, basis_path = NULL, basis_step = NULL, ...) {
 #' @return An `lna_pipeline` object with the delta step appended.
 #' @export
 delta <- function(data_or_pipe, order = NULL, ...) {
-
-  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
-    data_or_pipe
-  } else {
-    as_pipeline(data_or_pipe)
-  }
-
-  user_params <- c(list(order = order), list(...))
-  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
-
-  pars <- resolve_params("delta", user_params)
-
-  step_spec <- list(type = "delta", params = pars)
-  pipe$add_step(step_spec)
-  pipe
+  append_lna_step(
+    data_or_pipe,
+    "delta",
+    c(list(order = order), list(...))
+  )
 }
 
 ##' Temporal Basis Projection DSL verb
@@ -357,20 +345,11 @@ delta <- function(data_or_pipe, order = NULL, ...) {
 #' @return An `lna_pipeline` object with the temporal step appended.
 #' @export
 temporal <- function(data_or_pipe, kind = NULL, ...) {
-  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
-    data_or_pipe
-  } else {
-    as_pipeline(data_or_pipe)
-  }
-
-  user_params <- c(list(kind = kind), list(...))
-  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
-
-  pars <- resolve_params("temporal", user_params)
-
-  step_spec <- list(type = "temporal", params = pars)
-  pipe$add_step(step_spec)
-  pipe
+  append_lna_step(
+    data_or_pipe,
+    "temporal",
+    c(list(kind = kind), list(...))
+  )
 }
 
 ##' Hierarchical Radial Basis Function DSL verb
@@ -391,20 +370,11 @@ temporal <- function(data_or_pipe, kind = NULL, ...) {
 #' @return An `lna_pipeline` object with the HRBF step appended.
 #' @export
 hrbf <- function(data_or_pipe, levels = NULL, ...) {
-  pipe <- if (inherits(data_or_pipe, "lna_pipeline")) {
-    data_or_pipe
-  } else {
-    as_pipeline(data_or_pipe)
-  }
-
-  user_params <- c(list(levels = levels), list(...))
-  user_params <- user_params[!vapply(user_params, is.null, logical(1))]
-
-  pars <- resolve_params("spat.hrbf", user_params)
-
-  step_spec <- list(type = "spat.hrbf", params = pars)
-  pipe$add_step(step_spec)
-  pipe
+  append_lna_step(
+    data_or_pipe,
+    "spat.hrbf",
+    c(list(levels = levels), list(...))
+  )
 }
 
 # S3 methods for seamless verb chaining
