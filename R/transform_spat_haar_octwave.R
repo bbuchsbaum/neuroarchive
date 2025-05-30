@@ -1,3 +1,107 @@
+#' Forward step for the 'spat.haar_octwave' transform
+#'
+#' Implements the writer-side lifting analysis using the helpers
+#' defined in `haar_octwave_helpers.R`. Coefficients for each level
+#' are written to the plan and a concatenated matrix is stashed for
+#' downstream transforms.
+#' @keywords internal
+forward_step.spat.haar_octwave <- function(type, desc, handle) {
+  p_in <- desc$params %||% list()
+  defaults <- lna_default.spat.haar_octwave()
+  p <- modifyList(defaults, p_in)
+
+  levels <- p$levels
+  if (is.null(levels) || !is.numeric(levels) || levels < 1) {
+    abort_lna("levels parameter required and must be >=1",
+              .subclass = "lna_error_validation",
+              location = "forward_step.spat.haar_octwave:levels")
+  }
+  levels <- as.integer(levels)
+  z_seed <- p$z_order_seed %||% 42L
+
+  mask_arr <- handle$mask_info$mask
+  if (is.null(mask_arr)) {
+    abort_lna("mask_info$mask missing",
+              .subclass = "lna_error_validation",
+              location = "forward_step.spat.haar_octwave:mask")
+  }
+
+  inp <- handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
+  input_key <- inp$key
+  X_masked_vox_time <- convert_to_masked_vox_time_matrix(inp$value, mask_arr)
+
+  coeffs <- perform_haar_lift_analysis(t(X_masked_vox_time), mask_arr,
+                                       levels, z_seed)
+
+  # Metadata -------------------------------------------------------------
+  vox_coords <- which(as.logical(mask_arr), arr.ind = TRUE)
+  bbox <- c(min(vox_coords[, 1]) - 1L, max(vox_coords[, 1]) - 1L,
+            min(vox_coords[, 2]) - 1L, max(vox_coords[, 2]) - 1L,
+            min(vox_coords[, 3]) - 1L, max(vox_coords[, 3]) - 1L)
+  morton_idx <- get_morton_ordered_indices(mask_arr, z_seed)
+  morton_hash <- morton_indices_to_hash(morton_idx)
+  scalings <- precompute_haar_scalings(mask_arr, levels)
+  lowpass_counts <- integer(levels + 1L)
+  detail_counts <- integer(levels)
+  for (lv in seq_len(levels)) {
+    counts <- as.integer(round(scalings[[lv]]$sqrt_nvalid^2))
+    lowpass_counts[lv] <- length(counts)
+    detail_counts[lv] <- sum(counts)
+  }
+  lowpass_counts[levels + 1L] <- 1L
+
+  p$num_voxels_in_mask <- length(morton_idx)
+  p$octree_bounding_box_mask_space <- bbox
+  p$morton_hash_mask_indices <- morton_hash
+  p$num_coeffs_per_level <- list(lowpass = lowpass_counts,
+                                 detail = detail_counts)
+
+  desc$params <- p
+  desc$version <- "1.0"
+  desc$inputs <- c(input_key)
+  desc$outputs <- c("wavelet_coefficients")
+
+  datasets <- list(list(path = "/wavelet/level_ROOT/coefficients",
+                        role = "wavelet_coefficients"))
+  for (lv in seq_len(levels)) {
+    datasets[[length(datasets) + 1L]] <-
+      list(path = sprintf("/wavelet/level_%d/detail_coefficients", lv - 1L),
+           role = "wavelet_coefficients")
+  }
+  desc$datasets <- datasets
+
+  plan <- handle$plan
+  step_index <- plan$next_index
+  fname <- plan$get_next_filename(type)
+  run_id <- handle$current_run_id %||% "run-01"
+  run_id <- sanitize_run_id(run_id)
+  params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
+
+  plan$add_descriptor(fname, desc)
+
+  plan$add_payload(datasets[[1]]$path, coeffs$root)
+  plan$add_dataset_def(datasets[[1]]$path, "wavelet_coefficients",
+                       as.character(type), run_id, as.integer(step_index),
+                       params_json, datasets[[1]]$path, "eager",
+                       dtype = NA_character_)
+
+  for (lv in seq_len(levels)) {
+    detail_mat <- coeffs$detail[[lv]]
+    dpath <- datasets[[lv + 1L]]$path
+    plan$add_payload(dpath, detail_mat)
+    plan$add_dataset_def(dpath, "wavelet_coefficients", as.character(type),
+                         run_id, as.integer(step_index), params_json,
+                         dpath, "eager", dtype = NA_character_)
+  }
+
+  handle$plan <- plan
+
+  C_total <- cbind(coeffs$root, do.call(cbind, coeffs$detail))
+
+  handle$update_stash(keys = character(),
+                      new_values = list(wavelet_coefficients = C_total))
+}
+
 #' Inverse step for the 'spat.haar_octwave' transform
 #'
 #' Placeholder implementation that loads coefficient datasets and performs a
