@@ -104,15 +104,41 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
 
 #' Inverse step for the 'spat.haar_octwave' transform
 #'
-#' Placeholder implementation that loads coefficient datasets and performs a
-#' very basic reconstruction using `perform_haar_lift_synthesis`. The real
-#' inverse lifting logic is not yet implemented.
+#' Loads the coefficient datasets written by the forward step and
+#' performs full Haar lifting synthesis to reconstruct the dense
+#' voxel-time matrix.  The mask used for reconstruction is verified
+#' against the descriptor's stored Morton hash.  Optional `time_idx`
+#' and `roi_mask` subsetting is honoured before updating the stash.
 #' @keywords internal
 invert_step.spat.haar_octwave <- function(type, desc, handle) {
+  p <- desc$params %||% list()
+  z_seed <- p$z_order_seed %||% 42L
+
   mask_arr <- handle$mask_info$mask
   if (is.null(mask_arr)) {
     abort_lna("mask_info$mask missing", .subclass = "lna_error_validation",
               location = "invert_step.spat.haar_octwave:mask")
+  }
+
+  stored_hash <- p$morton_hash_mask_indices
+  if (!is.null(stored_hash)) {
+    current_hash <- morton_indices_to_hash(
+      get_morton_ordered_indices(mask_arr, z_seed)
+    )
+    if (!identical(stored_hash, current_hash)) {
+      strict <- lna_options("read.strict_mask_hash_validation")$read.strict_mask_hash_validation %||% FALSE
+      msg <- sprintf(
+        "Mask Morton hash mismatch (descriptor %s vs current %s)",
+        stored_hash, current_hash
+      )
+      if (isTRUE(strict)) {
+        abort_lna(msg, .subclass = "lna_error_validation",
+                  location = "invert_step.spat.haar_octwave:mask_hash")
+      } else {
+        warn_lna(msg, .subclass = "lna_warning_mask_hash",
+                 location = "invert_step.spat.haar_octwave:mask_hash")
+      }
+    }
   }
 
   datasets <- desc$datasets %||% list()
@@ -144,10 +170,11 @@ invert_step.spat.haar_octwave <- function(type, desc, handle) {
     detail_coeffs <- lapply(detail_coeffs, function(m) m[time_idx, , drop = FALSE])
   }
 
-  levels <- desc$params$levels %||% length(detail_coeffs)
-  reco <- perform_haar_lift_synthesis(list(root = root_coeffs,
-                                          detail = detail_coeffs),
-                                      mask_arr, levels)
+  levels <- p$levels %||% length(detail_coeffs)
+  reco <- perform_haar_lift_synthesis(
+    list(root = root_coeffs, detail = detail_coeffs),
+    mask_arr, levels, z_seed
+  )
 
   roi_mask <- subset$roi_mask %||% subset$roi
   if (!is.null(roi_mask)) {
