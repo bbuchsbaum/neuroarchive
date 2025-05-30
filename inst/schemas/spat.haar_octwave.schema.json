@@ -15,6 +15,16 @@
       "default": 42,
       "description": "Seed used when generating Morton ordering to resolve tie-breaks and ensure deterministic voxel sequencing."
     },
+    "detail_threshold_type": {
+      "enum": ["none", "absolute", "relative_to_root_std"],
+      "default": "none",
+      "description": "Strategy for sparsifying small detail coefficients before subsequent quantization. 'none': no thresholding. 'absolute': threshold on raw coefficient values. 'relative_to_root_std': threshold relative to standard deviation of root/coarsest detail coefficients."
+    },
+    "detail_threshold_value": {
+      "type": "number",
+      "default": 0.005,
+      "description": "Threshold value for detail sparsification. Meaning depends on 'detail_threshold_type'."
+    },
     "num_voxels_in_mask": {
       "type": "integer",
       "readOnly": true,
