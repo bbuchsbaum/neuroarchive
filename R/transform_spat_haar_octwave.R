@@ -73,11 +73,19 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
   }
   lowpass_counts[levels + 1L] <- 1L
 
+  # Valid finest blocks ---------------------------------------------
+  valid_blocks <- get_valid_finest_blocks(mask_arr)
+
   p$num_voxels_in_mask <- length(morton_idx)
   p$octree_bounding_box_mask_space <- bbox
   p$morton_hash_mask_indices <- morton_hash
   p$num_coeffs_per_level <- list(lowpass = lowpass_counts,
                                  detail = detail_counts)
+  valid_blocks_path <- NULL
+  if (length(valid_blocks) > 0) {
+    valid_blocks_path <- "/aux_meta/haar_octwave/valid_blocks_L-1"
+    p$valid_finest_blocks_path <- valid_blocks_path
+  }
 
   desc$params <- p
   desc$version <- "1.0"
@@ -90,6 +98,10 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
     datasets[[length(datasets) + 1L]] <-
       list(path = sprintf("/wavelet/level_%d/detail_coefficients", lv - 1L),
            role = "wavelet_coefficients")
+  }
+  if (!is.null(valid_blocks_path)) {
+    datasets[[length(datasets) + 1L]] <-
+      list(path = valid_blocks_path, role = "aux_meta")
   }
   desc$datasets <- datasets
 
@@ -115,6 +127,12 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
     plan$add_dataset_def(dpath, "wavelet_coefficients", as.character(type),
                          run_id, as.integer(step_index), params_json,
                          dpath, "eager", dtype = NA_character_)
+  }
+  if (!is.null(valid_blocks_path)) {
+    plan$add_payload(valid_blocks_path, valid_blocks)
+    plan$add_dataset_def(valid_blocks_path, "aux_meta", as.character(type),
+                         run_id, as.integer(step_index), params_json,
+                         valid_blocks_path, "eager", dtype = "uint32")
   }
 
   handle$plan <- plan

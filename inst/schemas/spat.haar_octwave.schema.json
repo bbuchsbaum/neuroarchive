@@ -44,10 +44,10 @@
       "readOnly": true,
       "description": "SHA1 hash of Morton-ordered in-mask voxel indices for reproducibility."
     },
-    "num_coeffs_per_level": {
-      "type": "object",
-      "readOnly": true,
-      "properties": {
+      "num_coeffs_per_level": {
+        "type": "object",
+        "readOnly": true,
+        "properties": {
         "lowpass": {
           "type": "array",
           "items": { "type": "integer" },
@@ -61,6 +61,13 @@
       },
       "required": ["lowpass", "detail"],
       "description": "Actual number of coefficient vectors stored for each level and type."
+    },
+    "valid_finest_blocks_path": {
+      "type": "string",
+      "pattern": "^/aux_meta/.*",
+      "readOnly": true,
+      "default": null,
+      "description": "Optional HDF5 path storing uint32 Morton codes for finest-level 2x2x2 blocks with in-mask voxels."
     }
   },
   "required": ["levels"],

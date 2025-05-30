@@ -49,6 +49,12 @@ test_that("forward_step.spat.haar_octwave basic IO", {
   expect_true(out$has_key("wavelet_coefficients"))
   stash_mat <- out$stash$wavelet_coefficients
   expect_equal(dim(stash_mat), c(2,9))
+
+  expect_equal(p$valid_finest_blocks_path,
+               "/aux_meta/haar_octwave/valid_blocks_L-1")
+  expect_true(p$valid_finest_blocks_path %in% out$plan$datasets$path)
+  expect_equal(out$plan$payloads[[p$valid_finest_blocks_path]],
+               neuroarchive:::get_valid_finest_blocks(mask))
 })
 
 test_that("forward_step.spat.haar_octwave sparsifies details", {

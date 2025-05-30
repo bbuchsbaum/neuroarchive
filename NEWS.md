@@ -12,3 +12,6 @@
   `lna_get_quant_report()`.
 * Added `lna.debug.temporal` option. When `TRUE`, `forward_step.temporal` and
   `invert_step.temporal` emit debug messages; defaults to `FALSE` for quiet runs.
+* `forward_step.spat.haar_octwave` now stores a list of valid finest-level
+  block Morton codes at `/aux_meta/haar_octwave/valid_blocks_L-1` for
+  optimized ROI streaming.
