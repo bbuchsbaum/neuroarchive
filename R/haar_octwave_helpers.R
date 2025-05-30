@@ -189,6 +189,68 @@ precompute_haar_scalings <- function(mask_3d_array, levels) {
   scalings
 }
 
+#' Morton codes of valid finest-level blocks
+#'
+#' Identifies all 2x2x2 blocks at the finest decomposition level that
+#' contain at least one in-mask voxel and returns their Morton codes as
+#' 0-based unsigned integers.
+#'
+#' @param mask_3d_array Logical 3D array defining the voxel mask.
+#' @return Integer vector of Morton codes for valid finest blocks.
+#' @keywords internal
+get_valid_finest_blocks <- function(mask_3d_array) {
+  if (!is.array(mask_3d_array) || length(dim(mask_3d_array)) != 3L) {
+    abort_lna("mask_3d_array must be a 3D array",
+              .subclass = "lna_error_validation",
+              location = "get_valid_finest_blocks:mask")
+  }
+
+  mask_logical <- as.logical(mask_3d_array)
+  dims <- dim(mask_logical)
+  x_seq <- seq(1L, dims[1], by = 2L)
+  y_seq <- seq(1L, dims[2], by = 2L)
+  z_seq <- seq(1L, dims[3], by = 2L)
+  block_mask <- array(FALSE,
+                      dim = c(length(x_seq), length(y_seq), length(z_seq)))
+
+  for (i in seq_along(x_seq)) {
+    for (j in seq_along(y_seq)) {
+      for (k in seq_along(z_seq)) {
+        block <- mask_logical[
+          x_seq[i]:min(x_seq[i] + 1L, dims[1]),
+          y_seq[j]:min(y_seq[j] + 1L, dims[2]),
+          z_seq[k]:min(z_seq[k] + 1L, dims[3])
+        ]
+        block_mask[i, j, k] <- any(block)
+      }
+    }
+  }
+
+  if (!any(block_mask)) return(integer(0))
+
+  coords <- which(block_mask, arr.ind = TRUE)
+  x <- coords[, 1] - 1L
+  y <- coords[, 2] - 1L
+  z <- coords[, 3] - 1L
+
+  max_dim <- max(dim(block_mask))
+  bits <- ceiling(log2(max_dim))
+  codes <- integer(nrow(coords))
+  for (b in seq_len(bits)) {
+    shift <- b - 1L
+    codes <- bitwOr(codes,
+                    bitwShiftL(bitwAnd(bitwShiftR(x, shift), 1L), 3L * shift))
+    codes <- bitwOr(codes,
+                    bitwShiftL(bitwAnd(bitwShiftR(y, shift), 1L),
+                                3L * shift + 1L))
+    codes <- bitwOr(codes,
+                    bitwShiftL(bitwAnd(bitwShiftR(z, shift), 1L),
+                                3L * shift + 2L))
+  }
+
+  sort(as.integer(codes))
+}
+
 #' Pure-R forward Haar lifting implementation
 #'
 #' @keywords internal
