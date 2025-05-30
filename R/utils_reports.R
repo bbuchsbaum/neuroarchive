@@ -54,7 +54,7 @@ lna_get_transform_report <- function(lna_file, transform_index_or_name) {
   assert_h5_path(root, report_path)
 
   dset <- root[[report_path]]
-  on.exit(if (!is.null(dset) && inherits(dset, "H5D")) dset$close(), add = TRUE)
+  on.exit(safe_h5_close(dset), add = TRUE)
   
   # When the HDF5 datatype is H5T_STD_U8LE (unsigned 8-bit int),
   # dset$read() returns a numeric vector of byte values.

@@ -165,7 +165,7 @@ process_run_core_read <- function(rid, h5, runs, subset_params, transforms,
     handle <- apply_invert_transforms(handle, transforms, tf_group, validate, h5)
   } else {
     root <- h5[["/"]]
-    on.exit(if (inherits(root, "H5Group")) root$close(), add = TRUE)
+      on.exit(safe_h5_close(root), add = TRUE)
     path <- file.path("scans", rid, "data", "values")
     data <- h5_read(root, path)
     handle <- handle$with(stash = list(input = data))
