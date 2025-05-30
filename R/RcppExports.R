@@ -47,3 +47,11 @@ get_openmp_threads <- function() {
     .Call('_neuroarchive_get_openmp_threads', PACKAGE = 'neuroarchive')
 }
 
+forward_lift_rcpp <- function(data_masked_morton_ordered, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level) {
+    .Call('_neuroarchive_forward_lift_rcpp', PACKAGE = 'neuroarchive', data_masked_morton_ordered, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level)
+}
+
+inverse_lift_rcpp <- function(root_coeff, detail_coeffs_by_level, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level) {
+    .Call('_neuroarchive_inverse_lift_rcpp', PACKAGE = 'neuroarchive', root_coeff, detail_coeffs_by_level, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level)
+}
+
