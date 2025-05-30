@@ -378,3 +378,108 @@ perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
 
   list(root = root_coeffs, detail = detail_coeffs)
 }
+
+#' Morton code from block coordinates
+#'
+#' Helper used for ROI streaming. Encodes 0-based block coordinates
+#' `(x, y, z)` into an integer Morton code using `bits` bits per axis.
+#' @keywords internal
+.encode_morton3d <- function(x, y, z, bits) {
+  code <- 0L
+  for (b in seq_len(bits)) {
+    shift <- b - 1L
+    code <- bitwOr(code, bitwShiftL(bitwAnd(bitwShiftR(x, shift), 1L), 3L * shift))
+    code <- bitwOr(code, bitwShiftL(bitwAnd(bitwShiftR(y, shift), 1L), 3L * shift + 1L))
+    code <- bitwOr(code, bitwShiftL(bitwAnd(bitwShiftR(z, shift), 1L), 3L * shift + 2L))
+  }
+  as.integer(code)
+}
+
+#' Block map for Haar octwave coefficients
+#'
+#' Builds a mapping from block Morton codes to the column index ranges of
+#' detail coefficients for each decomposition level. The mapping mirrors the
+#' enumeration order used by `perform_haar_lift_analysis` and therefore allows
+#' subsetting coefficient matrices during inverse reconstruction.
+#'
+#' @return List of length `levels` with elements `code`, `count` and `start`
+#'   (0-based start indices).
+#' @keywords internal
+.compute_block_map <- function(mask_3d_array, levels) {
+  mask_logical <- as.logical(mask_3d_array)
+  mapping <- vector("list", levels)
+  current <- mask_logical
+  for (lvl in seq_len(levels)) {
+    dims <- dim(current)
+    x_seq <- seq(1L, dims[1], by = 2L)
+    y_seq <- seq(1L, dims[2], by = 2L)
+    z_seq <- seq(1L, dims[3], by = 2L)
+    nbx <- length(x_seq); nby <- length(y_seq); nbz <- length(z_seq)
+    nblocks <- nbx * nby * nbz
+    counts <- integer(nblocks)
+    codes <- integer(nblocks)
+    bits <- ceiling(log2(max(nbx, nby, nbz)))
+    idx <- 1L
+    for (i in seq_along(x_seq)) {
+      for (j in seq_along(y_seq)) {
+        for (k in seq_along(z_seq)) {
+          block <- current[
+            x_seq[i]:min(x_seq[i] + 1L, dims[1]),
+            y_seq[j]:min(y_seq[j] + 1L, dims[2]),
+            z_seq[k]:min(z_seq[k] + 1L, dims[3])
+          ]
+          counts[idx] <- sum(block)
+          codes[idx] <- .encode_morton3d(i - 1L, j - 1L, k - 1L, bits)
+          idx <- idx + 1L
+        }
+      }
+    }
+    start <- c(0L, cumsum(counts)[-length(counts)])
+    mapping[[lvl]] <- list(code = codes, count = counts, start = start)
+    current <- array(counts > 0L, dim = c(nbx, nby, nbz))
+  }
+  mapping
+}
+
+#' Determine detail coefficient indices required for an ROI
+#'
+#' Given an ROI mask, the original mask and the number of decomposition levels,
+#' returns a list of column index vectors for each level identifying which
+#' detail coefficients are necessary for reconstruction. Indices are 1-based.
+#' @keywords internal
+get_roi_detail_indices <- function(roi_mask, mask_3d_array, levels) {
+  if (!is.array(roi_mask) || !identical(dim(roi_mask), dim(mask_3d_array))) {
+    abort_lna("roi_mask must match mask dimensions",
+              .subclass = "lna_error_validation",
+              location = "get_roi_detail_indices:roi")
+  }
+
+  mapping <- .compute_block_map(mask_3d_array, levels)
+  roi_codes_finest <- get_valid_finest_blocks(roi_mask)
+  if (length(roi_codes_finest) == 0L) {
+    return(lapply(seq_len(levels), function(x) integer()))
+  }
+
+  codes_by_level <- vector("list", levels)
+  codes_by_level[[levels]] <- roi_codes_finest
+  if (levels > 1) {
+    for (lvl in seq_len(levels - 1)) {
+      shift <- 3L * (levels - lvl)
+      codes_by_level[[lvl]] <- unique(roi_codes_finest %/% (2L ^ shift))
+    }
+  }
+
+  indices_by_level <- vector("list", levels)
+  for (lvl in seq_len(levels)) {
+    codes <- codes_by_level[[lvl]]
+    map <- mapping[[lvl]]
+    pos <- match(codes, map$code, nomatch = 0L)
+    keep <- pos > 0L & map$count[pos] > 0L
+    start <- map$start[pos[keep]]
+    cnt <- map$count[pos[keep]]
+    idx <- unlist(mapply(function(s, c) seq.int(s + 1L, s + c), start, cnt,
+                         SIMPLIFY = FALSE), use.names = FALSE)
+    indices_by_level[[lvl]] <- idx
+  }
+  indices_by_level
+}
