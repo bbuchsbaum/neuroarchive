@@ -109,7 +109,7 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
     # Close resources if they were successfully created
     if (!is.null(str_type) && inherits(str_type, "H5T")) str_type$close()
     if (!is.null(space) && inherits(space, "H5S")) space$close()
-    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+      safe_h5_close(dset)
   }, add = TRUE)
 
   # --- Define scalar, variable-length, UTF-8 string dataset ----

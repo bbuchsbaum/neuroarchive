@@ -46,7 +46,7 @@ invert_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
     if (gpath == "") gpath <- "/"
     tf_group <- root[[gpath]]
     dict_desc <- read_json_descriptor(tf_group, dname)
-    if (inherits(tf_group, "H5Group")) tf_group$close()
+    safe_h5_close(tf_group)
     
     mask_neurovol <- handle$mask_info$mask
     if (is.null(mask_neurovol)) {

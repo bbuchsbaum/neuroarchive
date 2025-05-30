@@ -367,7 +367,7 @@ invert_step.quant <- function(type, desc, handle) {
     stop(paste0("Error reading dataset '", data_path, "': ",
                 conditionMessage(e)), call. = FALSE)
   }, finally = {
-    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+    safe_h5_close(dset)
   })
   if (!is.null(desc$params$bits) && !is.na(desc$params$bits)) {
     if (!is.na(attr_bits) && attr_bits != desc$params$bits) {
