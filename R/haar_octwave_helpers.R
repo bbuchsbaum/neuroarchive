@@ -42,17 +42,31 @@ perform_haar_lift_synthesis <- function(coeff_list, mask_3d_array, levels,
   n_vox <- length(morton_idx)
   reco_morton <- matrix(0, nrow = n_time, ncol = n_vox)
 
+  use_rcpp <- isTRUE(getOption("lna.hwt.use_rcpp", TRUE)) &&
+    exists("inverse_lift_rcpp")
+
   for (tt in seq_len(n_time)) {
     detail_vecs <- lapply(seq_len(levels),
                           function(lvl) coeff_list$detail[[lvl]][tt, ])
-    reco_morton[tt, ] <- inverse_lift_rcpp(
-      coeff_list$root[tt, 1],
-      detail_vecs,
-      mask_flat_morton,
-      dim(mask_3d_array),
-      levels,
-      scalings
-    )
+    if (use_rcpp) {
+      reco_morton[tt, ] <- inverse_lift_rcpp(
+        coeff_list$root[tt, 1],
+        detail_vecs,
+        mask_flat_morton,
+        dim(mask_3d_array),
+        levels,
+        scalings
+      )
+    } else {
+      reco_morton[tt, ] <- inverse_lift_R(
+        coeff_list$root[tt, 1],
+        detail_vecs,
+        mask_flat_morton,
+        dim(mask_3d_array),
+        levels,
+        scalings
+      )
+    }
   }
 
   reco_morton[, inv_perm, drop = FALSE]
@@ -175,6 +189,72 @@ precompute_haar_scalings <- function(mask_3d_array, levels) {
   scalings
 }
 
+#' Pure-R forward Haar lifting implementation
+#'
+#' @keywords internal
+forward_lift_R <- function(data_masked_morton_ordered,
+                           mask_flat_morton_ordered,
+                           mask_dims,
+                           levels,
+                           scaling_factors_per_level) {
+  current <- data_masked_morton_ordered
+  detail_list <- vector("list", levels)
+  for (lvl in seq_len(levels)) {
+    sc <- scaling_factors_per_level[[lvl]]
+    counts <- as.integer(round(sc$sqrt_nvalid^2))
+    next_data <- numeric(length(counts))
+    dvec <- numeric(length(current))
+    idx_in <- 1L
+    idx_out <- 1L
+    for (b in seq_along(counts)) {
+      nv <- counts[b]
+      if (nv > 0) {
+        vals <- current[idx_in:(idx_in + nv - 1L)]
+        avg <- mean(vals)
+        next_data[b] <- avg * sc$sqrt_nvalid[b]
+        dvec[idx_out:(idx_out + nv - 1L)] <- (vals - avg) * sc$sqrt_nvalid_div_8[b]
+        idx_in <- idx_in + nv
+        idx_out <- idx_out + nv
+      }
+    }
+    detail_list[[lvl]] <- dvec
+    current <- next_data
+  }
+  list(root_coeff = current[1], detail_coeffs_by_level = detail_list)
+}
+
+#' Pure-R inverse Haar lifting implementation
+#'
+#' @keywords internal
+inverse_lift_R <- function(root_coeff,
+                           detail_coeffs_by_level,
+                           mask_flat_morton_ordered,
+                           mask_dims,
+                           levels,
+                           scaling_factors_per_level) {
+  current <- root_coeff
+  for (lvl in rev(seq_len(levels))) {
+    sc <- scaling_factors_per_level[[lvl]]
+    counts <- as.integer(round(sc$sqrt_nvalid^2))
+    next_data <- numeric(sum(counts))
+    idx_out <- 1L
+    idx_det <- 1L
+    for (b in seq_along(counts)) {
+      nv <- counts[b]
+      if (nv > 0) {
+        avg <- current[b] / sc$sqrt_nvalid[b]
+        vals <- detail_coeffs_by_level[[lvl]][idx_det:(idx_det + nv - 1L)] /
+          sc$sqrt_nvalid_div_8[b] + avg
+        next_data[idx_out:(idx_out + nv - 1L)] <- vals
+        idx_out <- idx_out + nv
+        idx_det <- idx_det + nv
+      }
+    }
+    current <- next_data
+  }
+  current
+}
+
 #' Perform forward Haar lifting analysis
 #'
 #' Orchestrates the recursive lifting for a full Time x MaskedVoxels
@@ -207,14 +287,27 @@ perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
   detail_coeffs <- lapply(seq_len(levels),
                           function(i) matrix(0, nrow = n_time, ncol = n_vox))
 
+  use_rcpp <- isTRUE(getOption("lna.hwt.use_rcpp", TRUE)) &&
+    exists("forward_lift_rcpp")
+
   for (tt in seq_len(n_time)) {
-    res <- forward_lift_rcpp(
-      data_morton[tt, ],
-      mask_flat_morton,
-      dim(mask_3d_array),
-      levels,
-      scalings
-    )
+    if (use_rcpp) {
+      res <- forward_lift_rcpp(
+        data_morton[tt, ],
+        mask_flat_morton,
+        dim(mask_3d_array),
+        levels,
+        scalings
+      )
+    } else {
+      res <- forward_lift_R(
+        data_morton[tt, ],
+        mask_flat_morton,
+        dim(mask_3d_array),
+        levels,
+        scalings
+      )
+    }
     root_coeffs[tt, 1] <- res$root_coeff
     for (lvl in seq_len(levels)) {
       detail_coeffs[[lvl]][tt, ] <- res$detail_coeffs_by_level[[lvl]]
