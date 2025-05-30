@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for Mask-Adaptive Haar-Lifting Wavelet Pyramid (spat.haar_octwave) transform",
+  "type": "object",
+  "properties": {
+    "type": { "const": "spat.haar_octwave" },
+    "version": { "const": "1.0" },
+    "levels": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of decomposition levels (L). L = ceil(log2(max_mask_extent_voxels)) is often a good default, and may be auto-set by writers if omitted."
+    },
+    "z_order_seed": {
+      "type": "integer",
+      "default": 42,
+      "description": "Seed used when generating Morton ordering to resolve tie-breaks and ensure deterministic voxel sequencing."
+    },
+    "num_voxels_in_mask": {
+      "type": "integer",
+      "readOnly": true,
+      "description": "Number of active voxels in the mask this transform operated on."
+    },
+    "octree_bounding_box_mask_space": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 6,
+      "maxItems": 6,
+      "readOnly": true,
+      "description": "[x0,x1,y0,y1,z0,z1] inclusive bounding box of the mask in voxel coordinates defining the octree root."
+    },
+    "morton_hash_mask_indices": {
+      "type": "string",
+      "pattern": "^sha1:[a-f0-9]{40}$",
+      "readOnly": true,
+      "description": "SHA1 hash of Morton-ordered in-mask voxel indices for reproducibility."
+    },
+    "num_coeffs_per_level": {
+      "type": "object",
+      "readOnly": true,
+      "properties": {
+        "lowpass": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Number of low-pass coefficients stored per level (finest to root)."
+        },
+        "detail": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Number of detail coefficients stored per level (finest to coarsest)."
+        }
+      },
+      "required": ["lowpass", "detail"],
+      "description": "Actual number of coefficient vectors stored for each level and type."
+    }
+  },
+  "required": ["levels"],
+  "additionalProperties": false
+}
