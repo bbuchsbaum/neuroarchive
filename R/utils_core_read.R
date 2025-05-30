@@ -105,9 +105,8 @@ prepare_transforms_for_read <- function(tf_group, allow_plugins, file) {
 #'
 #' @keywords internal
 apply_invert_transforms <- function(handle, transforms, tf_group, validate, h5) {
-  progress_enabled <- is_progress_globally_enabled()
-  step_loop <- function(h) {
-    p <- if (progress_enabled) progressr::progressor(steps = nrow(transforms)) else NULL
+  step_loop <- function(p) {
+    h <- handle
     for (i in rev(seq_len(nrow(transforms)))) {
       if (!is.null(p)) p(message = transforms$type[[i]])
       name <- transforms$name[[i]]
@@ -121,11 +120,8 @@ apply_invert_transforms <- function(handle, transforms, tf_group, validate, h5) 
     }
     h
   }
-  if (progress_enabled) {
-    progressr::with_progress(step_loop(handle))
-  } else {
-    step_loop(handle)
-  }
+
+  with_progress_loop(nrow(transforms), step_loop)
 }
 
 #' Finalize handle for return
