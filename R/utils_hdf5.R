@@ -21,7 +21,7 @@
 #' @details Overwrites the attribute if it already exists.
 h5_attr_write <- function(h5_obj, name, value) {
   stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  assert_scalar_character(name, "name")
 
   # Use hdf5r's assignment function, which handles overwriting
   tryCatch({
@@ -41,7 +41,7 @@ h5_attr_write <- function(h5_obj, name, value) {
 #' @details Throws an error if the attribute does not exist.
 h5_attr_read <- function(h5_obj, name) {
   stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  assert_scalar_character(name, "name")
 
   if (!h5_attr_exists(h5_obj, name)) {
     stop(paste("Attribute '", name, "' not found."), call. = FALSE)
@@ -62,7 +62,7 @@ h5_attr_read <- function(h5_obj, name) {
 #' @return Logical TRUE if the attribute exists, FALSE otherwise.
 h5_attr_exists <- function(h5_obj, name) {
   stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  assert_scalar_character(name, "name")
 
   tryCatch({
     h5_obj$attr_exists(name)
@@ -80,7 +80,7 @@ h5_attr_exists <- function(h5_obj, name) {
 #' @details Does nothing if the attribute does not exist.
 h5_attr_delete <- function(h5_obj, name) {
   stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  assert_scalar_character(name, "name")
 
   # Check existence first to avoid potential error in attr_delete if it doesn't exist
   if (h5_attr_exists(h5_obj, name)) {
@@ -209,8 +209,8 @@ reduce_chunk_dims <- function(chunk, dtype_size, target_bytes) {
 #' @keywords internal
 h5_create_empty_dataset <- function(h5_group, path, dims, dtype,
                                     chunk_dims = NULL) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
+  assert_h5group(h5_group)
+  assert_scalar_character(path, "path")
   stopifnot(is.numeric(dims))
   stopifnot(is.character(dtype) || inherits(dtype, "H5T"))
 
@@ -261,8 +261,8 @@ h5_create_empty_dataset <- function(h5_group, path, dims, dtype,
 h5_write_dataset <- function(h5_group, path, data,
                              chunk_dims = NULL, compression_level = 0,
                              dtype = NULL) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
+  assert_h5group(h5_group)
+  assert_scalar_character(path, "path")
   stopifnot(is.numeric(compression_level), length(compression_level) == 1)
 
   if (!is.array(data)) {
@@ -375,8 +375,8 @@ h5_write_dataset <- function(h5_group, path, data,
 #'   writing in parallel.
 #' @keywords internal
 open_h5 <- function(path, mode = "a") {
-  stopifnot(is.character(path), length(path) == 1)
-  stopifnot(is.character(mode), length(mode) == 1)
+  assert_scalar_character(path, "path")
+  assert_scalar_character(mode, "mode")
 
   tryCatch(
     hdf5r::H5File$new(path, mode = mode),
@@ -437,7 +437,7 @@ path_exists_safely <- function(group, path_name) {
 #' @keywords internal
 assert_h5_path <- function(h5, path) {
   stopifnot(inherits(h5, c("H5File", "H5Group")))
-  stopifnot(is.character(path), length(path) == 1)
+  assert_scalar_character(path, "path")
 
   if (!h5$exists(path)) {
     abort_lna(
@@ -462,7 +462,7 @@ assert_h5_path <- function(h5, path) {
 path_exists_safely <- function(h5, path) {
   if (is.null(path) || !nzchar(path)) return(FALSE)
   stopifnot(inherits(h5, c("H5File", "H5Group")))
-  stopifnot(is.character(path), length(path) == 1)
+  assert_scalar_character(path, "path")
 
 
   tryCatch({
@@ -483,7 +483,7 @@ map_dtype <- function(dtype) {
     return(dtype)
   }
 
-  stopifnot(is.character(dtype), length(dtype) == 1)
+  assert_scalar_character(dtype, "dtype")
 
   switch(dtype,
     float32 = hdf5r::h5types$H5T_IEEE_F32LE,
@@ -536,8 +536,8 @@ guess_h5_type <- function(x) {
 #' @return The contents of the dataset.
 #' @details Throws an error if the dataset does not exist or reading fails.
 h5_read <- function(h5_group, path) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
+  assert_h5group(h5_group)
+  assert_scalar_character(path, "path")
 
   if (!h5_group$exists(path)) {
     stop(paste0("Dataset '", path, "' not found."), call. = FALSE)
@@ -590,8 +590,8 @@ h5_read <- function(h5_group, path) {
 #' @return The selected subset of the dataset.
 #' @details Throws an error if the dataset does not exist or reading fails.
 h5_read_subset <- function(h5_group, path, index) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
+  assert_h5group(h5_group)
+  assert_scalar_character(path, "path")
   stopifnot(is.list(index))
 
   if (!h5_group$exists(path)) {
@@ -663,7 +663,7 @@ resolve_run_ids <- function(patterns, available) {
 #' @return The validated \code{run_id} string.
 #' @keywords internal
 sanitize_run_id <- function(run_id) {
-  stopifnot(is.character(run_id), length(run_id) == 1)
+  assert_scalar_character(run_id, "run_id")
   if (grepl("/|\\\\", run_id)) {
     abort_lna(
       "run_id must not contain path separators",
