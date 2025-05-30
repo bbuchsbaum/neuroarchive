@@ -1,14 +1,61 @@
-#' Placeholder synthesis for Haar octwave coefficients
+#' Perform inverse Haar lifting synthesis
 #'
-#' This helper is a stub and simply returns a zero matrix of the
-#' appropriate dimensions. It will be replaced by a real implementation
-#' of the inverse lifting scheme.
+#' Reconstructs a Time x MaskedVoxels matrix from Haar octwave
+#' coefficients as produced by `perform_haar_lift_analysis`.
+#'
+#' @param coeff_list List with elements `root` (matrix `Time x 1`) and
+#'   `detail` (list of length `levels`, each a `Time x Nvox` matrix).
+#' @param mask_3d_array Logical 3D array defining the voxel mask.
+#' @param levels Number of decomposition levels used.
+#' @param z_order_seed Seed used for Morton ordering (must match the one
+#'   used during analysis). Default is 42.
+#' @return Matrix of reconstructed values with dimensions `Time x
+#'   MaskedVoxels`.
 #' @keywords internal
-perform_haar_lift_synthesis <- function(coeff_list, mask_3d_array, levels) {
-  n_vox <- sum(mask_3d_array)
-  if (is.null(coeff_list$root)) return(matrix(0, 0, n_vox))
+perform_haar_lift_synthesis <- function(coeff_list, mask_3d_array, levels,
+                                         z_order_seed = 42L) {
+  if (is.null(coeff_list$root) || !is.matrix(coeff_list$root)) {
+    abort_lna("coeff_list$root must be a matrix",
+              .subclass = "lna_error_validation",
+              location = "perform_haar_lift_synthesis:root")
+  }
+
+  if (!is.list(coeff_list$detail) || length(coeff_list$detail) < levels) {
+    abort_lna("coeff_list$detail must be a list of length 'levels'",
+              .subclass = "lna_error_validation",
+              location = "perform_haar_lift_synthesis:detail")
+  }
+
+  morton_idx <- get_morton_ordered_indices(mask_3d_array, z_order_seed)
+  mask_linear <- which(as.logical(mask_3d_array))
+  perm <- match(morton_idx, mask_linear)
+  inv_perm <- order(perm)
+
+  full_order <- get_morton_ordered_indices(array(TRUE, dim(mask_3d_array)),
+                                           z_order_seed)
+  mask_flat <- as.logical(mask_3d_array)
+  mask_flat_morton <- mask_flat[full_order]
+
+  scalings <- precompute_haar_scalings(mask_3d_array, levels)
+
   n_time <- nrow(coeff_list$root)
-  matrix(0, nrow = n_time, ncol = n_vox)
+  n_vox <- length(morton_idx)
+  reco_morton <- matrix(0, nrow = n_time, ncol = n_vox)
+
+  for (tt in seq_len(n_time)) {
+    detail_vecs <- lapply(seq_len(levels),
+                          function(lvl) coeff_list$detail[[lvl]][tt, ])
+    reco_morton[tt, ] <- inverse_lift_rcpp(
+      coeff_list$root[tt, 1],
+      detail_vecs,
+      mask_flat_morton,
+      dim(mask_3d_array),
+      levels,
+      scalings
+    )
+  }
+
+  reco_morton[, inv_perm, drop = FALSE]
 }
 
 #' Morton-ordered voxel indices from a 3D mask
