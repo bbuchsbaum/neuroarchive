@@ -55,3 +55,7 @@ inverse_lift_rcpp <- function(root_coeff, detail_coeffs_by_level, mask_flat_mort
     .Call('_neuroarchive_inverse_lift_rcpp', PACKAGE = 'neuroarchive', root_coeff, detail_coeffs_by_level, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level)
 }
 
+morton_indices_to_hash_rcpp <- function(voxelIdx) {
+    .Call('_neuroarchive_morton_indices_to_hash_rcpp', PACKAGE = 'neuroarchive', voxelIdx)
+}
+
