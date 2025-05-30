@@ -265,7 +265,7 @@ This plan assumes:
 *   Optional detail coefficient sparsification (thresholding) is functional in the forward pass.
 *   Auxiliary metadata for optimized ROI streaming (`valid_finest_blocks_L-1` map) is generated and stored.
 *   The `invert_step` can leverage this map for efficient partial loading (basic implementation).
-*   The `spat.haar_octwave.schema.json` is complete with all parameters and output fields.
+*   The `spat.haar_octwave.schema.json` is complete with all parameters and output fields, including `detail_threshold_type`, `detail_threshold_value`, the optional `valid_finest_blocks_path`, and all output metadata marked `readOnly: true`.
 *   Comprehensive unit tests cover all functionalities, including round-trips, sparsification, and basic ROI streaming behavior.
 *   Documentation (appendix, man page for DSL verb, vignette example) is created.
 *   All "tiny items" from the final review checklist are addressed.
