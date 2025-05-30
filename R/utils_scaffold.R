@@ -6,7 +6,7 @@
 #' @return Invisibly returns a list with created file paths.
 #' @export
 scaffold_transform <- function(type) {
-  stopifnot(is.character(type), length(type) == 1)
+  assert_scalar_character(type, "type")
   if (!nzchar(type)) {
     stop("type must be a non-empty string", call. = FALSE)
   }

@@ -22,7 +22,7 @@
 #' @importFrom tibble tibble
 #' @keywords internal
 discover_transforms <- function(h5_group) {
-  stopifnot(inherits(h5_group, "H5Group"))
+  assert_h5group(h5_group)
 
   obj_names <- tryCatch({
     names(h5_group)

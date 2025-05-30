@@ -91,7 +91,7 @@ required_param_cache_clear <- function() {
 
 
 default_params_impl <- function(type) {
-  stopifnot(is.character(type), length(type) == 1)
+  assert_scalar_character(type, "type")
 
   cache <- .default_param_cache
   if (exists(type, envir = cache, inherits = FALSE)) {
@@ -141,7 +141,7 @@ default_params <- memoise::memoise(default_params_impl)
 #' @return Character vector of required parameter names (may be empty).
 #' @keywords internal
 required_params <- function(type) {
-  stopifnot(is.character(type), length(type) == 1)
+  assert_scalar_character(type, "type")
 
   cache <- .required_param_cache
   if (exists(type, envir = cache, inherits = FALSE)) {
