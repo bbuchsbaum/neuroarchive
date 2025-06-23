@@ -115,8 +115,9 @@ forward_step.delta <- function(type, desc, handle) {
   plan <- handle$plan
   fname <- plan$get_next_filename(type)
   base <- tools::file_path_sans_ext(fname)
-  delta_path <- paste0("/scans/", run_id, "/deltas/", base, "/delta_stream")
-  first_path <- paste0("/scans/", run_id, "/deltas/", base, "/first_values")
+  scans_root <- lna_options("paths.scans_root")[[1]]
+  delta_path <- paste0(scans_root, run_id, "/deltas/", base, "/delta_stream")
+  first_path <- paste0(scans_root, run_id, "/deltas/", base, "/first_values")
   step_index <- plan$next_index
   
   # params_json uses the fully populated p
@@ -210,6 +211,9 @@ invert_step.delta <- function(type, desc, handle) {
 
   root <- handle$h5[["/"]]
   delta_stream <- h5_read(root, delta_path)
+  if (is.null(delta_stream)) {
+    delta_stream <- numeric(0)
+  }
 
   expected_ncols <- if (length(dims) == 1) 1 else prod(dims[-axis])
 
@@ -218,6 +222,9 @@ invert_step.delta <- function(type, desc, handle) {
 
   if (identical(ref_store, "first_value_verbatim")) {
     first_vals <- h5_read(root, first_path)
+    if (is.null(first_vals)) {
+      first_vals <- numeric(0)
+    }
   } else {
     first_vals <- array(0, dim = c(expected_rows_first_vals, expected_ncols))
   }

@@ -37,14 +37,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // hrbf_atoms_rcpp
-Eigen::SparseMatrix<float> hrbf_atoms_rcpp(const Eigen::Map<Eigen::MatrixXf> mask_xyz_world, const Eigen::Map<Eigen::MatrixXf> centres_xyz_world, const Eigen::Map<Eigen::VectorXf> sigma_vec_mm, std::string kernel_type, double value_threshold);
+Eigen::SparseMatrix<double> hrbf_atoms_rcpp(const Eigen::Map<Eigen::MatrixXd> mask_xyz_world, const Eigen::Map<Eigen::MatrixXd> centres_xyz_world, const Eigen::Map<Eigen::VectorXd> sigma_vec_mm, std::string kernel_type, double value_threshold);
 RcppExport SEXP _neuroarchive_hrbf_atoms_rcpp(SEXP mask_xyz_worldSEXP, SEXP centres_xyz_worldSEXP, SEXP sigma_vec_mmSEXP, SEXP kernel_typeSEXP, SEXP value_thresholdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXf> >::type mask_xyz_world(mask_xyz_worldSEXP);
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXf> >::type centres_xyz_world(centres_xyz_worldSEXP);
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXf> >::type sigma_vec_mm(sigma_vec_mmSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type mask_xyz_world(mask_xyz_worldSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd> >::type centres_xyz_world(centres_xyz_worldSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::VectorXd> >::type sigma_vec_mm(sigma_vec_mmSEXP);
     Rcpp::traits::input_parameter< std::string >::type kernel_type(kernel_typeSEXP);
     Rcpp::traits::input_parameter< double >::type value_threshold(value_thresholdSEXP);
     rcpp_result_gen = Rcpp::wrap(hrbf_atoms_rcpp(mask_xyz_world, centres_xyz_world, sigma_vec_mm, kernel_type, value_threshold));

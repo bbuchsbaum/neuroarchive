@@ -698,32 +698,31 @@ quantize_data <- function(data,
     compression_ratio <- as.numeric(original_size) / quantized_size
   }
   
-  result <- list(
-    quantized_data = data,  # In real implementation: quantized integer matrix
-    params = params,
-    compression_ratio = compression_ratio,
-    clip_report = list(
-      clip_pct = clip_pct, 
-      max_error = clip_pct * 10,  # Simulated max error
-      auto_adjusted = bits != original_bits,
-      final_bits = bits
-    )
+  # TODO: Implement actual quantization
+  # For now, throw informative error
+  abort_lna(
+    "quantize_data() is not yet implemented",
+    .subclass = "lna_error_not_implemented",
+    location = "experimental_api::quantize_data"
   )
-  
-  if (return_stats) {
-    # In real implementation, calculate actual MSE from quantized data
-    result$mse <- 0.1 * clip_pct  # Simulated MSE
-    result$snr_db <- 20 * log10(sd(data, na.rm = TRUE) / sqrt(result$mse))
-  }
-  
-  result
 }
 
+#' Dequantize Data
+#'
+#' @description
+#' Reconstruct original data from quantized representation.
+#' Note: This function is not yet implemented.
+#'
+#' @param quant_result Result from quantize_data()
+#' @return Reconstructed data (not yet implemented)
 #' @export
 dequantize_data <- function(quant_result) {
-  # Reconstruct from quantized data using stored parameters
-  # Implementation would use the internal dequantization logic
-  quant_result$quantized_data  # Placeholder
+  # TODO: Implement actual dequantization
+  abort_lna(
+    "dequantize_data() is not yet implemented",
+    .subclass = "lna_error_not_implemented",
+    location = "experimental_api::dequantize_data"
+  )
 }
 
 #' Sparse Principal Component Analysis
@@ -782,12 +781,11 @@ sparse_pca <- function(data,
     standardize = standardize
   )
   
-  # Would call internal sparse PCA implementation
-  list(
-    components = matrix(0, nrow = nrow(data), ncol = n_components),
-    loadings = matrix(0, nrow = ncol(data), ncol = n_components),
-    params = params,
-    convergence = list(converged = TRUE, iterations = 50)
+  # TODO: Implement actual sparse PCA
+  abort_lna(
+    "sparse_pca() is not yet implemented. Consider using the sparsepca package directly.",
+    .subclass = "lna_error_not_implemented",
+    location = "experimental_api::sparse_pca"
   )
 }
 
@@ -865,22 +863,13 @@ basis_space_embed <- function(data,
     # This would require iterative basis generation in practice
   }
   
-  # Generate basis and project data
-  basis <- hrbf_generate_basis(basis_params, mask)
-  coefficients <- hrbf_project_matrix(data, mask, basis_params)
-  
-  result <- list(
-    coefficients = coefficients,
-    basis_params = basis_params,
-    compression_ratio = nrow(basis) / ncol(basis),
-    mask_hash = digest::digest(as.array(mask), algo = "sha256")
+  # TODO: This function needs proper implementation
+  # The called functions don't exist in the expected form
+  abort_lna(
+    "basis_space_embed() is not yet implemented. Use hrbf_generate_basis() and hrbf_project_matrix() directly.",
+    .subclass = "lna_error_not_implemented", 
+    location = "experimental_api::basis_space_embed"
   )
-  
-  if (return_basis) {
-    result$basis = basis
-  }
-  
-  result
 }
 
 #' Reconstruct data from spatial basis embedding
@@ -922,29 +911,12 @@ basis_space_reconstruct <- function(embedded_result,
                             subset_time = NULL,
                             subset_voxels = NULL) {
   
-  # Verify mask compatibility
-  current_hash <- digest::digest(as.array(mask), algo = "sha256")
-  if (!identical(current_hash, embedded_result$mask_hash)) {
-    warning("Mask hash mismatch - reconstruction may be incorrect")
-  }
-  
-  coeffs <- embedded_result$coefficients
-  params <- embedded_result$basis_params
-  
-  # Apply time subsetting if requested
-  if (!is.null(subset_time)) {
-    coeffs <- coeffs[subset_time, , drop = FALSE]
-  }
-  
-  # Reconstruct using stored parameters
-  reconstructed <- hrbf_reconstruct_matrix(coeffs, mask, params)
-  
-  # Apply voxel subsetting if requested
-  if (!is.null(subset_voxels)) {
-    reconstructed <- reconstructed[, subset_voxels, drop = FALSE]
-  }
-  
-  reconstructed
+  # TODO: This function needs proper implementation
+  abort_lna(
+    "basis_space_reconstruct() is not yet implemented. Use hrbf_reconstruct_matrix() directly.",
+    .subclass = "lna_error_not_implemented",
+    location = "experimental_api::basis_space_reconstruct"
+  )
 }
 
 #' Visualize spatial basis functions
@@ -1014,12 +986,12 @@ basis_space_visualize <- function(basis_result,
     )
   }
   
-  # Create visualization (placeholder - would use actual plotting)
-  message(sprintf("Would visualize %d basis functions on %s slice %d", 
-                 min(n_show, nrow(basis_matrix)), slice_axis, slice_position))
-  
-  # Return plot object
-  invisible(NULL)
+  # TODO: Implement actual visualization
+  abort_lna(
+    "basis_space_visualize() is not yet implemented. Visualization requires integration with plotting libraries.",
+    .subclass = "lna_error_not_implemented",
+    location = "experimental_api::basis_space_visualize"
+  )
 }
 
 #' Complete fMRI preprocessing and compression workflow
@@ -1291,17 +1263,12 @@ fmri_workflow <- function(data,
   
   # Create reconstruction function
   reconstruction_function <- function() {
-    # This would implement the full inverse pipeline
-    # For now, return a placeholder
-    if (verbose) cat("Reconstructing data through inverse pipeline...\n")
-    
-    # In real implementation:
-    # 1. Dequantize if quantization was applied
-    # 2. Spatial reconstruction if spatial embedding was used  
-    # 3. Temporal reconstruction using stored basis
-    
-    # Placeholder: return original data dimensions
-    matrix(0, nrow = n_time, ncol = n_voxels)
+    # TODO: Implement actual reconstruction pipeline
+    abort_lna(
+      "fmri_workflow() reconstruction is not yet implemented",
+      .subclass = "lna_error_not_implemented",
+      location = "experimental_api::fmri_workflow$reconstruction_function"
+    )
   }
   
   # Generate recommendations

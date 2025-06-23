@@ -3,6 +3,11 @@
 \name{quant}
 \alias{quant}
 \title{Add a quantisation step to a pipeline}
+\description{
+Add a quantisation step to a pipeline that reduces the precision of the data
+by converting it to a lower bit representation. This can significantly reduce
+storage requirements while preserving most of the signal information.
+}
 \usage{
 quant(data_or_pipe, bits = NULL, method = "range", center = TRUE,
       scale_scope = "global", allow_clip = FALSE, ...)
@@ -17,8 +22,7 @@ quant(data_or_pipe, bits = NULL, method = "range", center = TRUE,
   \item{...}{Additional parameters forwarded to the transform.}
 }
 \value{An \code{lna_pipeline} object with the quant step appended.}
-\examples
-{\donttest{
+\examples{\donttest{
 pipe <- as_pipeline(matrix(rnorm(10), 5, 2))
 pipe <- quant(pipe, bits = 4, allow_clip = TRUE)
 }}

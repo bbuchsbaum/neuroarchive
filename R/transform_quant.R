@@ -74,7 +74,11 @@ forward_step.quant <- function(type, desc, handle) {
 
   if (identical(scope, "voxel")) {
     if (length(dim(input_data)) < 4) {
-      warning("scale_scope='voxel' requires 4D data; falling back to global")
+      warn_lna(
+        "scale_scope='voxel' requires 4D data; falling back to global",
+        .subclass = "lna_warning_parameter_adjustment",
+        location = "forward_step.quant"
+      )
       scope <- "global"
     }
   }
@@ -106,12 +110,13 @@ forward_step.quant <- function(type, desc, handle) {
         location = "forward_step.quant:clipping"
       )
     } else if (clip_pct > clip_warn_pct) {
-      warning(
+      warn_lna(
         sprintf(
           "Clipping %.2f%% exceeds warning threshold %.1f%%",
           clip_pct, clip_warn_pct
         ),
-        call. = FALSE
+        .subclass = "lna_warning_data_quality",
+        location = "forward_step.quant:clipping"
       )
     }
     handle$meta$quant_stats <- list(
@@ -129,9 +134,10 @@ forward_step.quant <- function(type, desc, handle) {
 
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
-  data_path <- paste0("/scans/", run_id, "/quantized")
-  scale_path <- paste0("/scans/", run_id, "/quant_scale")
-  offset_path <- paste0("/scans/", run_id, "/quant_offset")
+  scans_root <- lna_options("paths.scans_root")[[1]]
+  data_path <- paste0(scans_root, run_id, "/quantized")
+  scale_path <- paste0(scans_root, run_id, "/quant_scale")
+  offset_path <- paste0(scans_root, run_id, "/quant_offset")
 
   blockwise <- identical(scope, "voxel") && !is.null(handle$h5) && handle$h5$is_valid
   if (blockwise) {
@@ -266,7 +272,8 @@ forward_step.quant <- function(type, desc, handle) {
   fname <- plan$get_next_filename("quant")
   base_name <- tools::file_path_sans_ext(fname)
 
-  report_path <- paste0("/transforms/", base_name, "_report.json")
+  transforms_root <- lna_options("paths.transforms_root")[[1]]
+  report_path <- paste0(transforms_root, base_name, "_report.json")
   opts$report_path <- report_path
   json_report_str <- jsonlite::toJSON(quant_report, auto_unbox = TRUE, pretty = TRUE)
   gzipped_report <- memCompress(charToRaw(json_report_str), type = "gzip")
@@ -280,7 +287,11 @@ forward_step.quant <- function(type, desc, handle) {
       h5_attr_write(dset_rep, "compression", "gzip")
       dset_rep$close()
     }, error = function(e) {
-      stop(paste0("Error writing quantization report: ", conditionMessage(e)), call. = FALSE)
+      abort_lna(
+        sprintf("Error writing quantization report: %s", conditionMessage(e)),
+        .subclass = "lna_error_io",
+        location = "forward_step.quant:write_report"
+      )
     })
     payload_key_report <- ""
   } else {
@@ -344,9 +355,10 @@ forward_step.quant <- function(type, desc, handle) {
 invert_step.quant <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
-  data_path <- paste0("/scans/", run_id, "/quantized")
-  scale_path <- paste0("/scans/", run_id, "/quant_scale")
-  offset_path <- paste0("/scans/", run_id, "/quant_offset")
+  scans_root <- lna_options("paths.scans_root")[[1]]
+  data_path <- paste0(scans_root, run_id, "/quantized")
+  scale_path <- paste0(scans_root, run_id, "/quant_scale")
+  offset_path <- paste0(scans_root, run_id, "/quant_offset")
 
   root <- handle$h5[["/"]]
   dset <- NULL
@@ -357,13 +369,19 @@ invert_step.quant <- function(type, desc, handle) {
     if (h5_attr_exists(dset, "quant_bits")) {
       attr_bits <- h5_attr_read(dset, "quant_bits")
     } else {
-      warning("quant_bits HDF5 attribute missing; using descriptor value.",
-              call. = FALSE)
+      warn_lna(
+        "quant_bits HDF5 attribute missing; using descriptor value",
+        .subclass = "lna_warning_missing_attribute",
+        location = "invert_step.quant"
+      )
     }
     q <- dset$read()
   }, error = function(e) {
-    stop(paste0("Error reading dataset '", data_path, "': ",
-                conditionMessage(e)), call. = FALSE)
+    abort_lna(
+      sprintf("Error reading dataset '%s': %s", data_path, conditionMessage(e)),
+      .subclass = "lna_error_io",
+      location = "invert_step.quant"
+    )
   }, finally = {
     if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
   })
@@ -399,7 +417,13 @@ invert_step.quant <- function(type, desc, handle) {
 #' Compute quantization parameters globally
 #' @keywords internal
 .quantize_global <- function(x, bits, method, center) {
-  stopifnot(is.numeric(x))
+  if (!is.numeric(x)) {
+    abort_lna(
+      "x must be numeric",
+      .subclass = "lna_error_validation",
+      location = ".quantize_global"
+    )
+  }
   if (any(!is.finite(x))) {
     abort_lna(
       "non-finite values found in input",

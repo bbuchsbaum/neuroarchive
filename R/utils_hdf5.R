@@ -4,7 +4,6 @@
 #'   and deleting attributes associated with HDF5 objects (groups or datasets).
 #'
 #' @import hdf5r
-#' @importFrom hdf5r H5P_DATASET_XFER H5P_FILE_CREATE H5P_DEFAULT
 #' @keywords internal
 
 # Check if the object is a valid hdf5r object that can hold attributes
@@ -20,14 +19,30 @@
 #' @return Invisibly returns NULL.
 #' @details Overwrites the attribute if it already exists.
 h5_attr_write <- function(h5_obj, name, value) {
-  stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  if (!.is_valid_h5_object(h5_obj)) {
+    abort_lna(
+      "h5_obj must be an H5Group or H5D object",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_write"
+    )
+  }
+  if (!is.character(name) || length(name) != 1) {
+    abort_lna(
+      "Attribute name must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_write"
+    )
+  }
 
   # Use hdf5r's assignment function, which handles overwriting
   tryCatch({
     hdf5r::h5attr(h5_obj, name) <- value
   }, error = function(e) {
-    stop(paste("Error writing attribute '", name, "': ", conditionMessage(e)), call. = FALSE)
+    abort_lna(
+      sprintf("Error writing attribute '%s': %s", name, conditionMessage(e)),
+      .subclass = "lna_error_io",
+      location = "h5_attr_write"
+    )
   })
 
   invisible(NULL)
@@ -40,18 +55,38 @@ h5_attr_write <- function(h5_obj, name, value) {
 #' @return The value of the attribute.
 #' @details Throws an error if the attribute does not exist.
 h5_attr_read <- function(h5_obj, name) {
-  stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  if (!.is_valid_h5_object(h5_obj)) {
+    abort_lna(
+      "h5_obj must be an H5Group or H5D object",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_read"
+    )
+  }
+  if (!is.character(name) || length(name) != 1) {
+    abort_lna(
+      "Attribute name must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_read"
+    )
+  }
 
   if (!h5_attr_exists(h5_obj, name)) {
-    stop(paste("Attribute '", name, "' not found."), call. = FALSE)
+    abort_lna(
+      sprintf("Attribute '%s' not found", name),
+      .subclass = "lna_error_missing_data",
+      location = "h5_attr_read"
+    )
   }
 
   # Use hdf5r's read function
   tryCatch({
     hdf5r::h5attr(h5_obj, name)
   }, error = function(e) {
-    stop(paste("Error reading attribute '", name, "': ", conditionMessage(e)), call. = FALSE)
+    abort_lna(
+      sprintf("Error reading attribute '%s': %s", name, conditionMessage(e)),
+      .subclass = "lna_error_io",
+      location = "h5_attr_read"
+    )
   })
 }
 
@@ -61,14 +96,30 @@ h5_attr_read <- function(h5_obj, name) {
 #' @param name The name of the attribute.
 #' @return Logical TRUE if the attribute exists, FALSE otherwise.
 h5_attr_exists <- function(h5_obj, name) {
-  stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  if (!.is_valid_h5_object(h5_obj)) {
+    abort_lna(
+      "h5_obj must be an H5Group or H5D object",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_exists"
+    )
+  }
+  if (!is.character(name) || length(name) != 1) {
+    abort_lna(
+      "Attribute name must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_exists"
+    )
+  }
 
   tryCatch({
     h5_obj$attr_exists(name)
   }, error = function(e) {
     # Should generally not error, but catch just in case
-    stop(paste("Error checking existence of attribute '", name, "': ", conditionMessage(e)), call. = FALSE)
+    abort_lna(
+      sprintf("Error checking existence of attribute '%s': %s", name, conditionMessage(e)),
+      .subclass = "lna_error_io",
+      location = "h5_attr_exists"
+    )
   })
 }
 
@@ -79,15 +130,31 @@ h5_attr_exists <- function(h5_obj, name) {
 #' @return Invisibly returns NULL.
 #' @details Does nothing if the attribute does not exist.
 h5_attr_delete <- function(h5_obj, name) {
-  stopifnot("h5_obj must be an H5Group or H5D object" = .is_valid_h5_object(h5_obj))
-  stopifnot(is.character(name), length(name) == 1)
+  if (!.is_valid_h5_object(h5_obj)) {
+    abort_lna(
+      "h5_obj must be an H5Group or H5D object",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_delete"
+    )
+  }
+  if (!is.character(name) || length(name) != 1) {
+    abort_lna(
+      "Attribute name must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_attr_delete"
+    )
+  }
 
   # Check existence first to avoid potential error in attr_delete if it doesn't exist
   if (h5_attr_exists(h5_obj, name)) {
       tryCatch({
         h5_obj$attr_delete(name)
       }, error = function(e) {
-        stop(paste("Error deleting attribute '", name, "': ", conditionMessage(e)), call. = FALSE)
+        abort_lna(
+          sprintf("Error deleting attribute '%s': %s", name, conditionMessage(e)),
+          .subclass = "lna_error_io",
+          location = "h5_attr_delete"
+        )
       })
   }
 
@@ -112,7 +179,11 @@ guess_chunk_dims <- function(dims, dtype_size) {
   # Ensure dims is a valid integer vector
   dims <- as.integer(dims)
   if (length(dims) == 0) {
-    stop("Invalid dimensions for chunk calculation")
+    abort_lna(
+      "Invalid dimensions for chunk calculation: empty dimension vector",
+      .subclass = "lna_error_validation",
+      location = "guess_chunk_dims"
+    )
   }
   
   # Handle empty dimensions - any dimension can be 0 for empty arrays
@@ -123,7 +194,12 @@ guess_chunk_dims <- function(dims, dtype_size) {
   
   # Now check for invalid negative dimensions
   if (any(dims < 1)) {
-    stop("Invalid dimensions for chunk calculation")
+    abort_lna(
+      sprintf("Invalid dimensions for chunk calculation: negative values found (%s)", 
+              paste(dims[dims < 1], collapse = ", ")),
+      .subclass = "lna_error_validation",
+      location = "guess_chunk_dims"
+    )
   }
   
   chunk <- tryCatch({
@@ -152,7 +228,11 @@ guess_chunk_dims <- function(dims, dtype_size) {
   }
 
   if (chunk_bytes > 256 * 1024^2) {
-    warning("Auto-reducing chunk size to meet HDF5 limits")
+    warn_lna(
+      "Auto-reducing chunk size to meet HDF5 limits",
+      .subclass = "lna_warning_performance",
+      location = "guess_chunk_dims"
+    )
     while (chunk_bytes > 256 * 1024^2 && chunk[1] > 1) {
       chunk[1] <- ceiling(chunk[1] / 2)
       chunk_bytes <- prod(chunk) * dtype_size
@@ -183,7 +263,13 @@ guess_chunk_dims <- function(dims, dtype_size) {
 #' @return Integer vector of reduced chunk dimensions.
 #' @keywords internal
 reduce_chunk_dims <- function(chunk, dtype_size, target_bytes) {
-  stopifnot(is.numeric(chunk))
+  if (!is.numeric(chunk)) {
+    abort_lna(
+      "Chunk dimensions must be numeric",
+      .subclass = "lna_error_validation",
+      location = "reduce_chunk_dims"
+    )
+  }
   chunk <- as.integer(chunk)
   chunk_bytes <- prod(chunk) * dtype_size
   while (chunk_bytes > target_bytes && chunk[1] > 1) {
@@ -209,14 +295,44 @@ reduce_chunk_dims <- function(chunk, dtype_size, target_bytes) {
 #' @keywords internal
 h5_create_empty_dataset <- function(h5_group, path, dims, dtype,
                                     chunk_dims = NULL) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
-  stopifnot(is.numeric(dims))
-  stopifnot(is.character(dtype) || inherits(dtype, "H5T"))
+  if (!inherits(h5_group, "H5Group")) {
+    abort_lna(
+      "h5_group must be an H5Group object",
+      .subclass = "lna_error_validation",
+      location = "h5_create_empty_dataset"
+    )
+  }
+  if (!is.character(path) || length(path) != 1) {
+    abort_lna(
+      "Path must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_create_empty_dataset"
+    )
+  }
+  if (!is.numeric(dims)) {
+    abort_lna(
+      "Dimensions must be numeric",
+      .subclass = "lna_error_validation",
+      location = "h5_create_empty_dataset"
+    )
+  }
+  if (!is.character(dtype) && !inherits(dtype, "H5T")) {
+    abort_lna(
+      "dtype must be a character string or H5T object",
+      .subclass = "lna_error_validation",
+      location = "h5_create_empty_dataset"
+    )
+  }
 
   parts <- strsplit(path, "/")[[1]]
   parts <- parts[nzchar(parts)]
-  stopifnot(length(parts) > 0)
+  if (length(parts) == 0) {
+    abort_lna(
+      "Path must contain at least one component",
+      .subclass = "lna_error_validation",
+      location = "h5_create_empty_dataset"
+    )
+  }
   ds_name <- tail(parts, 1)
 
   grp <- h5_group
@@ -257,25 +373,52 @@ h5_create_empty_dataset <- function(h5_group, path, dims, dtype,
 #' @param data Numeric matrix/array to write.
 #' @param chunk_dims Optional integer vector specifying HDF5 chunk dimensions.
 #' @param compression_level Integer 0–9 giving gzip compression level.
+#' @param dtype Optional data type specification for HDF5 storage.
 #' @return Invisibly returns `TRUE` on success.
 h5_write_dataset <- function(h5_group, path, data,
                              chunk_dims = NULL, compression_level = 0,
                              dtype = NULL) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
-  stopifnot(is.numeric(compression_level), length(compression_level) == 1)
+  if (!inherits(h5_group, "H5Group")) {
+    abort_lna(
+      "h5_group must be an H5Group object",
+      .subclass = "lna_error_validation",
+      location = "h5_write_dataset"
+    )
+  }
+  if (!is.character(path) || length(path) != 1) {
+    abort_lna(
+      "Path must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_write_dataset"
+    )
+  }
+  if (!is.numeric(compression_level) || length(compression_level) != 1) {
+    abort_lna(
+      "Compression level must be a single numeric value",
+      .subclass = "lna_error_validation",
+      location = "h5_write_dataset"
+    )
+  }
 
   if (!is.array(data)) {
     if (is.vector(data)) {
       dim(data) <- length(data)
     } else {
-      stop("`data` must be a matrix or array")
+      abort_lna(
+        "`data` must be a matrix or array",
+        .subclass = "lna_error_validation",
+        location = "h5_write_dataset"
+      )
     }
   }
   
   data_dims <- dim(data) # These are the dimensions of the incoming data
   if (is.null(data_dims) || length(data_dims) == 0) {
-    stop("Unable to determine valid dimensions for data")
+    abort_lna(
+      "Unable to determine valid dimensions for data",
+      .subclass = "lna_error_validation",
+      location = "h5_write_dataset"
+    )
   }
   
   is_empty_array <- any(data_dims == 0)
@@ -292,7 +435,13 @@ h5_write_dataset <- function(h5_group, path, data,
 
   parts <- strsplit(path, "/")[[1]]
   parts <- parts[nzchar(parts)]
-  stopifnot(length(parts) > 0)
+  if (length(parts) == 0) {
+    abort_lna(
+      "Path must contain at least one component",
+      .subclass = "lna_error_validation",
+      location = "h5_write_dataset"
+    )
+  }
   ds_name <- tail(parts, 1)
 
   grp <- h5_group
@@ -328,7 +477,11 @@ h5_write_dataset <- function(h5_group, path, data,
         grp$link_delete(ds_name)
       } else {
         existing_obj$close()
-        stop(sprintf("Object '%s' already exists and is not a dataset", ds_name))
+        abort_lna(
+          sprintf("Object '%s' already exists and is not a dataset", ds_name),
+          .subclass = "lna_error_file_exists",
+          location = "h5_write_dataset"
+        )
       }
     }
     
@@ -361,7 +514,6 @@ h5_write_dataset <- function(h5_group, path, data,
   invisible(TRUE)
 }
 
-#' @importFrom hdf5r H5File
 #' Open an HDF5 file with basic error handling
 #'
 #' Wrapper around `hdf5r::H5File$new` that throws a clearer error message on
@@ -375,15 +527,28 @@ h5_write_dataset <- function(h5_group, path, data,
 #'   writing in parallel.
 #' @keywords internal
 open_h5 <- function(path, mode = "a") {
-  stopifnot(is.character(path), length(path) == 1)
-  stopifnot(is.character(mode), length(mode) == 1)
+  if (!is.character(path) || length(path) != 1) {
+    abort_lna(
+      "Path must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "open_h5"
+    )
+  }
+  if (!is.character(mode) || length(mode) != 1) {
+    abort_lna(
+      "Mode must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "open_h5"
+    )
+  }
 
   tryCatch(
     hdf5r::H5File$new(path, mode = mode),
     error = function(e) {
-      stop(
+      abort_lna(
         sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
-        call. = FALSE
+        .subclass = "lna_error_io",
+        location = "open_h5"
       )
     }
   )
@@ -436,8 +601,20 @@ path_exists_safely <- function(group, path_name) {
 #' @return Invisibly returns `NULL` when the path exists.
 #' @keywords internal
 assert_h5_path <- function(h5, path) {
-  stopifnot(inherits(h5, c("H5File", "H5Group")))
-  stopifnot(is.character(path), length(path) == 1)
+  if (!inherits(h5, c("H5File", "H5Group"))) {
+    abort_lna(
+      "h5 must be an H5File or H5Group object",
+      .subclass = "lna_error_validation",
+      location = "assert_h5_path"
+    )
+  }
+  if (!is.character(path) || length(path) != 1) {
+    abort_lna(
+      "Path must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "assert_h5_path"
+    )
+  }
 
   if (!h5$exists(path)) {
     abort_lna(
@@ -461,8 +638,20 @@ assert_h5_path <- function(h5, path) {
 #' @keywords internal
 path_exists_safely <- function(h5, path) {
   if (is.null(path) || !nzchar(path)) return(FALSE)
-  stopifnot(inherits(h5, c("H5File", "H5Group")))
-  stopifnot(is.character(path), length(path) == 1)
+  if (!inherits(h5, c("H5File", "H5Group"))) {
+    abort_lna(
+      "h5 must be an H5File or H5Group object",
+      .subclass = "lna_error_validation",
+      location = "path_exists_safely"
+    )
+  }
+  if (!is.character(path) || length(path) != 1) {
+    abort_lna(
+      "Path must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "path_exists_safely"
+    )
+  }
 
 
   tryCatch({
@@ -483,7 +672,13 @@ map_dtype <- function(dtype) {
     return(dtype)
   }
 
-  stopifnot(is.character(dtype), length(dtype) == 1)
+  if (!is.character(dtype) || length(dtype) != 1) {
+    abort_lna(
+      "dtype must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "map_dtype"
+    )
+  }
 
   switch(dtype,
     float32 = hdf5r::h5types$H5T_IEEE_F32LE,
@@ -536,11 +731,27 @@ guess_h5_type <- function(x) {
 #' @return The contents of the dataset.
 #' @details Throws an error if the dataset does not exist or reading fails.
 h5_read <- function(h5_group, path) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
+  if (!inherits(h5_group, "H5Group")) {
+    abort_lna(
+      "h5_group must be an H5Group object",
+      .subclass = "lna_error_validation",
+      location = "h5_read"
+    )
+  }
+  if (!is.character(path) || length(path) != 1) {
+    abort_lna(
+      "Path must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_read"
+    )
+  }
 
   if (!h5_group$exists(path)) {
-    stop(paste0("Dataset '", path, "' not found."), call. = FALSE)
+    abort_lna(
+      sprintf("Dataset '%s' not found", path),
+      .subclass = "lna_error_missing_path",
+      location = "h5_read"
+    )
   }
 
   dset <- NULL
@@ -569,12 +780,20 @@ h5_read <- function(h5_group, path) {
         result <- array(numeric(0), dim = orig_dims)
       } else {
         # This case should ideally not happen if writing was correct
-        warning(sprintf("Dataset '%s' marked as empty placeholder but data format is unexpected. Result class: %s, dim: %s, values: %s. Returning as is.", 
-                        path, class(result)[1], paste(dim(result), collapse="x"), paste(result, collapse=",")))
+        warn_lna(
+          sprintf("Dataset '%s' marked as empty placeholder but data format is unexpected. Result class: %s, dim: %s, values: %s. Returning as is.", 
+                  path, class(result)[1], paste(dim(result), collapse="x"), paste(result, collapse=",")),
+          .subclass = "lna_warning_data_format",
+          location = "h5_read"
+        )
       }
     }
   }, error = function(e) {
-    stop(paste0("Error reading dataset '", path, "': ", conditionMessage(e)), call. = FALSE)
+    abort_lna(
+      sprintf("Error reading dataset '%s': %s", path, conditionMessage(e)),
+      .subclass = "lna_error_io",
+      location = "h5_read"
+    )
   }, finally = {
     if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
   })
@@ -590,12 +809,34 @@ h5_read <- function(h5_group, path) {
 #' @return The selected subset of the dataset.
 #' @details Throws an error if the dataset does not exist or reading fails.
 h5_read_subset <- function(h5_group, path, index) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(path), length(path) == 1)
-  stopifnot(is.list(index))
+  if (!inherits(h5_group, "H5Group")) {
+    abort_lna(
+      "h5_group must be an H5Group object",
+      .subclass = "lna_error_validation",
+      location = "h5_read_subset"
+    )
+  }
+  if (!is.character(path) || length(path) != 1) {
+    abort_lna(
+      "Path must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "h5_read_subset"
+    )
+  }
+  if (!is.list(index)) {
+    abort_lna(
+      "Index must be a list",
+      .subclass = "lna_error_validation",
+      location = "h5_read_subset"
+    )
+  }
 
   if (!h5_group$exists(path)) {
-    stop(paste0("Dataset '", path, "' not found."), call. = FALSE)
+    abort_lna(
+      sprintf("Dataset '%s' not found", path),
+      .subclass = "lna_error_missing_path",
+      location = "h5_read_subset"
+    )
   }
 
   dset <- NULL
@@ -604,7 +845,11 @@ h5_read_subset <- function(h5_group, path, index) {
     dset <- h5_group[[path]]
     result <- dset$read(args = index)
   }, error = function(e) {
-    stop(paste0("Error reading subset from dataset '", path, "': ", conditionMessage(e)), call. = FALSE)
+    abort_lna(
+      sprintf("Error reading subset from dataset '%s': %s", path, conditionMessage(e)),
+      .subclass = "lna_error_io",
+      location = "h5_read_subset"
+    )
   }, finally = {
     if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
   })
@@ -620,7 +865,13 @@ h5_read_subset <- function(h5_group, path, index) {
 #' @return Character vector of run identifiers sorted alphabetically.
 #' @keywords internal
 discover_run_ids <- function(h5) {
-  stopifnot(inherits(h5, "H5File"))
+  if (!inherits(h5, "H5File")) {
+    abort_lna(
+      "h5 must be an H5File object",
+      .subclass = "lna_error_validation",
+      location = "discover_run_ids"
+    )
+  }
   if (!h5$exists("scans")) {
     return(character())
   }
@@ -663,7 +914,13 @@ resolve_run_ids <- function(patterns, available) {
 #' @return The validated \code{run_id} string.
 #' @keywords internal
 sanitize_run_id <- function(run_id) {
-  stopifnot(is.character(run_id), length(run_id) == 1)
+  if (!is.character(run_id) || length(run_id) != 1) {
+    abort_lna(
+      "run_id must be a single character string",
+      .subclass = "lna_error_validation",
+      location = "sanitize_run_id"
+    )
+  }
   if (grepl("/|\\\\", run_id)) {
     abort_lna(
       "run_id must not contain path separators",

@@ -1,0 +1,98 @@
+LNAFacade               LNAFacade class
+apply_template          Apply a registered pipeline template
+as_pipeline             Initiate an LNA pipeline
+basis_space_centers     Generate Poisson-disk sampled spatial basis
+                        centers
+basis_space_embed       Embed data using spatial basis
+basis_space_reconstruct
+                        Reconstruct data from spatial basis embedding
+basis_space_visualize   Visualize spatial basis functions
+basis_time              Create temporal basis functions
+benchmark_sobel3d_sizes
+                        Benchmark Sobel3D on different volume sizes
+check_edge_adaptive_performance
+                        Check edge-adaptive HRBF sampling availability
+                        and performance
+check_transform_implementation
+                        Check transform implementation for namespace
+                        collisions
+compress_fmri           Convenience alias for write_lna
+delta                   Finite Difference (Delta) DSL verb
+delta_transform         Apply delta (temporal difference) transform
+dequantize_data         Dequantize Data
+embed                   Embed DSL verb
+experimental_api        Experimental User-Facing API
+fmri_workflow           Complete fMRI preprocessing and compression
+                        workflow
+get_openmp_threads      Get OpenMP thread count
+get_transform_capabilities
+                        Get transform capabilities
+get_transform_info      Get transform information
+guess_chunk_dims        Guess reasonable HDF5 chunk dimensions
+h5_attr_delete          Delete an attribute from an HDF5 object.
+h5_attr_exists          Check if an attribute exists on an HDF5 object.
+h5_attr_read            Read an attribute from an HDF5 object.
+h5_attr_write           Write an attribute to an HDF5 object.
+h5_read                 Read a dataset from an HDF5 group
+h5_read_subset          Read a subset of a dataset from an HDF5 group
+h5_write_dataset        Write a dataset to an HDF5 group
+hello                   Hello, World!
+hrbf                    Hierarchical Radial Basis Function DSL verb
+hrbf_generate_basis     HRBF Core Utilities
+invert_step             Apply an inverse transform step.
+is_transform_registered
+                        Check if transform is registered
+list_transforms         List registered transforms
+lna_default.basis       Default parameters for the 'basis' transform
+lna_default.basis.empirical_hrbf_compressed
+                        Default parameters for the
+                        'basis.empirical_hrbf_compressed' transform
+lna_default.delta       Default parameters for the 'delta' transform
+lna_default.embed       Default parameters for the 'embed' transform
+lna_default.quant       Default parameters for the 'quant' transform
+lna_default.spat.hrbf   Default parameters for the 'spat.hrbf'
+                        transform
+lna_default.spat.hrbf_project
+                        Default parameters for the 'spat.hrbf_project'
+                        transform
+lna_default.temporal    Default parameters for the 'temporal' transform
+lna_get_quant_report    Retrieve a quantization report
+lna_get_transform_report
+                        Retrieve a transform report from an LNA file
+lna_options             Package Options for LNA
+lna_reader              Class for lazy LNA reading
+lna_template_registry_env
+                        DSL Template Registry
+lna_verb_registry_env   DSL Verb Registry
+lna_write               Execute an LNA pipeline
+neuroim2_space_to_lna_header
+                        Convert a neuroim2 NeuroSpace to an LNA header
+                        list
+open_lna                Convenience alias for read_lna
+pca                     Principal Component Analysis DSL verb
+quant                   Add a quantisation step to a pipeline
+quantize_data           Quantize data matrix with advanced compression
+                        options
+rcpp_control            Control Rcpp acceleration usage
+read_lna                Read data from an LNA file
+scaffold_transform      Scaffold files for a custom transform
+sobel3d_magnitude_rcpp
+                        Fast 3D Sobel Gradient Magnitude
+sobel3d_performance     Fast 3D Sobel Gradient Computation
+sparse_pca              Sparse Principal Component Analysis
+suggest_dpss_fmri       Suggest DPSS parameters for fMRI applications
+temporal                Temporal Basis Projection DSL verb
+temporal_basis          Generate temporal basis matrix
+temporal_basis.dpss     DPSS Temporal Basis for fMRI
+temporal_basis.modwt    MODWT Temporal Basis for fMRI
+temporal_project.modwt
+                        MODWT Projection with Advanced fMRI-Optimized
+                        Thresholding
+temporal_project_denoise
+                        Project data onto temporal basis with optional
+                        denoising
+transform_min_dims      Minimum input dimensionality for a transform
+transform_summary       Get transform summary
+validate_lna            Validate an LNA file
+write_json_descriptor   Write a JSON descriptor to an HDF5 group.
+write_lna               Write data to an LNA file

@@ -24,7 +24,13 @@ Plan <- R6::R6Class("Plan",
     #' Initialize a new Plan object.
     #' @param origin_label A string label for the origin (e.g., run ID).
     initialize = function(origin_label = "global") {
-      stopifnot(is.character(origin_label), length(origin_label) == 1)
+      if (!is.character(origin_label) || length(origin_label) != 1) {
+        abort_lna(
+          "origin_label must be a single character string",
+          .subclass = "lna_error_validation",
+          location = "Plan$initialize"
+        )
+      }
       self$datasets <- tibble::tibble(
         path = character(),
         role = character(),
@@ -51,10 +57,26 @@ Plan <- R6::R6Class("Plan",
     #'   same key will be replaced. Defaults to `FALSE` which raises an error on
     #'   duplicates.
     add_payload = function(key, value, overwrite = FALSE) {
-      stopifnot(is.character(key), length(key) == 1)
-      stopifnot(is.logical(overwrite), length(overwrite) == 1)
+      if (!is.character(key) || length(key) != 1) {
+        abort_lna(
+          "key must be a single character string",
+          .subclass = "lna_error_validation",
+          location = "Plan$add_payload"
+        )
+      }
+      if (!is.logical(overwrite) || length(overwrite) != 1) {
+        abort_lna(
+          "overwrite must be a single logical value",
+          .subclass = "lna_error_validation",
+          location = "Plan$add_payload"
+        )
+      }
       if (key %in% names(self$payloads) && !overwrite) {
-        stop(paste("Payload key '", key, "' already exists in plan.", sep = ""))
+        abort_lna(
+          sprintf("Payload key '%s' already exists in plan", key),
+          .subclass = "lna_error_duplicate_key",
+          location = "Plan$add_payload"
+        )
       }
       self$payloads[[key]] <- value
       invisible(self)
@@ -74,27 +96,51 @@ Plan <- R6::R6Class("Plan",
     #'   "uint8", "uint16").
     add_dataset_def = function(path, role, producer, origin, step_index, params_json, payload_key, write_mode, dtype = NA_character_) {
       # Basic type checks with additional validation
-      stopifnot(
-        is.character(path), length(path) == 1,
-        is.character(role), length(role) == 1,
-        is.character(producer), length(producer) == 1,
-        is.character(origin), length(origin) == 1,
-        is.numeric(step_index), length(step_index) == 1, !is.na(step_index), step_index %% 1 == 0,
-        is.character(params_json), length(params_json) == 1,
-        is.character(payload_key), length(payload_key) == 1,
-        is.character(write_mode), length(write_mode) == 1,
-        is.character(dtype), length(dtype) == 1
-      )
+      if (!is.character(path) || length(path) != 1) {
+        abort_lna("path must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.character(role) || length(role) != 1) {
+        abort_lna("role must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.character(producer) || length(producer) != 1) {
+        abort_lna("producer must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.character(origin) || length(origin) != 1) {
+        abort_lna("origin must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.numeric(step_index) || length(step_index) != 1 || is.na(step_index) || step_index %% 1 != 0) {
+        abort_lna("step_index must be a single integer value", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.character(params_json) || length(params_json) != 1) {
+        abort_lna("params_json must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.character(payload_key) || length(payload_key) != 1) {
+        abort_lna("payload_key must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.character(write_mode) || length(write_mode) != 1) {
+        abort_lna("write_mode must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
+      if (!is.character(dtype) || length(dtype) != 1) {
+        abort_lna("dtype must be a single character string", .subclass = "lna_error_validation", location = "Plan$add_dataset_def")
+      }
 
       # Validate write_mode values
       if (!write_mode %in% c("eager", "stream")) {
-        stop("write_mode must be either 'eager' or 'stream'")
+        abort_lna(
+          "write_mode must be either 'eager' or 'stream'",
+          .subclass = "lna_error_validation",
+          location = "Plan$add_dataset_def"
+        )
       }
 
       # Validate JSON
       valid_json <- jsonlite::validate(params_json)
       if (!isTRUE(valid_json)) {
-        stop(paste("Invalid params_json:", valid_json))
+        abort_lna(
+          sprintf("Invalid params_json: %s", as.character(valid_json)),
+          .subclass = "lna_error_validation",
+          location = "Plan$add_dataset_def"
+        )
       }
 
       self$datasets <- tibble::add_row(
@@ -118,12 +164,26 @@ Plan <- R6::R6Class("Plan",
     #' @param transform_name Character string, name for the descriptor (e.g., "00_type.json").
     #' @param desc_list List, the descriptor content.
     add_descriptor = function(transform_name, desc_list) {
-      stopifnot(
-        is.character(transform_name), length(transform_name) == 1,
-        is.list(desc_list)
-      )
+      if (!is.character(transform_name) || length(transform_name) != 1) {
+        abort_lna(
+          "transform_name must be a single character string",
+          .subclass = "lna_error_validation",
+          location = "Plan$add_descriptor"
+        )
+      }
+      if (!is.list(desc_list)) {
+        abort_lna(
+          "desc_list must be a list",
+          .subclass = "lna_error_validation",
+          location = "Plan$add_descriptor"
+        )
+      }
       if (transform_name %in% names(self$descriptors)) {
-        stop(paste("Descriptor name '", transform_name, "' already exists in plan.", sep = ""))
+        abort_lna(
+          sprintf("Descriptor name '%s' already exists in plan", transform_name),
+          .subclass = "lna_error_duplicate_key",
+          location = "Plan$add_descriptor"
+        )
       }
       self$descriptors[[transform_name]] <- desc_list
       self$next_index <- self$next_index + 1L
@@ -135,19 +195,29 @@ Plan <- R6::R6Class("Plan",
     #' @param type Character string, the transform type.
     #' @return Character string (e.g., "00_type.json").
     get_next_filename = function(type) {
-      stopifnot(is.character(type), length(type) == 1)
+      if (!is.character(type) || length(type) != 1) {
+        abort_lna(
+          "type must be a single character string",
+          .subclass = "lna_error_validation",
+          location = "Plan$get_next_filename"
+        )
+      }
 
       if (grepl("..", type, fixed = TRUE) || grepl("/", type, fixed = TRUE) || grepl("\\", type, fixed = TRUE)) {
-        stop(sprintf(
-          "Invalid characters found in type '%s'", type
-        ), call. = FALSE)
+        abort_lna(
+          sprintf("Invalid characters found in type '%s'", type),
+          .subclass = "lna_error_validation",
+          location = "Plan$get_next_filename"
+        )
       }
 
       safe_pat <- "^[A-Za-z][A-Za-z0-9_.]*$"
       if (!grepl(safe_pat, type)) {
-        stop(sprintf(
-          "Invalid transform type '%s'. Must match %s", type, safe_pat
-        ), call. = FALSE)
+        abort_lna(
+          sprintf("Invalid transform type '%s'. Must match %s", type, safe_pat),
+          .subclass = "lna_error_validation",
+          location = "Plan$get_next_filename"
+        )
       }
 
       index_str <- sprintf("%02d", self$next_index)
@@ -178,7 +248,13 @@ Plan <- R6::R6Class("Plan",
     #' @param run_id Optional run identifier. Defaults to "run-01" when neither
     #'   `run_id` nor `origin_label` specifies a run pattern.
     import_from_array = function(x, run_id = NULL) {
-      stopifnot(is.array(x))
+      if (!is.array(x)) {
+        abort_lna(
+          "x must be an array",
+          .subclass = "lna_error_validation",
+          location = "Plan$import_from_array"
+        )
+      }
       rid <- if (!is.null(run_id)) {
         run_id
       } else if (grepl("^run-[0-9]+$", self$origin_label)) {
@@ -206,9 +282,19 @@ Plan <- R6::R6Class("Plan",
     #' Mark a payload as written (e.g., by setting its value to NULL).
     #' @param key Character string, the key of the payload to mark.
     mark_payload_written = function(key) {
-      stopifnot(is.character(key), length(key) == 1)
+      if (!is.character(key) || length(key) != 1) {
+        abort_lna(
+          "key must be a single character string",
+          .subclass = "lna_error_validation",
+          location = "Plan$mark_payload_written"
+        )
+      }
       if (!key %in% names(self$payloads)) {
-        warning(paste("Payload key '", key, "' not found in plan when trying to mark as written.", sep = ""))
+        warn_lna(
+          sprintf("Payload key '%s' not found in plan when trying to mark as written", key),
+          .subclass = "lna_warning_missing_key",
+          location = "Plan$mark_payload_written"
+        )
       } else {
         self$payloads[[key]] <- NULL
       }

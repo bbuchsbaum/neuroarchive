@@ -34,9 +34,10 @@ For performance-critical applications, consider:
   \item Installing the Rcpp acceleration (when available): 30-100× faster
   \item Disabling edge-adaptive sampling via parameters
 }
-If `structural_to_epi_affine_path` is provided and the structural
-gradient map dimensions differ from the mask, the map is resampled to
-the mask space using `neuroim2`. If no affine is supplied when
-dimensions differ, the function throws a `lna_error_validation`.
+
+If `structural_to_epi_affine_path` is supplied and the structural
+gradient map's dimensions do not match the mask, the map is
+resampled using `neuroim2` with that affine. When dimensions differ
+and no affine is provided, a `lna_error_validation` is thrown.
 }
 \keyword{internal}

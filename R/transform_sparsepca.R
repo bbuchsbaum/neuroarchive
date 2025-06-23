@@ -12,7 +12,7 @@
 #'   basis matrix. Either "component_x_voxel" (default) or
 #'   "voxel_x_component".
 #' @keywords internal
-forward_step.myorg.sparsepca <- function(type, desc, handle) {
+forward_step.sparsepca <- function(type, desc, handle) {
   p <- desc$params %||% list()
   k <- p$k %||% 2 # Default k from original mock
   alpha <- p$alpha %||% 0.001
@@ -32,7 +32,7 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
     abort_lna(
       sprintf("Required input key '%s' not found in stash", input_key),
       .subclass = "lna_error_contract",
-      location = "forward_step.myorg.sparsepca:input"
+      location = "forward_step.sparsepca:input"
     )
   }
   
@@ -55,7 +55,7 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
     abort_lna(
       err_msg,
       .subclass = "lna_error_validation",
-      location = "forward_step.myorg.sparsepca:input_reshape"
+      location = "forward_step.sparsepca:input_reshape"
     )
   }
 
@@ -210,7 +210,7 @@ forward_step.myorg.sparsepca <- function(type, desc, handle) {
 #'   basis matrix. Either "component_x_voxel" (default) or
 #'   "voxel_x_component".
 #' @keywords internal
-invert_step.myorg.sparsepca <- function(type, desc, handle) {
+invert_step.sparsepca <- function(type, desc, handle) {
   ds <- desc$datasets
   basis_path <- ds[[which(vapply(ds, function(d) d$role, character(1)) == "basis_matrix")]]$path
   embed_dataset_info <- Filter(function(d) d$role == "coefficients", desc$datasets)
@@ -227,7 +227,7 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
   embed_raw <- h5_read(root, embed_path) 
   d <- if (!is.null(d_path)) h5_read(root, d_path) else NULL
 
-  k_components <- desc$params$k %||% lna_default.myorg.sparsepca()$k
+  k_components <- desc$params$k %||% lna_default.sparsepca()$k
   if (is.null(k_components) || !is.numeric(k_components) || k_components < 0) {
     k_components <- 0 
   }
@@ -272,7 +272,7 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
   }
   
   if (!is.matrix(embed) || !is.matrix(basis)) {
-    stop("Embed or Basis could not be resolved to a matrix in invert_step.myorg.sparsepca.")
+    stop("Embed or Basis could not be resolved to a matrix in invert_step.sparsepca.")
   }
   
   if (ncol(embed) != nrow(basis)) {
@@ -302,6 +302,6 @@ invert_step.myorg.sparsepca <- function(type, desc, handle) {
 #' Default parameters for myorg.sparsepca
 #' @export
 #' @keywords internal
-lna_default.myorg.sparsepca <- function() {
+lna_default.sparsepca <- function() {
   list(k = 50L, alpha = 1e-3, whiten = FALSE, seed = 42L, n_components=50L)
 }

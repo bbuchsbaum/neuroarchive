@@ -2,15 +2,21 @@
 #'
 #' Provides functions to register and apply pipeline templates.
 #'
+#' @format An environment containing the template registry.
+#' @export
+lna_template_registry_env <- new.env(parent = emptyenv())
+assign(".template_registry", new.env(parent = emptyenv()), envir = lna_template_registry_env)
+
+#' Register LNA Template
+#'
+#' Register a pipeline template function.
+#'
 #' @param template_name A single string naming the template.
 #' @param template_function A function taking `(pipeline_obj, ...)` and
 #'   returning a modified `lna_pipeline`.
 #' @param force Overwrite an existing registration.
 #' @return Invisibly returns a list with the registered name.
-#' @export
-lna_template_registry_env <- new.env(parent = emptyenv())
-assign(".template_registry", new.env(parent = emptyenv()), envir = lna_template_registry_env)
-
+#' @keywords internal
 register_lna_template <- function(template_name, template_function, force = FALSE) {
   if (missing(template_name) || !is.character(template_name) || length(template_name) != 1) {
     abort_lna(

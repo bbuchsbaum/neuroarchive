@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for 'quant' transform",
+  "type": "object",
+  "properties": {
+    "bits": {
+      "type": "integer",
+      "default": 8,
+      "minimum": 1,
+      "maximum": 16,
+      "description": "Target bit-depth for quantized integers (1-16). Determines storage type (uint8 for <=8 bits, uint16 for >8 bits)."
+    },
+    "method": {"type": "string", "enum": ["range", "sd"], "default": "range"},
+    "center": {"type": "boolean", "default": true},
+    "scale_scope": {"type": "string", "enum": ["voxel", "global"], "default": "global"},
+    "allow_clip": {
+      "type": "boolean",
+      "default": false,
+      "description": "If FALSE (default), transform aborts if clipping exceeds lna.quant.clip_abort_pct (default 5.0%). If TRUE, only a warning is issued regardless of clipping percentage."
+    },
+    "report_path": {
+      "type": "string",
+      "pattern": "^/transforms/.*_quant_report\\.json$",
+      "description": "(Output by writer, optional) HDF5 path to the JSON quantization report file (e.g., /transforms/00_quant_report.json). This report is typically GZIP-compressed."
+    }
+  },
+  "required": [],
+  "examples": [
+    { "bits": 8, "method": "range", "center": true, "scale_scope": "global" },
+    { "bits": 12, "method": "sd", "center": false, "scale_scope": "voxel", "allow_clip": true }
+  ],
+  "additionalProperties": false
+}

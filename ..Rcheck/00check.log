@@ -1,0 +1,379 @@
+* using log directory ‘/Users/bbuchsbaum/code/neuroarchive/..Rcheck’
+* using R version 4.3.2 (2023-10-31)
+* using platform: aarch64-apple-darwin20 (64-bit)
+* R was compiled by
+    Apple clang version 14.0.0 (clang-1400.0.29.202)
+    GNU Fortran (GCC) 12.2.0
+* running under: macOS Sonoma 14.3
+* using session charset: UTF-8
+* using options ‘--no-manual --no-build-vignettes’
+* checking for file ‘./DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘neuroarchive’ version ‘0.1.0’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... WARNING
+Subdirectory ‘neuroarchive/src’ contains apparent object files/libraries
+  RcppExports.o lna_hrbf_helpers.o lna_hrbf_rcpp.o lna_omp_rcpp.o
+  neuroarchive.so sobel3d.o
+Object files/libraries should not be included in a source package.
+* checking if there is a namespace ... OK
+* checking for executable files ... WARNING
+Found the following executable file:
+  .git/objects/ea/18e301ebb3646f5bcb55d44e4d7ff2d2c9225e
+Source packages should not contain undeclared executable files.
+See section ‘Package structure’ in the ‘Writing R Extensions’ manual.
+* checking for hidden files and directories ... NOTE
+Found the following hidden files and directories:
+  .gitignore
+  ..Rcheck
+  .Rproj.user
+  .claude
+  .git
+These were most likely included in error. See section ‘Package
+structure’ in the ‘Writing R Extensions’ manual.
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘neuroarchive’ can be installed ... WARNING
+Found the following significant warnings:
+  Warning: replacing previous import ‘jsonlite::flatten’ by ‘rlang::flatten’ when loading ‘neuroarchive’
+  Warning: replacing previous import ‘jsonlite::unbox’ by ‘rlang::unbox’ when loading ‘neuroarchive’
+See ‘/Users/bbuchsbaum/code/neuroarchive/..Rcheck/00install.out’ for details.
+* used C++ compiler: ‘Homebrew clang version 20.1.6’
+* used SDK: ‘MacOSX14.2.sdk’
+* checking C++ specification ... NOTE
+  Specified C++14: please drop specification unless essential
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking DESCRIPTION meta-information ... WARNING
+Invalid license file pointers: LICENSE
+Checking should be performed on sources prepared by ‘R CMD build’.
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... WARNING
+Found the following directory with the name of a check directory:
+  ./..Rcheck
+Most likely, these were included erroneously.
+* checking R files for non-ASCII characters ... WARNING
+Found the following files with non-ASCII characters:
+  experimental_api.R
+  hrbf_helpers.R
+  pipeline.R
+  sobel_rcpp_helpers.R
+  transform_quant.R
+  transform_quant_refactored.R
+Portable packages must use only ASCII characters in their R code,
+except perhaps in comments.
+Use \uxxxx escapes for other characters.
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking startup messages can be suppressed ... OK
+* checking dependencies in R code ... WARNING
+'::' or ':::' imports not declared from:
+  ‘matrixStats’ ‘pillar’
+'loadNamespace' or 'requireNamespace' calls not declared from:
+  ‘matrixStats’ ‘pillar’
+Namespaces in Imports field not imported from:
+  ‘RcppEigen’ ‘igraph’ ‘withr’
+  All declared Imports should be used.
+Missing or unexported objects:
+  ‘neuroarchive::temporal_project’ ‘wavelets::wavelet’
+There are ::: calls to the package's namespace in its code. A package
+  almost never needs to use ::: for its own objects:
+  ‘close_h5_safely’
+* checking S3 generic/method consistency ... WARNING
+write_lna:
+  function(x, ...)
+write_lna.default:
+  function(x, file, transforms, transform_params, mask, header,
+           plugins, block_table, run_id, checksum)
+See section ‘Generic functions and methods’ in the ‘Writing R
+Extensions’ manual.
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... NOTE
+File ‘neuroarchive/R/zzz.R’:
+  .onLoad calls:
+    packageStartupMessage(sprintf("neuroarchive: Registered %d transforms",     n_transforms))
+
+See section ‘Good practice’ in '?.onAttach'.
+
+.apply_modwt_threshold: no visible global function definition for ‘mad’
+.apply_modwt_threshold: no visible global function definition for
+  ‘pnorm’
+.apply_modwt_threshold: no visible global function definition for
+  ‘qnorm’
+.regenerate_hrbf_basis : voxel_to_world: no visible global function
+  definition for ‘space’
+.regenerate_hrbf_basis : voxel_to_world: no visible global function
+  definition for ‘spacing’
+.regenerate_hrbf_basis : voxel_to_world: no visible global function
+  definition for ‘origin’
+apply_template: no visible global function definition for ‘setNames’
+basis_space_embed: no visible global function definition for
+  ‘modifyList’
+benchmark_sobel3d_sizes: no visible global function definition for
+  ‘rnorm’
+check_transform_implementation: no visible global function definition
+  for ‘installed.packages’
+compute_edge_map_neuroim2: no visible global function definition for
+  ‘median’
+derive_header_from_input: no visible global function definition for
+  ‘space’
+forward_step.basis: no visible global function definition for
+  ‘setNames’
+forward_step.delta: no visible global function definition for
+  ‘setNames’
+forward_step.embed: no visible global function definition for
+  ‘setNames’
+forward_step.quant: no visible global function definition for ‘hist’
+forward_step.sparsepca: no visible global function definition for
+  ‘setNames’
+forward_step.spat.hrbf : voxel_to_world: no visible global function
+  definition for ‘space’
+forward_step.spat.hrbf : voxel_to_world: no visible global function
+  definition for ‘spacing’
+forward_step.spat.hrbf : voxel_to_world: no visible global function
+  definition for ‘origin’
+h5_create_empty_dataset: no visible global function definition for
+  ‘tail’
+h5_write_dataset: no visible global function definition for ‘tail’
+hrbf_basis_from_params : voxel_to_world: no visible global function
+  definition for ‘space’
+hrbf_basis_from_params : voxel_to_world: no visible global function
+  definition for ‘spacing’
+hrbf_basis_from_params : voxel_to_world: no visible global function
+  definition for ‘origin’
+invert_step.aggregate_runs: no visible global function definition for
+  ‘setNames’
+invert_step.basis: no visible global function definition for ‘setNames’
+invert_step.basis.empirical_hrbf_compressed: no visible global function
+  definition for ‘tail’
+invert_step.basis.empirical_hrbf_compressed: no visible global function
+  definition for ‘head’
+invert_step.basis.empirical_hrbf_compressed: no visible global function
+  definition for ‘setNames’
+invert_step.delta: no visible global function definition for ‘setNames’
+invert_step.embed: no visible global function definition for ‘setNames’
+invert_step.embed.transfer_hrbf_basis: no visible global function
+  definition for ‘setNames’
+invert_step.quant: no visible global function definition for ‘setNames’
+invert_step.quant_refactored: no visible global function definition for
+  ‘setNames’
+invert_step.sparsepca: no visible global function definition for
+  ‘setNames’
+invert_step.spat.hrbf : voxel_to_world: no visible global function
+  definition for ‘space’
+invert_step.spat.hrbf : voxel_to_world: no visible global function
+  definition for ‘spacing’
+invert_step.spat.hrbf : voxel_to_world: no visible global function
+  definition for ‘origin’
+invert_step.spat.hrbf: no visible global function definition for
+  ‘setNames’
+invert_step.spat.hrbf_project : voxel_to_world: no visible global
+  function definition for ‘space’
+invert_step.spat.hrbf_project : voxel_to_world: no visible global
+  function definition for ‘spacing’
+invert_step.spat.hrbf_project : voxel_to_world: no visible global
+  function definition for ‘origin’
+invert_step.spat.hrbf_project: no visible global function definition
+  for ‘modifyList’
+invert_step.spat.hrbf_project: no visible global function definition
+  for ‘setNames’
+invert_step.temporal: no visible global function definition for
+  ‘setNames’
+poisson_disk_sample_neuroim2: no visible global function definition for
+  ‘space’
+poisson_disk_sample_neuroim2: no visible global function definition for
+  ‘spacing’
+prepare_transforms_for_read : <anonymous>: no visible global function
+  definition for ‘getS3method’
+quantize_data: no visible global function definition for ‘sd’
+quantize_data: no visible global function definition for ‘object.size’
+rcpp_control: no visible global function definition for ‘setNames’
+resolve_transform_params: no visible global function definition for
+  ‘setNames’
+run_transform_step: no visible global function definition for
+  ‘getS3method’
+temporal_project.modwt: no visible global function definition for ‘mad’
+temporal_project.wavelet: no visible global function definition for
+  ‘mad’
+Undefined global functions or variables:
+  getS3method head hist installed.packages mad median modifyList
+  object.size origin pnorm qnorm rnorm sd setNames space spacing tail
+Consider adding
+  importFrom("graphics", "hist")
+  importFrom("stats", "mad", "median", "pnorm", "qnorm", "rnorm", "sd",
+             "setNames")
+  importFrom("utils", "getS3method", "head", "installed.packages",
+             "modifyList", "object.size", "tail")
+to your NAMESPACE file.
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... WARNING
+Functions or methods with usage in documentation object 'hello' but not in code:
+  ‘hello’
+
+Codoc mismatches from documentation object 'delta.default':
+delta.default
+  Code: function(data_or_pipe, order = NULL, ...)
+  Docs: function(data_or_pipe, ...)
+  Argument names in code not in docs:
+    order
+  Mismatches in argument names:
+    Position: 2 Code: order Docs: ...
+
+Codoc mismatches from documentation object 'embed.default':
+embed.default
+  Code: function(data_or_pipe, basis_path = NULL, basis_step = NULL,
+                 ...)
+  Docs: function(data_or_pipe, ...)
+  Argument names in code not in docs:
+    basis_path basis_step
+  Mismatches in argument names:
+    Position: 2 Code: basis_path Docs: ...
+
+Codoc mismatches from documentation object 'open_lna':
+open_lna
+  Code: function(file, run_id = NULL, allow_plugins = c("installed",
+                 "none", "prompt"), validate = FALSE, output_dtype =
+                 c("float32", "float64", "float16"), roi_mask = NULL,
+                 time_idx = NULL, lazy = FALSE)
+  Docs: function(...)
+  Argument names in code not in docs:
+    file run_id allow_plugins validate output_dtype roi_mask time_idx
+    lazy
+  Argument names in docs not in code:
+    ...
+  Mismatches in argument names:
+    Position: 1 Code: file Docs: ...
+
+Codoc mismatches from documentation object 'pca.default':
+pca.default
+  Code: function(data_or_pipe, k = NULL, ...)
+  Docs: function(data_or_pipe, ...)
+  Argument names in code not in docs:
+    k
+  Mismatches in argument names:
+    Position: 2 Code: k Docs: ...
+
+Codoc mismatches from documentation object 'quant':
+quant
+  Code: function(data_or_pipe, bits = NULL, ...)
+  Docs: function(data_or_pipe, bits = NULL, method = "range", center =
+                 TRUE, scale_scope = "global", allow_clip = FALSE, ...)
+  Argument names in docs not in code:
+    method center scale_scope allow_clip
+  Mismatches in argument names:
+    Position: 3 Code: ... Docs: method
+
+Codoc mismatches from documentation object 'quant.default':
+quant.default
+  Code: function(data_or_pipe, bits = NULL, ...)
+  Docs: function(data_or_pipe, bits = NULL, method = "range", center =
+                 TRUE, scale_scope = "global", allow_clip = FALSE, ...)
+  Argument names in docs not in code:
+    method center scale_scope allow_clip
+  Mismatches in argument names:
+    Position: 3 Code: ... Docs: method
+
+Codoc mismatches from documentation object 'temporal.default':
+temporal.default
+  Code: function(data_or_pipe, kind = NULL, ...)
+  Docs: function(data_or_pipe, n_basis = NULL, kind = "bspline", ...)
+  Argument names in docs not in code:
+    n_basis
+  Mismatches in argument names:
+    Position: 2 Code: kind Docs: n_basis
+    Position: 3 Code: ... Docs: kind
+  Mismatches in argument default values:
+    Name: 'kind' Code: NULL Docs: "bspline"
+
+Codoc mismatches from documentation object 'write_lna':
+write_lna
+  Code: function(x, ...)
+  Docs: function(x, file = NULL, transforms = character(),
+                 transform_params = list(), mask = NULL, header = NULL,
+                 plugins = NULL, block_table = NULL, run_id = NULL,
+                 checksum = c("none", "sha256"))
+  Argument names in code not in docs:
+    ...
+  Argument names in docs not in code:
+    file transforms transform_params mask header plugins block_table
+    run_id checksum
+  Mismatches in argument names:
+    Position: 2 Code: ... Docs: file
+
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking LazyData ... NOTE
+  'LazyData' is specified without a 'data' directory
+* checking line endings in C/C++/Fortran sources/headers ... NOTE
+Found the following sources/headers not terminated with a newline:
+  src/sobel3d.cpp
+Some compilers warn on such files.
+* checking line endings in Makefiles ... OK
+* checking compilation flags in Makevars ... OK
+* checking for GNU extensions in Makefiles ... OK
+* checking for portable use of $(BLAS_LIBS) and $(LAPACK_LIBS) ... OK
+* checking use of PKG_*FLAGS in Makefiles ... OK
+* checking compiled code ... WARNING
+File ‘neuroarchive/libs/neuroarchive.so’:
+  Found ‘_abort’, possibly from ‘abort’ (C)
+    Object: ‘sobel3d.o’
+
+Compiled code should not call entry points which might terminate R nor
+write to stdout/stderr instead of to the console, nor use Fortran I/O
+nor system RNGs nor [v]sprintf.
+
+See ‘Writing portable packages’ in the ‘Writing R Extensions’ manual.
+* checking files in ‘vignettes’ ... WARNING
+Files in the 'vignettes' directory but no files in 'inst/doc':
+  ‘cookbook.Rmd’ ‘hrbf.Rmd’ ‘neuroim2_roundtrip.Rmd’
+  ‘quant_bits_and_report.Rmd’
+Package has no Sweave vignette sources and no VignetteBuilder field.
+* checking examples ... ERROR
+Running examples in ‘neuroarchive-Ex.R’ failed
+The error most likely occurred in:
+
+> ### Name: hello
+> ### Title: Hello, World!
+> ### Aliases: hello
+> 
+> ### ** Examples
+> 
+> hello()
+Error in hello() : could not find function "hello"
+Execution halted
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ... ERROR
+  Running ‘testthat.R’
+Running the tests in ‘tests/testthat.R’ failed.
+Last 13 lines of output:
+   1. └─h5$link_delete("scans/run-01/data") at test-validate_lna.R:135:3
+  ── Error ('test-write_lna_parallel.R:11:3'): write_lna temp file can be atomically renamed ──
+  <lna_error_internal/rlang_error/error/condition>
+  Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+      .subclass = "lna_error_internal")`: boom
+  Backtrace:
+      ▆
+   1. └─neuroarchive::write_lna(...) at test-write_lna_parallel.R:11:3
+   2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+   3.     └─rlang::abort(...)
+  
+  [ FAIL 174 | WARN 25 | SKIP 4 | PASS 835 ]
+  Error: Test failures
+  Execution halted
+  Ran 4/4 deferred expressions
+* DONE
+Status: 2 ERRORs, 11 WARNINGs, 5 NOTEs

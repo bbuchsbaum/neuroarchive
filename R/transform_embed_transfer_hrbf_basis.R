@@ -38,7 +38,8 @@ forward_step.embed.transfer_hrbf_basis <- function(type, desc, handle) {
   base_name <- tools::file_path_sans_ext(fname)
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
-  coef_path <- paste0("/scans/", run_id, "/", base_name, "/coefficients")
+  scans_root <- lna_options("paths.scans_root")[[1]]
+  coef_path <- paste0(scans_root, run_id, "/", base_name, "/coefficients")
   step_index <- plan$next_index
   params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
   desc$params <- p

@@ -23,6 +23,8 @@ h5_write_dataset(
 \item{chunk_dims}{Optional integer vector specifying HDF5 chunk dimensions.}
 
 \item{compression_level}{Integer 0–9 giving gzip compression level.}
+
+\item{dtype}{Optional data type specification for HDF5 storage.}
 }
 \value{
 Invisibly returns `TRUE` on success.

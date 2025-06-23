@@ -1,0 +1,27 @@
+* installing *source* package ‘neuroarchive’ ...
+** using staged installation
+** libs
+using C++ compiler: ‘Homebrew clang version 20.1.6’
+using C++14
+using SDK: ‘MacOSX14.2.sdk’
+make: Nothing to be done for `all'.
+make: `symbols.rds' is up to date.
+installing to /Users/bbuchsbaum/code/neuroarchive/..Rcheck/00LOCK-neuroarchive/00new/neuroarchive/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+Warning: replacing previous import ‘jsonlite::flatten’ by ‘rlang::flatten’ when loading ‘neuroarchive’
+Warning: replacing previous import ‘jsonlite::unbox’ by ‘rlang::unbox’ when loading ‘neuroarchive’
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+Warning: replacing previous import ‘jsonlite::flatten’ by ‘rlang::flatten’ when loading ‘neuroarchive’
+Warning: replacing previous import ‘jsonlite::unbox’ by ‘rlang::unbox’ when loading ‘neuroarchive’
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+Warning: replacing previous import ‘jsonlite::flatten’ by ‘rlang::flatten’ when loading ‘neuroarchive’
+Warning: replacing previous import ‘jsonlite::unbox’ by ‘rlang::unbox’ when loading ‘neuroarchive’
+** testing if installed package keeps a record of temporary installation path
+* DONE (neuroarchive)

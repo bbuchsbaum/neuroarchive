@@ -2,51 +2,92 @@
 % Please edit documentation in R/experimental_api.R
 \name{quantize_data}
 \alias{quantize_data}
-\title{Quantize data matrix}
+\title{Quantize data matrix with advanced compression options}
 \usage{
 quantize_data(
   data,
   bits = 8L,
-  method = c("range", "sd"),
-  scope = c("global", "voxel"),
+  method = c("range", "sd", "robust"),
+  scope = c("global", "voxel", "adaptive"),
   center = TRUE,
-  clip_threshold = 5
+  clip_threshold = 5,
+  auto_adjust = TRUE,
+  return_stats = FALSE
 )
 }
 \arguments{
-\item{data}{Matrix to quantize}
+\item{data}{Matrix to quantize (time x voxels or any numeric matrix)}
 
 \item{bits}{Number of quantization bits (1-16, default: 8)}
 
-\item{method}{Scaling method: "range" (min/max) or "sd" (standard deviation)}
+\item{method}{Scaling method: 
+\itemize{
+  \item \code{"range"}: Scale by min/max values
+  \item \code{"sd"}: Scale by standard deviation (robust to outliers)
+  \item \code{"robust"}: Scale by median and MAD
+}}
 
-\item{scope}{Quantization scope: "global" (one scale) or "voxel" (per-column)}
+\item{scope}{Quantization scope: 
+\itemize{
+  \item \code{"global"}: Single scale factor for entire matrix
+  \item \code{"voxel"}: Per-column scaling (better precision)
+  \item \code{"adaptive"}: Choose scope based on data characteristics
+}}
 
 \item{center}{Center data before quantization (default: TRUE)}
 
 \item{clip_threshold}{Abort if clipping exceeds this percentage (default: 5)}
+
+\item{auto_adjust}{Automatically increase bits if clipping is excessive (default: TRUE)}
+
+\item{return_stats}{Return detailed compression statistics (default: FALSE)}
 }
 \value{
-List with quantized data and reconstruction parameters
+List with quantized data and reconstruction parameters:
+\itemize{
+  \item \code{quantized_data}: Quantized matrix (integer values)
+  \item \code{params}: Parameters needed for reconstruction
+  \item \code{compression_ratio}: Achieved compression ratio
+  \item \code{clip_report}: Statistics on value clipping
+  \item \code{mse}: Mean squared error (if \code{return_stats = TRUE})
+}
 }
 \description{
 Apply quantization to reduce data precision for compression.
-Supports both global and per-voxel quantization strategies.
+Supports both global and per-voxel quantization strategies with
+intelligent error monitoring and automatic parameter adjustment.
 }
 \examples{
 \donttest{
-# Create example data matrix
+# Create example fMRI data matrix
 set.seed(123)
-my_data <- matrix(rnorm(100 * 50, mean = 100, sd = 15), nrow = 100, ncol = 50)
+fmri_data <- matrix(rnorm(200 * 1000, mean = 1000, sd = 50), 
+                    nrow = 200, ncol = 1000)
 
-# Basic 8-bit quantization
-quant_result <- quantize_data(my_data, bits = 8)
+# Basic 8-bit quantization with global scaling
+quant_basic <- quantize_data(fmri_data, bits = 8, scope = "global")
 
-# Per-voxel quantization for better precision
-quant_precise <- quantize_data(my_data, bits = 12, scope = "voxel")
+# High-precision per-voxel quantization
+quant_precise <- quantize_data(
+  fmri_data, 
+  bits = 12, 
+  scope = "voxel",
+  method = "robust",
+  return_stats = TRUE
+)
 
-# Reconstruct original data
-reconstructed <- dequantize_data(quant_result)
+# Adaptive quantization (automatically chooses best parameters)
+quant_adaptive <- quantize_data(
+  fmri_data,
+  scope = "adaptive",
+  auto_adjust = TRUE
+)
+
+# Reconstruct and check error
+reconstructed <- dequantize_data(quant_precise)
+mse <- mean((fmri_data - reconstructed)^2)
+cat("Compression ratio:", quant_precise$compression_ratio, "\n")
+cat("MSE:", mse, "\n")
 }
 
 }

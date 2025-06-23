@@ -4,6 +4,15 @@
 #' expose additional pipeline verbs.  The registry simply maps a verb
 #' function name to the corresponding LNA transform type.
 #'
+#' @format An environment containing the verb registry.
+#' @export
+lna_verb_registry_env <- new.env(parent = emptyenv())
+assign(".verb_registry", new.env(parent = emptyenv()), envir = lna_verb_registry_env)
+
+#' Register LNA Verb
+#'
+#' Register a DSL verb that maps to an LNA transform type.
+#'
 #' @param verb_name A symbol or single string naming the verb.  If
 #'   `NULL` and `default_slug` is `TRUE`, the name is derived from
 #'   `lna_transform_type` by replacing non-alphanumeric characters with
@@ -16,10 +25,7 @@
 #'
 #' @return Invisibly returns a list with the registered `name` and
 #'   `type`.
-#' @export
-lna_verb_registry_env <- new.env(parent = emptyenv())
-assign(".verb_registry", new.env(parent = emptyenv()), envir = lna_verb_registry_env)
-
+#' @keywords internal
 register_lna_verb <- function(verb_name = NULL, lna_transform_type,
                               default_slug = TRUE, force = FALSE) {
   if (missing(lna_transform_type) ||

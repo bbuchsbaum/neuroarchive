@@ -39,9 +39,11 @@ write_lna(x, file = NULL, transforms = character(),
 Parameter values are merged from the transform schemas, package options and the
 user supplied \code{transform_params}. The optional \code{mask}, \code{header},
 \code{plugins} and \code{block_table} are written to the corresponding HDF5
-groups. Use \code{read_lna()} to reconstruct the data.}
+groups. Use \code{read_lna()} to reconstruct the data.
+
 If \code{header} is \code{NULL} and \code{x} is a \code{NeuroObj}, the header is
 auto-populated using \code{neuroim2_space_to_lna_header(space(x))}.
+}
 \seealso{\code{\link{read_lna}}, \code{\link{validate_lna}}}
 \examples{
 x <- array(rnorm(64), dim = c(4,4,4,1))

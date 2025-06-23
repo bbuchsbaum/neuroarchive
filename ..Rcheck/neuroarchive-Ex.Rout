@@ -1,0 +1,199 @@
+
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "neuroarchive"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> library('neuroarchive')
+Warning: replacing previous import ‘jsonlite::flatten’ by ‘rlang::flatten’ when loading ‘neuroarchive’
+Warning: replacing previous import ‘jsonlite::unbox’ by ‘rlang::unbox’ when loading ‘neuroarchive’
+neuroarchive 0.1.0 - Latent NeuroArchive (LNA) tools
+
+Attaching package: ‘neuroarchive’
+
+The following object is masked from ‘package:stats’:
+
+    embed
+
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("LNAFacade")
+> ### * LNAFacade
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: LNAFacade
+> ### Title: LNAFacade class
+> ### Aliases: LNAFacade
+> 
+> ### ** Examples
+> 
+> fac <- LNAFacade$new()
+> tmp <- tempfile(fileext = ".h5")
+> fac$write(array(1, dim = c(1, 1, 1)), tmp, transforms = character())
+> fac$read(tmp)
+<DataHandle>
+  Public:
+    clone: function (deep = FALSE) 
+    current_run_id: run-01
+    get_inputs: function (keys) 
+    h5: H5File, H5RefClass, R6
+    has_key: function (key) 
+    initialize: function (initial_stash = list(), initial_meta = list(), plan = NULL, 
+    mask_info: NULL
+    meta: list
+    plan: NULL
+    pull_first: function (keys) 
+    run_ids: run-01
+    stash: list
+    subset: list
+    update_stash: function (keys, new_values) 
+    with: function (...) 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("basis_space_centers")
+> ### * basis_space_centers
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: basis_space_centers
+> ### Title: Generate Poisson-disk sampled spatial basis centers
+> ### Aliases: basis_space_centers
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("basis_space_embed")
+> ### * basis_space_embed
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: basis_space_embed
+> ### Title: Embed data using spatial basis
+> ### Aliases: basis_space_embed
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("basis_space_reconstruct")
+> ### * basis_space_reconstruct
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: basis_space_reconstruct
+> ### Title: Reconstruct data from spatial basis embedding
+> ### Aliases: basis_space_reconstruct
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("basis_space_visualize")
+> ### * basis_space_visualize
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: basis_space_visualize
+> ### Title: Visualize spatial basis functions
+> ### Aliases: basis_space_visualize
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("basis_time")
+> ### * basis_time
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: basis_time
+> ### Title: Create temporal basis functions
+> ### Aliases: basis_time
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("delta_transform")
+> ### * delta_transform
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: delta_transform
+> ### Title: Apply delta (temporal difference) transform
+> ### Aliases: delta_transform
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("fmri_workflow")
+> ### * fmri_workflow
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: fmri_workflow
+> ### Title: Complete fMRI preprocessing and compression workflow
+> ### Aliases: fmri_workflow
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("hello")
+> ### * hello
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: hello
+> ### Title: Hello, World!
+> ### Aliases: hello
+> 
+> ### ** Examples
+> 
+> hello()
+Error in hello() : could not find function "hello"
+Execution halted

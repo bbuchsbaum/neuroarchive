@@ -13,7 +13,10 @@
 #'   `iterate_slabs` (number of slabs along each dimension).
 #' @keywords internal
 auto_block_size <- function(spatial_dims, element_size_bytes,
-                            target_slab_bytes = 64e6) {
+                            target_slab_bytes = NULL) {
+  if (is.null(target_slab_bytes)) {
+    target_slab_bytes <- lna_options("memory.target_slab_bytes")[[1]]
+  }
   stopifnot(is.numeric(spatial_dims), length(spatial_dims) == 3)
   stopifnot(is.numeric(element_size_bytes), length(element_size_bytes) == 1)
   dims <- pmax(as.integer(spatial_dims), 1L)

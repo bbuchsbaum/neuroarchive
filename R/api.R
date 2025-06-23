@@ -160,11 +160,10 @@ read_lna <- function(file, run_id = NULL,
     run_id = run_id,
     allow_plugins = allow_plugins,
     validate = validate,
-    output_dtype = output_dtype
+    output_dtype = output_dtype,
+    roi_mask = roi_mask,
+    time_idx = time_idx
   )
-
-  if (!is.null(roi_mask)) args$roi_mask <- roi_mask
-  if (!is.null(time_idx)) args$time_idx <- time_idx
 
   if (lazy) {
     lna_reader$new(

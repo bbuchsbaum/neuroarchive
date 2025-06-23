@@ -67,6 +67,7 @@
 #' }
 #'
 #' @name sobel3d_performance
+#' @aliases test_sobel3d_performance
 #' @aliases sobel3d_performance
 #' NULL
 

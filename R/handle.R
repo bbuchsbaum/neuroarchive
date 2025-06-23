@@ -36,21 +36,59 @@ DataHandle <- R6::R6Class("DataHandle",
                           h5 = NULL, subset = list(), run_ids = character(),
                           current_run_id = NULL, mask_info = NULL) {
       # Basic input validation
-      stopifnot(is.list(initial_stash))
-      stopifnot(is.list(initial_meta))
-      stopifnot(is.list(subset))
+      if (!is.list(initial_stash)) {
+        abort_lna(
+          "initial_stash must be a list",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$initialize"
+        )
+      }
+      if (!is.list(initial_meta)) {
+        abort_lna(
+          "initial_meta must be a list",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$initialize"
+        )
+      }
+      if (!is.list(subset)) {
+        abort_lna(
+          "subset must be a list",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$initialize"
+        )
+      }
       # Placeholder validation for R6 objects - refine later if needed
       if (!is.null(plan) && !inherits(plan, "Plan")) {
-        stop("'plan' must be a Plan R6 object or NULL")
+        abort_lna(
+          "'plan' must be a Plan R6 object or NULL",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$initialize"
+        )
       }
       if (!is.null(h5) && !inherits(h5, "H5File")) {
         # Assuming hdf5r class is H5File - verify this
-        stop("'h5' must be an H5File object from hdf5r or NULL")
+        abort_lna(
+          "'h5' must be an H5File object from hdf5r or NULL",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$initialize"
+        )
       }
 
-      stopifnot(is.character(run_ids))
+      if (!is.character(run_ids)) {
+        abort_lna(
+          "run_ids must be a character vector",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$initialize"
+        )
+      }
       if (!is.null(current_run_id)) {
-        stopifnot(is.character(current_run_id), length(current_run_id) == 1)
+        if (!is.character(current_run_id) || length(current_run_id) != 1) {
+          abort_lna(
+            "current_run_id must be a single character string",
+            .subclass = "lna_error_validation",
+            location = "DataHandle$initialize"
+          )
+        }
       }
 
       self$stash <- initial_stash
@@ -69,7 +107,13 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @return A named list containing the requested objects.
     #' @details Raises an lna_error_contract if any key is not found.
     get_inputs = function(keys) {
-      stopifnot(is.character(keys), length(keys) > 0)
+      if (!is.character(keys) || length(keys) == 0) {
+        abort_lna(
+          "keys must be a non-empty character vector",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$get_inputs"
+        )
+      }
       # message(sprintf("[DataHandle$get_inputs] Attempting to get keys: %s. Available stash keys: %s", 
       #                 paste(keys, collapse=", "), paste(names(self$stash), collapse=", ")))
       stash_names <- names(self$stash)
@@ -106,8 +150,20 @@ DataHandle <- R6::R6Class("DataHandle",
       #                 paste(keys, collapse=", "), 
       #                 paste(names(new_values), collapse=", ")))
   
-      stopifnot(is.character(keys))
-      stopifnot(is.list(new_values))
+      if (!is.character(keys)) {
+        abort_lna(
+          "keys must be a character vector",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$update_stash"
+        )
+      }
+      if (!is.list(new_values)) {
+        abort_lna(
+          "new_values must be a list",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$update_stash"
+        )
+      }
 
       # Calculate the new stash based on current stash, keys to remove, and new values
       current_stash <- self$stash
@@ -120,11 +176,13 @@ DataHandle <- R6::R6Class("DataHandle",
       if (length(new_values) > 0) {
           overlap <- intersect(names(new_values), names(current_stash))
           if (length(overlap) > 0) {
-              warning(
-                paste(
-                  "Overwriting existing stash entries:",
+              warn_lna(
+                sprintf(
+                  "Overwriting existing stash entries: %s",
                   paste(overlap, collapse = ", ")
-                )
+                ),
+                .subclass = "lna_warning_overwrite",
+                location = "DataHandle$update_stash"
               )
           }
           # Use modifyList for safe merging/overwriting
@@ -150,7 +208,11 @@ DataHandle <- R6::R6Class("DataHandle",
 
       for (field_name in names(updates)) {
         if (!field_name %in% allowed_fields) {
-          warning(paste("Field '", field_name, "' not found in DataHandle, skipping update.", sep = ""))
+          warn_lna(
+            sprintf("Field '%s' not found in DataHandle, skipping update", field_name),
+            .subclass = "lna_warning_invalid_field",
+            location = "DataHandle$with"
+          )
           next
         }
         # TODO: Add validation specific to field types? (e.g., plan must be Plan)
@@ -169,7 +231,13 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @param key Character string, the key to check.
     #' @return Logical, TRUE if the key exists in the stash, FALSE otherwise.
     has_key = function(key) {
-      stopifnot(is.character(key), length(key) == 1)
+      if (!is.character(key) || length(key) != 1) {
+        abort_lna(
+          "key must be a single character string",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$has_key"
+        )
+      }
       return(key %in% names(self$stash))
     },
 
@@ -179,7 +247,13 @@ DataHandle <- R6::R6Class("DataHandle",
     #' @return List with elements `value` and `key` giving the retrieved
     #'   object and the key that was found.
     pull_first = function(keys) {
-      stopifnot(is.character(keys), length(keys) > 0)
+      if (!is.character(keys) || length(keys) == 0) {
+        abort_lna(
+          "keys must be a non-empty character vector",
+          .subclass = "lna_error_validation",
+          location = "DataHandle$pull_first"
+        )
+      }
       for (k in keys) {
         if (self$has_key(k)) {
           return(list(value = self$stash[[k]], key = k))

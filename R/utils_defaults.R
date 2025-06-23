@@ -85,8 +85,7 @@ required_param_cache_clear <- function() {
   if (length(defaults) > 0) defaults else NULL
 }
 
-#' Null-coalescing helper
-#' @keywords internal
+# Null-coalescing helper (internal, undocumented)
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
 

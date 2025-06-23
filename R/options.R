@@ -29,14 +29,57 @@ lna_options <- function(...) {
 
 lna_options_env <- new.env(parent = emptyenv())
 default_opts <- list(
+  # I/O Configuration
   write.compression_level = 0L,
   write.chunk_target_mib = 1,
+  write.file_line_limit = 50L,
+  read.file_line_limit = 1000L,
+  read.strict_mask_hash_validation = FALSE,
+  
+  # Memory and Performance
+  memory.target_slab_bytes = 64e6,  # 64 MB
+  
+  # Quantization
   quant.clip_warn_pct = 0.5,
   quant.clip_abort_pct = 5.0,
+  quant.snr_sample_frac = 0.01,
+  quant.bits_min = 1L,
+  quant.bits_max = 16L,
   quant = list(),
+  
+  # Delta Transform
   delta = list(),
+  
+  # Basis Transforms
   `basis.pca` = list(),
-  read.strict_mask_hash_validation = FALSE
+  basis.default_keep_energy = 0.99,
+  
+  # Temporal Basis
+  temporal.polynomial_order = 3L,
+  temporal.bspline_order = 3L,
+  temporal.wavelet_type = "db4",
+  temporal.dpss_nw = 4,
+  
+  # Poisson Sampling
+  poisson.radius_factor = 2.5,
+  poisson.density_factor = 1.5,
+  
+  # Edge Detection
+  edge.thresh_k = 3.0,
+  
+  # Numeric Tolerances
+  numeric.tolerance = 1e-7,
+  
+  # Path Configuration
+  paths.scans_root = "/scans/",
+  paths.transforms_root = "/transforms/",
+  paths.temporal_root = "/temporal/",
+  paths.metadata_root = "/metadata/",
+  
+  # Default Identifiers
+  defaults.run_id = "run-01",
+  defaults.input_key = "input",
+  defaults.origin_label = "global"
 )
 assign(".lna_opts", list2env(default_opts, parent = emptyenv()),
        envir = lna_options_env)

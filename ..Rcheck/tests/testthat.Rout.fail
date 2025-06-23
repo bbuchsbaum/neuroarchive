@@ -1,0 +1,2002 @@
+
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # This file is part of the standard setup for testthat.
+> # It is recommended that you do not modify it.
+> #
+> # Where should you do additional test configuration?
+> # Learn more about the roles of various files in:
+> # * https://r-pkgs.org/testing-design.html#sec-tests-files-overview
+> # * https://testthat.r-lib.org/articles/special-files.html
+> 
+> library(testthat)
+Warning message:
+package 'testthat' was built under R version 4.3.3 
+> library(neuroarchive)
+neuroarchive 0.1.0 - Latent NeuroArchive (LNA) tools
+
+Attaching package: 'neuroarchive'
+
+The following object is masked from 'package:stats':
+
+    embed
+
+Warning messages:
+1: replacing previous import 'jsonlite::flatten' by 'rlang::flatten' when loading 'neuroarchive' 
+2: replacing previous import 'jsonlite::unbox' by 'rlang::unbox' when loading 'neuroarchive' 
+> 
+> test_check("neuroarchive")
+[neuroarchive-test-setup] Setting HDF5_PLUGIN_PATH to empty string.
+[neuroarchive-test-setup] Original HDF5_PLUGIN_PATH was: '<UNSET>'
+[neuroarchive-test-setup] HDF5_PLUGIN_PATH after set to empty: ''
+[neuroarchive-test-setup] hdf5r namespace is available.
+[neuroarchive-test-setup] hdf5r::h5test not found in hdf5r.
+--- HDF5R debug --- 
+hdf5r::H5File class: R6ClassGenerator
+is.function(hdf5r::H5File$new): TRUE
+ls("package:hdf5r"):
+ [1] "H5A"                   "H5D"                   "H5File"               
+ [4] "H5Group"               "H5P"                   "H5P_ATTRIBUTE_CREATE" 
+ [7] "H5P_CLASS"             "H5P_DATASET_ACCESS"    "H5P_DATASET_CREATE"   
+[10] "H5P_DATASET_XFER"      "H5P_FILE_ACCESS"       "H5P_FILE_CREATE"      
+[13] "H5P_LINK_ACCESS"       "H5P_LINK_CREATE"       "H5P_OBJECT_COPY"      
+[16] "H5P_OBJECT_CREATE"     "H5R"                   "H5R_DATASET_REGION"   
+[19] "H5R_OBJECT"            "H5RefClass"            "H5S"                  
+[22] "H5T"                   "H5T_ARRAY"             "H5T_COMPLEX"          
+[25] "H5T_COMPOUND"          "H5T_ENUM"              "H5T_FLOAT"            
+[28] "H5T_INTEGER"           "H5T_LOGICAL"           "H5T_STRING"           
+[31] "H5T_VLEN"              "as_hex"                "coerce_to_factor"     
+[34] "coercible_to_factor"   "createDataSet"         "createGroup"          
+[37] "create_empty"          "existsGroup"           "extendDataSet"        
+[40] "factor_ext"            "flatten_df"            "guess_chunks"         
+[43] "guess_dim"             "guess_dtype"           "guess_nelem"          
+[46] "guess_space"           "h5attr"                "h5attr<-"             
+[49] "h5attr_names"          "h5attributes"          "h5close"              
+[52] "h5const"               "h5file"                "h5flush"              
+[55] "h5garbage_collect"     "h5types"               "h5unlink"             
+[58] "h5version"             "is.H5R"                "is.H5R_DATASET_REGION"
+[61] "is.H5R_OBJECT"         "is.factor_ext"         "is.h5file"            
+[64] "is_hdf5"               "list.attributes"       "list.datasets"        
+[67] "list.groups"           "list.objects"          "openGroup"            
+[70] "openLocation"          "readDataSet"           "subset_assign_h5.H5D" 
+[73] "subset_h5.H5D"         "subset_h5.H5S"         "text_to_dtype"        
+[76] "values"               
+--- End HDF5R debug --- 
+[test-api.R] Top of file reached before library calls
+[test-api.R] Libraries loaded
+
+DEBUG - Actual location for core_read reports step provenance from failing method: invert_step:fail:step0 
+
+DEBUG: write_lna completed successfully
+DEBUG: Result class: character 
+DEBUG: Result structure:
+ chr "res"
+
+DEBUG - Actual location for core_read error location uses transform index: invert_step:fail:step1 
+
+[1] "--- Before close_h5_safely ---"
+[1] "Class of h5: H5File, H5RefClass, R6"
+[1] "Is h5 valid: TRUE"
+--- X_matrix DEFINITION in test_that [1:2,1:2] ---
+           [,1]      [,2]
+[1,] -0.6264538 1.5117812
+[2,]  0.1836433 0.3898432
+[ FAIL 174 | WARN 25 | SKIP 4 | PASS 835 ]
+
+══ Skipped tests (4) ═══════════════════════════════════════════════════════════
+• On CRAN (2): 'test-hrbf_rcpp_helpers.R:71:3',
+  'test-validate_fork_safety.R:24:1'
+• Skipping test that requires non-existent generic functions (1):
+  'test-transform_registry.R:92:3'
+• This test requires deeper knowledge of LNA file structure (1):
+  'test-transform_embed_inverse.R:33:3'
+
+══ Failed tests ════════════════════════════════════════════════════════════════
+── Failure ('test-api.R:28:3'): write_lna writes header attributes to file ─────
+file.exists(tmp) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Error ('test-api.R:29:3'): write_lna writes header attributes to file ───────
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee78c21d00.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::open_h5(tmp, mode = "r") at test-api.R:29:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+ 6.           └─neuroarchive:::abort_lna(...)
+ 7.             └─rlang::abort(...)
+── Error ('test-api.R:39:3'): write_lna plugins list is written to /plugins ────
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee268ccfb4.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::open_h5(tmp, mode = "r") at test-api.R:39:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+ 6.           └─neuroarchive:::abort_lna(...)
+ 7.             └─rlang::abort(...)
+── Error ('test-api.R:51:3'): write_lna omits plugins group when list is empty ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee61f8eceb.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::open_h5(tmp, mode = "r") at test-api.R:51:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+ 6.           └─neuroarchive:::abort_lna(...)
+ 7.             └─rlang::abort(...)
+── Failure ('test-api.R:72:3'): write_lna forwards arguments to core_write and materialise_plan ──
+file.exists(tmp) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Error ('test-api.R:75:3'): write_lna forwards arguments to core_write and materialise_plan ──
+Error in `res$plan`: $ operator is invalid for atomic vectors
+Backtrace:
+    ▆
+ 1. └─testthat::expect_equal(res$plan$descriptors[[1]]$type, "quant") at test-api.R:75:3
+ 2.   └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+── Error ('test-api.R:137:5'): read_lna lazy=TRUE keeps file open ──────────────
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee137dfbdf.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-api.R:136:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. └─neuroarchive:::open_h5(tmp, mode = "r") at test-api.R:137:5
+ 4.   └─base::tryCatch(...)
+ 5.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 6.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 7.         └─value[[3L]](cond)
+ 8.           └─neuroarchive:::abort_lna(...)
+ 9.             └─rlang::abort(...)
+── Error ('test-api.R:166:3'): write_lna writes block_table dataset ────────────
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee472189f5.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::open_h5(tmp, mode = "r") at test-api.R:166:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+ 6.           └─neuroarchive:::abort_lna(...)
+ 7.             └─rlang::abort(...)
+── Failure ('test-api.R:190:3'): write_lna validates block_table ranges ────────
+`write_lna(...)` did not throw a error with class <lna_error_validation>.
+── Error ('test-delta-edge-cases.R:26:5'): delta handles axis dimension of length 1 ──
+Error in `H5File.open(filename, mode, file_create_pl, file_access_pl)`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─H5File$new(tmp, mode = "r") at test-delta-edge-cases.R:26:5
+ 2.   └─hdf5r (local) initialize(...)
+ 3.     └─hdf5r:::H5File.open(filename, mode, file_create_pl, file_access_pl)
+── Error ('test-delta-edge-cases.R:71:5'): delta handles 1D input ──────────────
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee7cc977e6.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive (local) check_roundtrip(tmp, vec, axis = 1, coding = coding) at test-delta-edge-cases.R:71:5
+  2.   └─neuroarchive::read_lna(tmp) at test-delta-edge-cases.R:11:3
+  3.     ├─base::do.call(core_read, args)
+  4.     └─neuroarchive (local) `<fn>`(...)
+  5.       └─neuroarchive:::open_h5(file, mode = "r")
+  6.         └─base::tryCatch(...)
+  7.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.               └─value[[3L]](cond)
+ 10.                 └─neuroarchive:::abort_lna(...)
+ 11.                   └─rlang::abort(...)
+── Error ('test-delta-edge-cases.R:82:5'): delta handles prod(dims[-axis]) == 1 ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee3085cc85.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive (local) check_roundtrip(tmp, arr, axis = 1, coding = coding) at test-delta-edge-cases.R:82:5
+  2.   └─neuroarchive::read_lna(tmp) at test-delta-edge-cases.R:11:3
+  3.     ├─base::do.call(core_read, args)
+  4.     └─neuroarchive (local) `<fn>`(...)
+  5.       └─neuroarchive:::open_h5(file, mode = "r")
+  6.         └─base::tryCatch(...)
+  7.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.               └─value[[3L]](cond)
+ 10.                 └─neuroarchive:::abort_lna(...)
+ 11.                   └─rlang::abort(...)
+── Error ('test-delta-edge-cases.R:93:5'): delta handles constant input along diff axis ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee5c73dbf9.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive (local) check_roundtrip(tmp, arr, axis = 1, coding = coding) at test-delta-edge-cases.R:93:5
+  2.   └─neuroarchive::read_lna(tmp) at test-delta-edge-cases.R:11:3
+  3.     ├─base::do.call(core_read, args)
+  4.     └─neuroarchive (local) `<fn>`(...)
+  5.       └─neuroarchive:::open_h5(file, mode = "r")
+  6.         └─base::tryCatch(...)
+  7.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.               └─value[[3L]](cond)
+ 10.                 └─neuroarchive:::abort_lna(...)
+ 11.                   └─rlang::abort(...)
+── Error ('test-delta-edge-cases.R:104:5'): delta handles very short series ────
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee34ff2934.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive (local) check_roundtrip(tmp, arr, axis = 1, coding = coding) at test-delta-edge-cases.R:104:5
+  2.   └─neuroarchive::read_lna(tmp) at test-delta-edge-cases.R:11:3
+  3.     ├─base::do.call(core_read, args)
+  4.     └─neuroarchive (local) `<fn>`(...)
+  5.       └─neuroarchive:::open_h5(file, mode = "r")
+  6.         └─base::tryCatch(...)
+  7.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.               └─value[[3L]](cond)
+ 10.                 └─neuroarchive:::abort_lna(...)
+ 11.                   └─rlang::abort(...)
+── Error ('test-delta-edge-cases.R:114:5'): delta handles axis dimension of length 0 ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee1f373bf4.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive (local) check_roundtrip(tmp1, arr, axis = 1, coding = coding) at test-delta-edge-cases.R:114:5
+  2.   └─neuroarchive::read_lna(tmp) at test-delta-edge-cases.R:11:3
+  3.     ├─base::do.call(core_read, args)
+  4.     └─neuroarchive (local) `<fn>`(...)
+  5.       └─neuroarchive:::open_h5(file, mode = "r")
+  6.         └─base::tryCatch(...)
+  7.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.               └─value[[3L]](cond)
+ 10.                 └─neuroarchive:::abort_lna(...)
+ 11.                   └─rlang::abort(...)
+── Error ('test-delta-first_vals.R:31:3'): first_vals handled for 1D input ─────
+Error in `H5File.open(filename, mode, file_create_pl, file_access_pl)`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─H5File$new(tmp, mode = "r") at test-delta-first_vals.R:31:3
+ 2.   └─hdf5r (local) initialize(...)
+ 3.     └─hdf5r:::H5File.open(filename, mode, file_create_pl, file_access_pl)
+── Error ('test-delta-first_vals.R:56:3'): first_vals handled for 2D axis=1 ────
+Error in `H5File.open(filename, mode, file_create_pl, file_access_pl)`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─H5File$new(tmp, mode = "r") at test-delta-first_vals.R:56:3
+ 2.   └─hdf5r (local) initialize(...)
+ 3.     └─hdf5r:::H5File.open(filename, mode, file_create_pl, file_access_pl)
+── Error ('test-delta-first_vals.R:77:3'): first_vals handled for 3D axis>1 ────
+Error in `H5File.open(filename, mode, file_create_pl, file_access_pl)`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+    ▆
+ 1. └─H5File$new(tmp, mode = "r") at test-delta-first_vals.R:77:3
+ 2.   └─hdf5r (local) initialize(...)
+ 3.     └─hdf5r:::H5File.open(filename, mode, file_create_pl, file_access_pl)
+── Error ('test-delta-subset.R:12:3'): invert_step.delta applies roi_mask subset ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee61a666f7.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive::read_lna(tmp, roi_mask = roi) at test-delta-subset.R:12:3
+  2.   ├─base::do.call(core_read, args)
+  3.   └─neuroarchive (local) `<fn>`(...)
+  4.     └─neuroarchive:::open_h5(file, mode = "r")
+  5.       └─base::tryCatch(...)
+  6.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.             └─value[[3L]](cond)
+  9.               └─neuroarchive:::abort_lna(...)
+ 10.                 └─rlang::abort(...)
+── Error ('test-delta-subset.R:25:3'): invert_step.delta applies time_idx subset ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110eef682ed4.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive::read_lna(tmp, time_idx = idx) at test-delta-subset.R:25:3
+  2.   ├─base::do.call(core_read, args)
+  3.   └─neuroarchive (local) `<fn>`(...)
+  4.     └─neuroarchive:::open_h5(file, mode = "r")
+  5.       └─base::tryCatch(...)
+  6.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.             └─value[[3L]](cond)
+  9.               └─neuroarchive:::abort_lna(...)
+ 10.                 └─rlang::abort(...)
+── Error ('test-delta-subset.R:39:3'): invert_step.delta applies roi_mask and time_idx subset ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee1b2aa881.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive::read_lna(tmp, roi_mask = roi, time_idx = idx) at test-delta-subset.R:39:3
+  2.   ├─base::do.call(core_read, args)
+  3.   └─neuroarchive (local) `<fn>`(...)
+  4.     └─neuroarchive:::open_h5(file, mode = "r")
+  5.       └─base::tryCatch(...)
+  6.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.             └─value[[3L]](cond)
+  9.               └─neuroarchive:::abort_lna(...)
+ 10.                 └─rlang::abort(...)
+── Failure ('test-dsl_verbs.R:60:3'): quant() pipeline executes via lna_write ──
+captured$transform_params$step_01$bits (`actual`) not equal to 8 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (8)
+── Failure ('test-dsl_verbs_extended.R:30:3'): delta() merges parameters and executes ──
+captured$transform_params$delta$order (`actual`) not equal to 3L (`expected`).
+
+`actual` is NULL
+`expected` is an integer vector (3)
+── Failure ('test-dsl_verbs_extended.R:53:3'): temporal() verb adds step and executes ──
+captured$transform_params$temporal$kind (`actual`) not equal to "bspline" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('bspline')
+── Failure ('test-dsl_workflow_examples.R:28:3'): pipeline verbs chain cleanly ──
+captured$params$quant$bits (`actual`) not equal to 6 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (6)
+── Failure ('test-error_provenance.R:70:3'): core_read reports step provenance ──
+grepl("invert_step:fail[0]", err_cr_prov$location, fixed = TRUE) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-error_provenance.R:98:3'): core_read error location uses transform index ──
+grepl("invert_step:fail[1]", trimws(err_cr_idx$location), fixed = TRUE) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-facade.R:10:3'): LNAFacade writes and reads ──────────────────
+file.exists(tmp) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-facade.R:11:3'): LNAFacade writes and reads ──────────────────
+fac$last_output (`actual`) not identical to `tmp` (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee47d8b0c2.h5')
+── Error ('test-facade.R:12:3'): LNAFacade writes and reads ────────────────────
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee47d8b0c2.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─fac$read(tmp) at test-facade.R:12:3
+  2.   └─neuroarchive::read_lna(file = file, ...)
+  3.     ├─base::do.call(core_read, args)
+  4.     └─neuroarchive (local) `<fn>`(...)
+  5.       └─neuroarchive:::open_h5(file, mode = "r")
+  6.         └─base::tryCatch(...)
+  7.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.               └─value[[3L]](cond)
+ 10.                 └─neuroarchive:::abort_lna(...)
+ 11.                   └─rlang::abort(...)
+── Error ('test-get_transform_report.R:7:3'): lna_get_transform_report retrieves report ──
+Error in `write_lna(arr, file = tmp, transforms = "quant")`: argument "transform_params" is missing, with no default
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-get_transform_report.R:7:3
+── Error ('test-get_transform_report.R:16:3'): lna_get_transform_report handles missing report_path and gzip ──
+Error in `write_lna(arr, file = tmp, transforms = "quant")`: argument "transform_params" is missing, with no default
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-get_transform_report.R:16:3
+── Error ('test-get_transform_report.R:32:3'): lna_get_quant_report is wrapper ──
+Error in `write_lna(arr, file = tmp, transforms = "quant")`: argument "transform_params" is missing, with no default
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-get_transform_report.R:32:3
+── Failure ('test-hrbf_helpers.R:124:3'): compute_edge_map_neuroim2 self_mean ──
+any(edge) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-hrbf_helpers.R:256:3'): combined upgrades improve reconstruction MSE ──
+`mse_adv` is not strictly less than 0.9 * mse_base. Difference: NA
+── Error ('test-hrbf_rcpp_helpers.R:55:3'): poisson_disk_sample_neuroim2 Rcpp vs R fallback and radius ──
+Error in `seq_len(dims[2])`: argument must be coercible to non-negative integer
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::poisson_disk_sample_neuroim2(...) at test-hrbf_rcpp_helpers.R:55:3
+ 2.   └─neuroarchive:::label_components(mask_arr)
+── Failure ('test-integration_complex_pipelines.R:89:3'): complex pipeline roundtrip ──
+file.exists(tmp) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Error ('test-integration_complex_pipelines.R:91:3'): complex pipeline roundtrip ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee7ce64637.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive::read_lna(tmp) at test-integration_complex_pipelines.R:91:3
+  2.   ├─base::do.call(core_read, args)
+  3.   └─neuroarchive (local) `<fn>`(...)
+  4.     └─neuroarchive:::open_h5(file, mode = "r")
+  5.       └─base::tryCatch(...)
+  6.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.             └─value[[3L]](cond)
+  9.               └─neuroarchive:::abort_lna(...)
+ 10.                 └─rlang::abort(...)
+── Error ('test-integration_complex_pipelines.R:118:3'): lna_reader subset on complex pipeline ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee6c357bd9.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive::read_lna(tmp, lazy = TRUE, time_idx = 1:5) at test-integration_complex_pipelines.R:118:3
+  2.   └─lna_reader$new(file = file, core_read_args = args)
+  3.     └─neuroarchive (local) initialize(...)
+  4.       └─neuroarchive:::open_h5(file, mode = "r")
+  5.         └─base::tryCatch(...)
+  6.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.               └─value[[3L]](cond)
+  9.                 └─neuroarchive:::abort_lna(...)
+ 10.                   └─rlang::abort(...)
+── Error ('test-integration_complex_pipelines.R:129:3'): edge cases produce valid files ──
+Error in `write_lna(array(numeric(0), dim = c(0, 0, 0, 0)), file = tmp1, 
+    transforms = character())`: argument "transform_params" is missing, with no default
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-integration_complex_pipelines.R:129:3
+── Error ('test-integration_complex_pipelines.R:161:3'): checksum validation on complex pipeline ──
+Error in `write_lna(list(`run-01` = run1_data, `run-02` = run2_data), file = tmp, 
+    transforms = c("aggregate_runs", "sparsepca"), checksum = "sha256")`: argument "transform_params" is missing, with no default
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-integration_complex_pipelines.R:161:3
+── Failure ('test-integration_multi_transform.R:16:3'): basis -> embed -> quant pipeline roundtrip ──
+file.exists(tmp) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Error ('test-integration_multi_transform.R:18:3'): basis -> embed -> quant pipeline roundtrip ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee12fd442f.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive::read_lna(tmp) at test-integration_multi_transform.R:18:3
+  2.   ├─base::do.call(core_read, args)
+  3.   └─neuroarchive (local) `<fn>`(...)
+  4.     └─neuroarchive:::open_h5(file, mode = "r")
+  5.       └─base::tryCatch(...)
+  6.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.             └─value[[3L]](cond)
+  9.               └─neuroarchive:::abort_lna(...)
+ 10.                 └─rlang::abort(...)
+── Error ('test-integration_multi_transform.R:30:3'): quant only pipeline roundtrip ──
+Error in `write_lna(arr, file = tmp, transforms = "quant")`: argument "transform_params" is missing, with no default
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-integration_multi_transform.R:30:3
+── Error ('test-integration_multi_transform.R:51:3'): lna_reader works for multi-transform pipeline ──
+<lna_error_io/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Failed to open HDF5 file '%s': %s", path, 
+    conditionMessage(e)), .subclass = "lna_error_io", location = "open_h5")`: Failed to open HDF5 file '/var/folders/9h/nkjq6vss7mqdl4ck7q1hd8ph0000gp/T//RtmpVx8xEH/file110ee58b3ad10.h5': HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5Fopen(): line 827: unable to synchronously open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5F.c in H5F__open_api_common(): line 788: unable to open file
+        class: HDF5
+        major: File accessibility
+        minor: Unable to open file
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_file_open(): line 3680: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__file_open(): line 3514: open failed
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't open object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLnative_file.c in H5VL__native_file_open(): line 128:
+Backtrace:
+     ▆
+  1. └─neuroarchive::read_lna(tmp, lazy = TRUE) at test-integration_multi_transform.R:51:3
+  2.   └─lna_reader$new(file = file, core_read_args = args)
+  3.     └─neuroarchive (local) initialize(...)
+  4.       └─neuroarchive:::open_h5(file, mode = "r")
+  5.         └─base::tryCatch(...)
+  6.           └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  7.             └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  8.               └─value[[3L]](cond)
+  9.                 └─neuroarchive:::abort_lna(...)
+ 10.                   └─rlang::abort(...)
+── Failure ('test-lna_pipeline.R:114:3'): lna_write forwards arguments to write_lna ──
+captured$transform_params (`actual`) not equal to list(quant = list(bits = 8)) (`expected`).
+
+`names(actual)`:   "step_01"
+`names(expected)`: "quant"  
+
+`actual$step_01` is a list
+`expected$step_01` is absent
+
+`actual$quant` is absent
+`expected$quant` is a list
+── Failure ('test-lna_pipeline.R:205:3'): modify_step updates and resets parameters ──
+step$params$center is not TRUE
+
+`actual` is NULL
+`expected` is a logical vector (TRUE)
+── Failure ('test-lna_pipeline.R:209:3'): modify_step updates and resets parameters ──
+step$params$method (`actual`) not equal to "range" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('range')
+── Error ('test-neuroim2_header.R:106:3'): write_lna auto-populates header from NeuroObj ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-neuroim2_header.R:106:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Failure ('test-neuroim2_mask.R:34:3'): LogicalNeuroVol mask warns on space mismatch ──
+`neuroarchive:::validate_mask(mask, input_obj)` did not throw the expected warning.
+── Failure ('test-options_defaults.R:38:3'): default_params warns and caches empty list when schema missing ──
+`p1 <- neuroarchive:::default_params("foo")` did not throw the expected warning.
+── Failure ('test-options_defaults.R:39:3'): default_params warns and caches empty list when schema missing ──
+`p1` (`actual`) not equal to list() (`expected`).
+
+`actual` is length 3
+`expected` is length 0
+
+`names(actual)` is a character vector ('a', 'b', 'nested')
+`names(expected)` is absent
+
+`actual$a` is a double vector (1)
+`expected$a` is absent
+
+`actual$b` is a double vector (2)
+`expected$b` is absent
+
+`actual$nested` is a list
+`expected$nested` is absent
+── Failure ('test-options_defaults.R:40:3'): default_params warns and caches empty list when schema missing ──
+"foo" %in% ls(envir = cache_env) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-options_defaults.R:55:3'): default_params loads defaults from schema and caches ──
+`d1` (`actual`) not equal to list(a = 1L, b = "x", nested = list(c = 0.5)) (`expected`).
+
+`actual$b` is a double vector (2)
+`expected$b` is a character vector ('x')
+
+`actual$nested` is length 2
+`expected$nested` is length 1
+
+`names(actual$nested)`:   "x" "y"
+`names(expected$nested)`: "c"    
+
+`actual$nested$x` is a double vector (0)
+`expected$nested$x` is absent
+
+`actual$nested$y` is a double vector (0)
+`expected$nested$y` is absent
+
+`actual$nested$c` is absent
+`expected$nested$c` is a double vector (0.5)
+── Failure ('test-options_defaults.R:56:3'): default_params loads defaults from schema and caches ──
+"test" %in% ls(envir = cache_env) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-options_defaults.R:57:3'): default_params loads defaults from schema and caches ──
+"test" %in% ls(envir = schema_env) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-options_defaults.R:70:3'): defaults are extracted from array items ──
+d$numArray$items (`actual`) not equal to 2 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (2)
+── Failure ('test-options_defaults.R:71:3'): defaults are extracted from array items ──
+d$objArray$items (`actual`) not equal to list(flag = TRUE) (`expected`).
+
+`actual` is NULL
+`expected` is a list
+── Failure ('test-pipeline_errors.R:3:3'): pipeline handles missing dependencies correctly ──
+`{ ... }` did not throw a warning with class <lna_warning_dependency>.
+── Error ('test-plan.R:62:3'): Plan add_payload works correctly ────────────────
+<lna_error_duplicate_key/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Payload key '%s' already exists in plan", 
+    key), .subclass = "lna_error_duplicate_key", location = "Plan$add_payload")`: Payload key 'payload1' already exists in plan
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-plan.R:62:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─plan$add_payload("payload1", list(b = 2))
+ 8.   └─neuroarchive:::abort_lna(...)
+ 9.     └─rlang::abort(...)
+── Error ('test-plan.R:167:3'): Plan add_descriptor and get_next_filename work correctly ──
+<lna_error_duplicate_key/rlang_error/error/condition>
+Error in `abort_lna(sprintf("Descriptor name '%s' already exists in plan", 
+    transform_name), .subclass = "lna_error_duplicate_key", location = "Plan$add_descriptor")`: Descriptor name '00_pca.json' already exists in plan
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(plan$add_descriptor(fname1, list()), "Descriptor name '00_pca.json' already exists in plan.") at test-plan.R:167:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─plan$add_descriptor(fname1, list())
+ 8.   └─neuroarchive:::abort_lna(...)
+ 9.     └─rlang::abort(...)
+── Failure ('test-plan.R:194:3'): Plan mark_payload_written works correctly ────
+`plan$mark_payload_written("non_existent_key")` did not throw the expected warning.
+── Failure ('test-plugin_discovery.R:31:3'): default_params finds schema in loaded plugin ──
+`defaults` (`actual`) not equal to list(foo = 5L) (`expected`).
+
+`actual` is length 3
+`expected` is length 1
+
+`names(actual)`:   "a"   "b" "nested"
+`names(expected)`: "foo"             
+
+`actual$a` is a double vector (1)
+`expected$a` is absent
+
+`actual$b` is a double vector (2)
+`expected$b` is absent
+
+`actual$nested` is a list
+`expected$nested` is absent
+
+`actual$foo` is absent
+`expected$foo` is an integer vector (5)
+── Error ('test-quant_blockwise.R:19:3'): block-wise voxel scope matches full array ──
+Error in `while (bytes > target_slab_bytes && slab[2] > 1) {
+    slab[2] <- ceiling(slab[2]/2)
+    bytes <- prod(slab) * size
+}`: missing value where TRUE/FALSE needed
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::forward_step.quant("quant", desc, handle) at test-quant_blockwise.R:19:3
+ 2.   └─neuroarchive:::auto_block_size(...)
+── Error ('test-quant_precreate.R:16:3'): forward_step.quant precreates datasets for voxel scope ──
+Error in `while (bytes > target_slab_bytes && slab[2] > 1) {
+    slab[2] <- ceiling(slab[2]/2)
+    bytes <- prod(slab) * size
+}`: missing value where TRUE/FALSE needed
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::forward_step.quant("quant", desc, handle) at test-quant_precreate.R:16:3
+ 2.   └─neuroarchive:::auto_block_size(...)
+── Failure ('test-resolve_transform_params.R:30:3'): resolve_transform_params merges in correct precedence ──
+res$b (`actual`) not equal to "x" (`expected`).
+
+`actual` is a double vector (2)
+`expected` is a character vector ('x')
+── Failure ('test-resolve_transform_params.R:31:3'): resolve_transform_params merges in correct precedence ──
+res$nested$c (`actual`) not equal to 0.5 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (0.5)
+── Failure ('test-transform_base.R:62:3'): generate_transform_path creates correct paths ──
+`path` (`actual`) not equal to "/scans/run-01/00_quant/quantized" (`expected`).
+
+`actual`:   "run-01/00_quant/quantized"       
+`expected`: "/scans/run-01/00_quant/quantized"
+── Failure ('test-transform_base.R:66:3'): generate_transform_path creates correct paths ──
+`path` (`actual`) not equal to "/temporal/01_temporal/basis" (`expected`).
+
+`actual`:   "01_temporal/basis"          
+`expected`: "/temporal/01_temporal/basis"
+── Failure ('test-transform_base.R:70:3'): generate_transform_path creates correct paths ──
+`path` (`actual`) not equal to "/transforms/00_quant_report.json" (`expected`).
+
+`actual`:   "00_quant_report.json"            
+`expected`: "/transforms/00_quant_report.json"
+── Failure ('test-transform_basis.R:8:3'): default_params for basis loads schema ──
+p$method (`actual`) not equal to "pca" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('pca')
+── Failure ('test-transform_basis.R:9:3'): default_params for basis loads schema ──
+is.numeric(p$k) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-transform_basis.R:10:3'): default_params for basis loads schema ──
+p$center is not TRUE
+
+`actual` is NULL
+`expected` is a logical vector (TRUE)
+── Failure ('test-transform_basis.R:11:3'): default_params for basis loads schema ──
+p$scale is not FALSE
+
+`actual` is NULL
+`expected` is a logical vector (FALSE)
+── Error ('test-transform_basis_empirical_hrbf_compressed_inverse.R:46:3'): invert_step.basis.empirical_hrbf_compressed returns basis ──
+<lna_error_validation/rlang_error/error/condition>
+Error in `abort_lna("B_dict not found - codes format not recognized", .subclass = "lna_error_validation", 
+    location = "invert_step.basis.empirical_hrbf_compressed:missing_dict")`: B_dict not found - codes format not recognized
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::invert_step.basis.empirical_hrbf_compressed(...) at test-transform_basis_empirical_hrbf_compressed_inverse.R:46:3
+ 2.   └─neuroarchive:::abort_lna(...)
+ 3.     └─rlang::abort(...)
+── Failure ('test-transform_builder.R:103:3'): TransformBuilder generates correct standard paths ──
+captured_calls\[\[1\]\]\[\[1\]\] does not match "/scans/run-01/00_test/quantized".
+Actual value: "run-01/00_test/quantized"
+Backtrace:
+    ▆
+ 1. └─testthat::expect_match(captured_calls[[1]][[1]], "/scans/run-01/00_test/quantized") at test-transform_builder.R:103:3
+ 2.   └─testthat:::expect_match_(...)
+── Failure ('test-transform_delta.R:11:3'): default_params for delta loads schema ──
+p$order (`actual`) not equal to 1 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (1)
+── Failure ('test-transform_delta.R:13:3'): default_params for delta loads schema ──
+is.numeric(p$axis) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-transform_delta.R:14:3'): default_params for delta loads schema ──
+p$reference_value_storage (`actual`) not equal to "first_value_verbatim" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('first_value_verbatim')
+── Error ('test-transform_delta.R:23:3'): delta transform forward and inverse roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "delta") at test-transform_delta.R:23:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_delta.R:51:3'): delta transform with rle coding works ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_delta.R:51:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_delta.R:72:3'): delta transform rejects unsupported coding_method ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-transform_delta.R:72:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─neuroarchive::write_lna(...)
+ 8.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 9.     └─rlang::abort(...)
+── Error ('test-transform_delta.R:86:3'): rle coding compresses delta stream for 1D input ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_delta.R:86:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_delta.R:113:3'): rle coding compresses delta stream for matrix input ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_delta.R:113:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_delta.R:137:3'): read_lna applies roi_mask and time_idx for delta ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "delta") at test-transform_delta.R:137:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Failure ('test-transform_embed.R:8:3'): default_params for embed loads schema ──
+p$basis_path (`actual`) not equal to "" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('')
+── Failure ('test-transform_embed.R:15:3'): embed transform errors when basis_path missing ──
+`core_write(X, transforms = "embed")` did not throw a error with class <lna_error_transform_step>.
+── Failure ('test-transform_quant.R:10:3'): default_params for quant loads schema ──
+p$bits (`actual`) not equal to 8 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (8)
+── Failure ('test-transform_quant.R:11:3'): default_params for quant loads schema ──
+p$method (`actual`) not equal to "range" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('range')
+── Failure ('test-transform_quant.R:12:3'): default_params for quant loads schema ──
+p$center is not TRUE
+
+`actual` is NULL
+`expected` is a logical vector (TRUE)
+── Failure ('test-transform_quant.R:13:3'): default_params for quant loads schema ──
+p$allow_clip is not FALSE
+
+`actual` is NULL
+`expected` is a logical vector (FALSE)
+── Error ('test-transform_quant.R:21:3'): quant transform forward and inverse roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-transform_quant.R:21:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:34:3'): quant transform supports sd method and voxel scope ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_quant.R:34:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:50:3'): invert_step.quant applies roi_mask and time_idx ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-transform_quant.R:50:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:134:3'): quant transform errors on non-finite input ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-transform_quant.R:134:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant")
+ 8.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 9.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:153:3'): forward_step.quant stores clipping stats in handle meta ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_quant.R:153:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:162:3'): invert_step.quant warns when quant_bits attribute missing ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-transform_quant.R:162:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:170:3'): quantized dataset uses uint8 or uint16 storage ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_quant.R:170:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:201:3'): quant_bits attribute is validated against descriptor ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_quant.R:201:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:216:3'): missing quant_bits attribute triggers warning ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-transform_quant.R:216:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:232:3'): forward_step.quant warns or errors based on clipping thresholds ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_warning(...) at test-transform_quant.R:232:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─neuroarchive::write_lna(...)
+ 8.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 9.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:261:3'): forward_step.quant hard clips output range ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_quant.R:261:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:274:5'): quant roundtrip fidelity for bits=1 and bits=16 ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_quant.R:274:5
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_quant.R:286:3'): quantization report written and path stored ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(arr, file = tmp, transforms = "quant") at test-transform_quant.R:286:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Failure ('test-transform_registry.R:217:3'): discover_and_register_transforms finds transforms ──
+`count` is not strictly more than 0. Difference: 0
+── Failure ('test-transform_registry.R:221:3'): discover_and_register_transforms finds transforms ──
+"quant" %in% registered is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-transform_registry.R:222:3'): discover_and_register_transforms finds transforms ──
+"delta" %in% registered is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-transform_registry.R:223:3'): discover_and_register_transforms finds transforms ──
+"basis" %in% registered is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-transform_registry.R:233:3'): discover_and_register_transforms categorizes correctly ──
+quant_info$metadata$category (`actual`) not equal to "compression" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('compression')
+── Failure ('test-transform_registry.R:236:3'): discover_and_register_transforms categorizes correctly ──
+basis_info$metadata$category (`actual`) not equal to "dimensionality" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('dimensionality')
+── Failure ('test-transform_sparsepca.R:9:3'): default_params for sparsepca loads schema ──
+p$k (`actual`) not equal to 50 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (50)
+── Failure ('test-transform_sparsepca.R:10:3'): default_params for sparsepca loads schema ──
+p$alpha (`actual`) not equal to 0.001 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (0.001)
+── Failure ('test-transform_sparsepca.R:11:3'): default_params for sparsepca loads schema ──
+p$whiten (`actual`) not identical to FALSE (`expected`).
+
+`actual` is NULL
+`expected` is a logical vector (FALSE)
+── Failure ('test-transform_sparsepca.R:12:3'): default_params for sparsepca loads schema ──
+p$storage_order (`actual`) not equal to "component_x_voxel" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('component_x_voxel')
+── Failure ('test-transform_sparsepca.R:13:3'): default_params for sparsepca loads schema ──
+p$seed (`actual`) not equal to 42 (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (42)
+── Failure ('test-transform_sparsepca.R:27:3'): forward_step.sparsepca creates basis and embedding ──
+"sparsepca_embedding" %in% names(h2$stash) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-transform_sparsepca.R:30:3'): forward_step.sparsepca creates basis and embedding ──
+dim(h2$stash$sparsepca_embedding) (`actual`) not equal to c(15, 3) (`expected`).
+
+`actual` is NULL
+`expected` is a double vector (15, 3)
+── Error ('test-transform_sparsepca.R:48:3'): sparsepca forward and inverse roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_sparsepca.R:48:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_sparsepca.R:75:3'): whitening centers and scales the matrix ──
+Error in `E_TxK %*% B_KxV`: requires numeric/complex matrix/vector arguments
+── Error ('test-transform_sparsepca.R:107:3'): singular values dataset is written ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_sparsepca.R:107:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_spat_hrbf.R:34:3'): forward_step.spat.hrbf generates centres and hash ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h) at test-transform_spat_hrbf.R:34:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf.R:56:3'): forward_step.spat.hrbf stores basis matrix when requested ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h) at test-transform_spat_hrbf.R:56:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf.R:79:3'): forward_step.spat.hrbf computes coefficients ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h) at test-transform_spat_hrbf.R:79:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf.R:100:3'): num_extra_fine_levels increases k_actual ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc1, h1) at test-transform_spat_hrbf.R:100:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf.R:145:3'): forward_step.spat.hrbf warns when anisotropic atoms requested ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-transform_spat_hrbf.R:145:3
+  2. │ └─testthat:::expect_condition_matching(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h)
+  8. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+  9. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 10. └─base::.handleSimpleError(...)
+ 11.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf.R:175:3'): forward_step.spat.hrbf warns for derivative Gaussian atoms ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-transform_spat_hrbf.R:175:3
+  2. │ └─testthat:::expect_condition_matching(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h)
+  8. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+  9. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 10. └─base::.handleSimpleError(...)
+ 11.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf.R:209:3'): forward_step.spat.hrbf warns for centre steering map ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-transform_spat_hrbf.R:209:3
+  2. │ └─testthat:::expect_condition_matching(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h)
+  8. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+  9. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 10. └─base::.handleSimpleError(...)
+ 11.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf.R:239:3'): forward_step.spat.hrbf warns for differential encoding ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-transform_spat_hrbf.R:239:3
+  2. │ └─testthat:::expect_condition_matching(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h)
+  8. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+  9. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 10. └─base::.handleSimpleError(...)
+ 11.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf_inverse.R:37:3'): invert_step.spat.hrbf reconstructs dense data ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h) at test-transform_spat_hrbf_inverse.R:37:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf_inverse.R:75:3'): invert_step.spat.hrbf mask hash mismatch warns/errors ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h) at test-transform_spat_hrbf_inverse.R:75:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf_inverse.R:123:3'): invert_step.spat.hrbf deterministic basis regeneration ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h) at test-transform_spat_hrbf_inverse.R:123:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf_inverse.R:172:3'): invert_step.spat.hrbf uses stored dense matrix when available ──
+Error in `h(simpleError(msg, call))`: error in evaluating the argument 'coords' in selecting a method for function 'grid_to_coord': argument to 'which' is not logical
+Backtrace:
+    ▆
+ 1. ├─neuroarchive:::forward_step.spat.hrbf("spat.hrbf", desc, h) at test-transform_spat_hrbf_inverse.R:172:3
+ 2. │ ├─neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+ 3. │ └─base::which(mask_arr, arr.ind = TRUE)
+ 4. └─base::.handleSimpleError(...)
+ 5.   └─base (local) h(simpleError(msg, call))
+── Error ('test-transform_spat_hrbf_project.R:41:3'): forward_step.spat.hrbf_project outputs coefficients and descriptor ──
+Error in `seq_len(dims[2])`: argument must be coercible to non-negative integer
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::forward_step.spat.hrbf_project(...) at test-transform_spat_hrbf_project.R:41:3
+ 2.   └─neuroarchive:::hrbf_basis_from_params(p, mask_neurovol, if (!is.null(handle$h5)) handle$h5[["/"]] else NULL)
+ 3.     └─neuroarchive:::poisson_disk_sample_neuroim2(...)
+ 4.       └─neuroarchive:::label_components(mask_arr)
+── Error ('test-transform_spat_hrbf_project.R:134:3'): spat.hrbf descriptor-only roundtrip with quant ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_spat_hrbf_project.R:134:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_spat_hrbf_project_inverse.R:36:3'): invert_step.spat.hrbf_project reconstructs dense data ──
+Error in `seq_len(dims[2])`: argument must be coercible to non-negative integer
+Backtrace:
+    ▆
+ 1. └─neuroarchive:::forward_step.spat.hrbf_project(...) at test-transform_spat_hrbf_project_inverse.R:36:3
+ 2.   └─neuroarchive:::hrbf_basis_from_params(p, mask_neurovol, if (!is.null(handle$h5)) handle$h5[["/"]] else NULL)
+ 3.     └─neuroarchive:::poisson_disk_sample_neuroim2(...)
+ 4.       └─neuroarchive:::label_components(mask_arr)
+── Error ('test-transform_temporal.R:23:3'): temporal transform forward and inverse roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_temporal.R:23:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_temporal.R:47:3'): invert_step.temporal applies time_idx subset ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_temporal.R:47:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Failure ('test-transform_temporal.R:60:3'): default_params for temporal loads schema ──
+p$kind (`actual`) not equal to "dct" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('dct')
+── Failure ('test-transform_temporal.R:61:3'): default_params for temporal loads schema ──
+p$scope (`actual`) not equal to "global" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('global')
+── Failure ('test-transform_temporal.R:62:3'): default_params for temporal loads schema ──
+is.numeric(p$n_basis) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Error ('test-transform_temporal.R:74:3'): temporal transform bspline roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_temporal.R:74:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Failure ('test-transform_temporal.R:99:3'): temporal transform rejects unsupported kind ──
+`core_write(X, transforms = "temporal", transform_params = list(temporal = list(kind = "unsupported_kind")))` did not throw a error with class <lna_error_transform_step>.
+── Failure ('test-transform_temporal.R:107:3'): temporal transform rejects unsupported kind ──
+err$parent is not an S3 object
+── Error ('test-transform_temporal.R:108:3'): temporal transform rejects unsupported kind ──
+Error in `UseMethod("conditionMessage")`: no applicable method for 'conditionMessage' applied to an object of class "NULL"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_match(conditionMessage(err$parent), "Unsupported temporal kind 'unsupported_kind'") at test-transform_temporal.R:108:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─base::conditionMessage(err$parent)
+── Error ('test-transform_temporal.R:121:3'): temporal transform dpss roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_temporal.R:121:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_temporal.R:144:3'): temporal transform polynomial roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_temporal.R:144:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Error ('test-transform_temporal.R:161:3'): temporal transform wavelet roundtrip ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-transform_temporal.R:161:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+── Failure ('test-utils_error.R:65:3'): warn_lna creates warnings with correct subclasses ──
+`warn_lna("performance issue", .subclass = "lna_warning_performance")` did not throw a warning with class <lna_warning_performance>.
+── Failure ('test-utils_error.R:70:3'): warn_lna creates warnings with correct subclasses ──
+`warn_lna("data quality issue", .subclass = "lna_warning_data_quality")` did not throw a warning with class <lna_warning_data_quality>.
+── Failure ('test-utils_error.R:75:3'): warn_lna creates warnings with correct subclasses ──
+`warn_lna("overwriting file", .subclass = "lna_warning_overwrite")` did not throw a warning with class <lna_warning_overwrite>.
+── Failure ('test-utils_error.R:80:3'): warn_lna creates warnings with correct subclasses ──
+`warn_lna("missing attribute", .subclass = "lna_warning_missing_attribute")` did not throw a warning with class <lna_warning_missing_attribute>.
+── Failure ('test-utils_error.R:85:3'): warn_lna creates warnings with correct subclasses ──
+`warn_lna("parameter adjusted", .subclass = "lna_warning_parameter_adjustment")` did not throw a warning with class <lna_warning_parameter_adjustment>.
+── Failure ('test-utils_error.R:90:3'): warn_lna creates warnings with correct subclasses ──
+`warn_lna("dependency missing", .subclass = "lna_warning_dependency")` did not throw a warning with class <lna_warning_dependency>.
+── Failure ('test-utils_error.R:95:3'): warn_lna creates warnings with correct subclasses ──
+`warn_lna("data format issue", .subclass = "lna_warning_data_format")` did not throw a warning with class <lna_warning_data_format>.
+── Failure ('test-utils_error.R:102:3'): warn_lna includes location information ──
+`warn_lna(...)` did not throw a warning with class <lna_warning_performance>.
+── Failure ('test-utils_error.R:108:3'): warn_lna includes location information ──
+"location" %in% names(warn) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Failure ('test-utils_error.R:109:3'): warn_lna includes location information ──
+warn$location (`actual`) not equal to "test_location" (`expected`).
+
+`actual` is NULL
+`expected` is a character vector ('test_location')
+── Error ('test-utils_error.R:114:3'): error handlers work without subclass ────
+Error in `abort_lna("generic error")`: argument ".subclass" is missing, with no default
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(abort_lna("generic error"), class = "lna_error") at test-utils_error.R:114:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─neuroarchive:::abort_lna("generic error")
+ 8.   └─base::stopifnot(is.character(.subclass))
+── Error ('test-utils_float16.R:12:3'): has_float16_support detects packages ───
+Error in `local_mocked_bindings(requireNamespace = function(pkg, quietly = TRUE) TRUE, 
+    .env = asNamespace("neuroarchive"))`: Can't find binding for `requireNamespace`
+Backtrace:
+    ▆
+ 1. └─testthat::local_mocked_bindings(requireNamespace = function(pkg, quietly = TRUE) TRUE, .env = asNamespace("neuroarchive")) at test-utils_float16.R:12:3
+ 2.   └─cli::cli_abort("Can't find binding for {.arg {missing}}")
+ 3.     └─rlang::abort(...)
+── Error ('test-utils_hdf5.R:120:3'): HDF5 attribute helpers handle edge cases and errors ──
+<lna_error_validation/rlang_error/error/condition>
+Error in `abort_lna("Attribute name must be a single character string", 
+    .subclass = "lna_error_validation", location = "h5_attr_write")`: Attribute name must be a single character string
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(h5_attr_write(root_group, 123, 1), "is.character\\(name\\) is not TRUE") at test-utils_hdf5.R:120:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─neuroarchive:::h5_attr_write(root_group, 123, 1)
+ 8.   └─neuroarchive:::abort_lna(...)
+ 9.     └─rlang::abort(...)
+── Failure ('test-utils_hdf5_errors.R:157:3'): reduce_chunk_dims validates inputs ──
+prod(reduced) * 4 <= 1024 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+── Error ('test-utils_hdf5_errors.R:205:3'): assert_h5_path validates inputs ───
+Error in `h5$exists(path)`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5Lexists(): line 1215: unable to synchronously check link existence
+        class: HDF5
+        major: Links
+        minor: Can't get value
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5L__exists_api_common(): line 1189: unable to get link info
+        class: HDF5
+        major: Links
+        minor: Can't get value
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_link_specific(): line 5318: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__link_specific(): line 5284: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-utils_hdf5_errors.R:205:3
+ 2. │ └─testthat:::expect_condition_matching(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─neuroarchive:::assert_h5_path(h5_file, "/nonexistent/path")
+ 8.   └─h5$exists(path)
+── Error ('test-validate_lna.R:21:3'): validate_lna succeeds on valid file ─────
+Error in `validate_lna(tmp, checksum = FALSE)`: unused argument (checksum = FALSE)
+Backtrace:
+    ▆
+ 1. └─testthat::expect_true(validate_lna(tmp, checksum = FALSE)) at test-validate_lna.R:21:3
+ 2.   └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+── Failure ('test-validate_lna.R:32:3'): validate_lna detects spec mismatch ────
+`validate_lna(tmp)` did not throw a error with class <lna_error_validation>.
+── Failure ('test-validate_lna.R:43:3'): validate_lna detects checksum mismatch ──
+`validate_lna(tmp)` did not throw a error with class <lna_error_validation>.
+── Error ('test-validate_lna.R:44:3'): validate_lna detects checksum mismatch ──
+Error in `validate_lna(tmp, checksum = FALSE)`: unused argument (checksum = FALSE)
+Backtrace:
+    ▆
+ 1. └─testthat::expect_true(validate_lna(tmp, checksum = FALSE)) at test-validate_lna.R:44:3
+ 2.   └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+── Failure ('test-validate_lna.R:72:3'): validate_lna fails on invalid descriptor ──
+`validate_lna(tmp)` did not throw a error with class <lna_error_validation>.
+── Error ('test-validate_lna.R:84:3'): validate_lna strict=FALSE collects multiple issues ──
+Error in `validate_lna(tmp, strict = FALSE)`: unused argument (strict = FALSE)
+── Error ('test-validate_lna.R:98:3'): validate_lna strict=TRUE errors on first issue ──
+Error in `validate_lna(tmp, strict = TRUE)`: unused argument (strict = TRUE)
+Backtrace:
+    ▆
+ 1. └─testthat::expect_error(validate_lna(tmp, strict = TRUE), class = "lna_error_validation") at test-validate_lna.R:98:3
+ 2.   └─testthat:::expect_condition_matching(...)
+ 3.     └─testthat:::quasi_capture(...)
+ 4.       ├─testthat (local) .capture(...)
+ 5.       │ └─base::withCallingHandlers(...)
+ 6.       └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+── Error ('test-validate_lna.R:105:3'): validate_lna detects missing required groups ──
+Error in `h5$link_delete("basis")`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5Ldelete(): line 863: unable to synchronously delete link
+        class: HDF5
+        major: Links
+        minor: Can't delete message
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5L__delete_api_common(): line 834: unable to delete link
+        class: HDF5
+        major: Links
+        minor: Can't delete message
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_link_specific(): line 5318: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__link_specific(): line 5284: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.
+Backtrace:
+    ▆
+ 1. └─h5$link_delete("basis") at test-validate_lna.R:105:3
+── Error ('test-validate_lna.R:114:3'): validate_lna detects missing dataset referenced by descriptor ──
+Error in `h5$link_delete("scans/run-01/data")`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5Ldelete(): line 863: unable to synchronously delete link
+        class: HDF5
+        major: Links
+        minor: Can't delete message
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5L__delete_api_common(): line 834: unable to delete link
+        class: HDF5
+        major: Links
+        minor: Can't delete message
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_link_specific(): line 5318: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__link_specific(): line 5284: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.
+Backtrace:
+    ▆
+ 1. └─h5$link_delete("scans/run-01/data") at test-validate_lna.R:114:3
+── Error ('test-validate_lna.R:123:3'): validate_lna detects dimension mismatch hints ──
+Error in ``[[.H5File`(h5, "transforms")`: An object with name transforms does not exist in this group
+Backtrace:
+    ▆
+ 1. ├─h5[["transforms"]] at test-validate_lna.R:123:3
+ 2. └─hdf5r:::`[[.H5File`(h5, "transforms") at test-validate_lna.R:123:3
+── Error ('test-validate_lna.R:135:3'): validate_lna errors when dataset cannot be read ──
+Error in `h5$link_delete("scans/run-01/data")`: HDF5-API Errors:
+    error #000: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5Ldelete(): line 863: unable to synchronously delete link
+        class: HDF5
+        major: Links
+        minor: Can't delete message
+
+    error #001: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5L.c in H5L__delete_api_common(): line 834: unable to delete link
+        class: HDF5
+        major: Links
+        minor: Can't delete message
+
+    error #002: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL_link_specific(): line 5318: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #003: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.6/src/H5VLcallback.c in H5VL__link_specific(): line 5284: unable to execute link specific callback
+        class: HDF5
+        major: Virtual Object Layer
+        minor: Can't operate on object
+
+    error #004: /tmp/hdf5-20250207-38672-70v1yh/hdf5-1.14.
+Backtrace:
+    ▆
+ 1. └─h5$link_delete("scans/run-01/data") at test-validate_lna.R:135:3
+── Error ('test-write_lna_parallel.R:11:3'): write_lna temp file can be atomically renamed ──
+<lna_error_internal/rlang_error/error/condition>
+Error in `neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", 
+    .subclass = "lna_error_internal")`: boom
+Backtrace:
+    ▆
+ 1. └─neuroarchive::write_lna(...) at test-write_lna_parallel.R:11:3
+ 2.   └─neuroarchive:::abort_lna("boom", step_index = 0, transform_type = "quant", .subclass = "lna_error_internal") at test-lna_pipeline.R:152:7
+ 3.     └─rlang::abort(...)
+
+[ FAIL 174 | WARN 25 | SKIP 4 | PASS 835 ]
+Error: Test failures
+Execution halted
+Ran 4/4 deferred expressions

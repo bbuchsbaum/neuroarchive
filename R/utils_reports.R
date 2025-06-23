@@ -48,7 +48,8 @@ lna_get_transform_report <- function(lna_file, transform_index_or_name) {
   desc <- read_json_descriptor(tf_group, desc_name)
   params <- desc$params %||% list()
   base <- tools::file_path_sans_ext(desc_name)
-  report_path <- params$report_path %||% paste0("/transforms/", base, "_report.json")
+  transforms_root <- lna_options("paths.transforms_root")[[1]]
+  report_path <- params$report_path %||% paste0(transforms_root, base, "_report.json")
 
   root <- h5[["/"]]
   assert_h5_path(root, report_path)

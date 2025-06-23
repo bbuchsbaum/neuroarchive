@@ -2,11 +2,23 @@
 % Please edit documentation in R/transform_temporal.R
 \name{forward_step.temporal}
 \alias{forward_step.temporal}
-\title{Temporal Transform - Forward Step}
+\title{Temporal Transform - Core Infrastructure}
 \usage{
 \method{forward_step}{temporal}(type, desc, handle)
 }
 \description{
+This file contains the core temporal transform infrastructure including
+forward_step and invert_step functions. Individual basis types, projection,
+and reconstruction methods are now organized in separate files:
+}
+\details{
+- temporal_basis.R: Basis generation for DCT, B-spline, DPSS, polynomial, wavelet
+- temporal_modwt.R: All MODWT-specific functions and methods  
+- temporal_project.R: Projection methods with thresholding
+- temporal_reconstruct.R: Reconstruction methods
+- temporal_utils.R: Utility functions like suggest_dpss_fmri()
+Temporal Transform - Forward Step
+
 Projects data onto a temporal basis (DCT, B-spline, DPSS, polynomial, or wavelet).
 Debug messages are controlled by the `lna.debug.temporal` option.
 }

@@ -4,7 +4,7 @@
 \alias{auto_block_size}
 \title{Automatic Block Size for Spatial Slabs}
 \usage{
-auto_block_size(spatial_dims, element_size_bytes, target_slab_bytes = 6.4e+07)
+auto_block_size(spatial_dims, element_size_bytes, target_slab_bytes = NULL)
 }
 \arguments{
 \item{spatial_dims}{Integer vector of length 3 giving the X, Y, Z

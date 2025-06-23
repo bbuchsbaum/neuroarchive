@@ -6,7 +6,7 @@
 \usage{
 basis_time(
   n_timepoints,
-  basis_type = c("dct", "polynomial", "bspline", "dpss", "wavelet"),
+  basis_type = c("dct", "polynomial", "bspline", "dpss", "wavelet", "modwt"),
   n_components = NULL,
   ...
 )
@@ -25,28 +25,45 @@ Matrix with time points in rows, basis functions in columns
 }
 \description{
 Generate temporal basis functions for time series decomposition.
-Supports multiple basis types commonly used in neuroimaging.
+Supports multiple basis types commonly used in neuroimaging with
+optional coefficient thresholding for denoising.
 }
 \details{
-Basis-specific parameters:
+**Basis-specific parameters:**
 \itemize{
-  \item `dct`: No additional parameters
-  \item `polynomial`: `degree` (default: 3)
-  \item `bspline`: `knot_spacing` (default: 10), `degree` (default: 3)
-  \item `dpss`: `bandwidth` (default: 4), `k_components` (default: 7)
-  \item `wavelet`: `wavelet_name` (default: "d4"), `boundary` (default: "periodic")
+  \item \strong{DCT}: \code{threshold_type} ("none", "energy", "hard"), 
+    \code{threshold_value}, \code{keep_energy} (for energy thresholding)
+  \item \strong{Polynomial}: No additional parameters
+  \item \strong{B-spline}: \code{order} (default: 3), \code{knot_spacing_method}
+  \item \strong{DPSS}: \code{time_bandwidth_product} (default: 3), \code{n_tapers}
+  \item \strong{Wavelet}: \code{wavelet} ("db4", "db8", "haar", etc.), 
+    \code{threshold_type} ("none", "soft", "hard", "adaptive"), \code{threshold_value}
 }
+
+**For fMRI applications, consider using \code{\link{suggest_dpss_fmri}} for 
+DPSS parameter selection based on TR and study type.**
 }
 \examples{
 \donttest{
-# DCT basis for trend removal
+# DCT basis for trend removal with energy thresholding
 dct_basis <- basis_time(100, "dct", n_components = 10)
 
-# DPSS basis for spectral analysis
-dpss_basis <- basis_time(200, "dpss", n_components = 15, time_bandwidth_product = 3)
+# DPSS basis for spectral analysis with optimal fMRI parameters
+dpss_params <- suggest_dpss_fmri(TR = 2.0, n_time = 300, study_type = "resting")
+dpss_basis <- basis_time(300, "dpss", 
+                        n_components = dpss_params$n_basis,
+                        time_bandwidth_product = dpss_params$time_bandwidth_product)
 
 # B-spline basis for flexible modeling
-spline_basis <- basis_time(150, "bspline", n_components = 20, knot_spacing = 8)
+spline_basis <- basis_time(150, "bspline", n_components = 20, order = 3)
+
+# Wavelet basis with soft thresholding for denoising
+wavelet_basis <- basis_time(256, "wavelet", n_components = 50, 
+                          wavelet = "db4", 
+                          threshold_type = "soft")
 }
 
+}
+\seealso{
+\code{\link{suggest_dpss_fmri}}, \code{\link{temporal_project_denoise}}
 }

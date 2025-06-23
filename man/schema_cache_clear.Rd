@@ -1,6 +1,5 @@
 \name{schema_cache_clear}
 \alias{schema_cache_clear}
-\alias{.schema_cache}
 \title{Schema cache environment}
 \usage{
 schema_cache_clear()

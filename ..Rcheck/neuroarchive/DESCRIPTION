@@ -1,0 +1,20 @@
+Package: neuroarchive
+Type: Package
+Title: Latent NeuroArchive Data Format Tools
+Version: 0.1.0
+Author: Who wrote it
+Maintainer: The package maintainer <yourself@somewhere.net>
+Description: Tools for reading and writing Latent NeuroArchive (LNA) files.
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: hdf5r, jsonlite, Matrix, Rcpp, RcppEigen, rlang, R6, tibble,
+        neuroim2, igraph, progressr, digest, memoise, jsonvalidate,
+        withr, methods, wavelets
+Suggests: sparsepca, irlba, testthat (>= 3.0.0), multitaper
+Config/testthat/edition: 3
+RoxygenNote: 7.3.2.9000
+LinkingTo: Rcpp, RcppEigen
+SystemRequirements: C++14
+Built: R 4.3.2; aarch64-apple-darwin20; 2025-06-23 15:06:13 UTC; unix

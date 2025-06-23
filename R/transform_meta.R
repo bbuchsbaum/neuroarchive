@@ -7,6 +7,21 @@
 #' @param type Character transform type.
 #' @export
 transform_min_dims <- function(type) {
+  # Ensure type is a character string
+  if (!is.character(type)) {
+    type <- as.character(type)
+  }
+  
+  # Take only the first element if multiple are provided
+  if (length(type) > 1) {
+    type <- type[1]
+  }
+  
+  # Handle NULL or empty cases
+  if (length(type) == 0 || is.null(type)) {
+    return(3L)
+  }
+  
   # message(paste0("[transform_min_dims] called for type: ", type))
   switch(type,
          delta = 1L,

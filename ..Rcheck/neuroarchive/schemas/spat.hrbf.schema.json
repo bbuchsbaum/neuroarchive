@@ -1,0 +1,196 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parameters for analytic HRBF (spat.hrbf) transform",
+  "type": "object",
+  "properties": {
+    "type": { "const": "spat.hrbf" },
+    "version": { "const": "1.0" },
+    "sigma0": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 6.0,
+      "description": "Base RBF width in mm (Gaussian sigma; convert from FWHM if needed) for level 0."
+    },
+    "levels": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 3,
+      "description": "Number of dyadic levels (0 to J)."
+    },
+    "num_extra_fine_levels": {
+        "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Additional dyadic levels beyond 'levels'. Each extra level halves sigma and samples a denser set of centres."
+    },
+    "radius_factor": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 2.5,
+      "description": "Factor for Poisson-disk radius relative to sigma_j (r_j = factor * sigma_j)."
+    },
+    "kernel_type": {
+      "enum": ["gaussian", "wendland_c4"],
+      "default": "gaussian",
+      "description": "Type of radial basis function kernel. 'wendland_c4' offers C4 smoothness and compact support (shape parameter derived from sigma)."
+    },
+    "kernel_type_fine_levels": {
+      "enum": ["gaussian", "wendland_c4"],
+      "default": "wendland_c4",
+      "description": "Kernel type applied to the finest levels. Full functionality pending future implementation."
+    },
+    "num_fine_levels_alt_kernel": {
+      "type": "integer",
+      "default": 2,
+      "description": "Number of finest levels using 'kernel_type_fine_levels'. Functionality pending future implementation."
+    },
+    "mask_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "(Output by writer) SHA256 hash of the binary mask voxel array used for centre generation."
+    },
+    "compute_atom_importance": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, writer computes and stores data-driven atom importance metrics."
+    },
+    "centres_stored": {
+      "type": "boolean",
+      "default": false,
+      "description": "(Output by writer) true if centres were explicitly stored instead of relying on seed."
+    },
+    "store_dense_matrix": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, writer stores the generated dense basis matrix (e.g., for debugging)."
+    },
+    "seed": { "type": "integer", "description": "RNG seed for Poisson-disk sampling." },
+    "centres_path": {
+      "type": "string",
+      "pattern": "^/.*",
+      "description": "HDF5 path to explicitly stored RBF centre coordinates (K_total x 3 array, float32, mm units, order: x,y,z)."
+    },
+    "sigma_vec_path": {
+      "type": "string",
+      "pattern": "^/.*",
+      "description": "HDF5 path to explicitly stored sigma for each RBF atom (K_total vector, float32, mm)."
+    },
+    "k_actual": {
+      "type": "integer",
+      "description": "(Output by writer) total number of RBF atoms generated/used."
+    },
+    "storage_order": {
+      "enum": ["component_x_voxel", "voxel_x_component"],
+      "default": "component_x_voxel"
+    },
+    "edge_adaptive_sampling": {
+      "type": "object",
+      "properties": {
+        "enable": { "type": "boolean", "default": false },
+        "source": {
+          "enum": ["self_mean", "structural_path"],
+          "default": "self_mean"
+        },
+        "structural_path": { "type": "string" },
+        "structural_to_epi_affine_path": { "type": "string" },
+        "gradient_kernel": { "const": "sobel_3d" },
+        "edge_thresh_k": { "type": "number", "default": 3.0 },
+        "density_factor": { "type": "number", "default": 1.5 }
+      },
+      "additionalProperties": false
+    },
+    "use_anisotropic_atoms": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable anisotropic RBF atoms derived from a tensor source. Full functionality pending future implementation."
+    },
+    "anisotropy_source_path": {
+      "type": "string",
+      "description": "HDF5 path to anisotropy information used when `use_anisotropic_atoms` is TRUE. Full functionality pending future implementation."
+    },
+    "orthogonalize_atoms_at_center": {
+      "type": "boolean",
+      "default": false,
+      "description": "Orthogonalize atoms that share a centre. Full functionality pending future implementation."
+    },
+    "include_gaussian_derivatives": {
+      "enum": ["none", "first_order"],
+      "default": "none",
+      "description": "Include derivative-of-Gaussian atoms. Full functionality pending future implementation."
+    },
+    "centre_steering": {
+      "type": "object",
+      "default": {},
+      "description": "Steer centre density based on an external map. Full functionality pending future implementation.",
+      "properties": {
+        "map_path": {
+          "type": "string",
+          "pattern": "^/.*",
+          "description": "HDF5 path to steering map (NeuroVol compatible)."
+        },
+        "influence_beta": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        }
+      }
+    },
+    "use_differential_encoding": {
+      "type": "boolean",
+      "default": false,
+      "description": "Encode basis as multi-scale differences. Full functionality pending future implementation."
+    },
+    "orthogonalize_differential_levels": {
+      "type": "boolean",
+      "default": true,
+      "description": "Orthogonalize differential levels when `use_differential_encoding` is TRUE. Full functionality pending future implementation."
+    }
+  },
+  "oneOf": [
+    { "required": ["seed"] },
+    { "required": ["centres_path", "sigma_vec_path"] }
+  ],
+  "required": ["sigma0", "levels", "radius_factor", "kernel_type"],
+  "examples": [
+    {
+      "type": "spat.hrbf",
+      "version": "1.0",
+      "sigma0": 6.0,
+      "levels": 3,
+      "num_extra_fine_levels": 1,
+      "radius_factor": 2.5,
+      "kernel_type": "gaussian",
+      "kernel_type_fine_levels": "wendland_c4",
+      "num_fine_levels_alt_kernel": 2,
+      "seed": 1234
+    },
+    {
+      "type": "spat.hrbf",
+      "version": "1.0",
+      "sigma0": 5.0,
+      "levels": 2,
+      "radius_factor": 2.5,
+      "kernel_type": "wendland_c4",
+      "centres_path": "/basis/hrbf/centres",
+      "sigma_vec_path": "/basis/hrbf/sigmas",
+      "store_dense_matrix": true,
+      "storage_order": "voxel_x_component",
+      "edge_adaptive_sampling": {
+        "enable": true,
+        "source": "self_mean"
+      },
+      "use_anisotropic_atoms": true,
+      "anisotropy_source_path": "/basis/dti/tensor",
+      "orthogonalize_atoms_at_center": true,
+      "include_gaussian_derivatives": "first_order",
+      "centre_steering": {
+        "map_path": "/maps/task",
+        "influence_beta": 0.5
+      },
+      "use_differential_encoding": true,
+      "orthogonalize_differential_levels": false
+      }
+  ],
+  "additionalProperties": false
+}

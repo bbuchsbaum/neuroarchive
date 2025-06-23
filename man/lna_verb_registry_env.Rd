@@ -5,28 +5,10 @@
 \alias{lna_verb_registry_env}
 \title{DSL Verb Registry}
 \format{
-An object of class \code{environment} of length 1.
+An environment containing the verb registry.
 }
 \usage{
 lna_verb_registry_env
-}
-\arguments{
-\item{verb_name}{A symbol or single string naming the verb.  If
-`NULL` and `default_slug` is `TRUE`, the name is derived from
-`lna_transform_type` by replacing non-alphanumeric characters with
-underscores.}
-
-\item{lna_transform_type}{Character string identifying the LNA
-transform.}
-
-\item{default_slug}{Logical flag controlling whether a missing
-`verb_name` is slugged from `lna_transform_type`.}
-
-\item{force}{Overwrite an existing registration with the same name.}
-}
-\value{
-Invisibly returns a list with the registered `name` and
-  `type`.
 }
 \description{
 Provides a registry for DSL verbs so that external packages can

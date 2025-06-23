@@ -4,12 +4,15 @@
 \alias{embed}
 \title{Embed DSL verb}
 \usage{
-embed(data_or_pipe, basis_path = NULL, ...)
+embed(data_or_pipe, basis_path = NULL, basis_step = NULL, ...)
 }
 \arguments{
 \item{data_or_pipe}{Data object or `lna_pipeline`.}
 
 \item{basis_path}{Optional explicit HDF5 path to the basis matrix.}
+
+\item{basis_step}{Optional step index or type to use for basis inference
+instead of the immediately preceding step.}
 
 \item{...}{Additional parameters for the embed transform.}
 }

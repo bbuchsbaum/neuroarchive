@@ -391,7 +391,13 @@ lna_pipeline <- R6::R6Class(
     #' @param strict Logical flag. If `TRUE`, abort on the first validation
     #'   failure. If `FALSE` (default), collect all issues and return them.
     validate_params = function(strict = FALSE) {
-      stopifnot(is.logical(strict), length(strict) == 1)
+      if (!is.logical(strict) || length(strict) != 1) {
+        abort_lna(
+          "strict must be a single logical value",
+          .subclass = "lna_error_validation",
+          location = "lna_pipeline$validate_params"
+        )
+      }
 
       issues <- character()
 
@@ -400,7 +406,11 @@ lna_pipeline <- R6::R6Class(
         if (strict) {
           abort_lna(msg, .subclass = "lna_error_validation", location = loc)
         } else {
-          warning(msg, call. = FALSE)
+          warn_lna(
+            msg,
+            .subclass = "lna_warning_validation",
+            location = loc
+          )
           issues <<- c(issues, msg)
         }
       }
@@ -495,7 +505,11 @@ lna_pipeline <- R6::R6Class(
         if (requireNamespace("DiagrammeR", quietly = TRUE)) {
           return(DiagrammeR::grViz(dot))
         } else {
-          warning("DiagrammeR not installed; returning DOT string.", call. = FALSE)
+          warn_lna(
+            "DiagrammeR not installed; returning DOT string",
+            .subclass = "lna_warning_dependency",
+            location = "lna_pipeline$visualize"
+          )
           return(dot)
         }
       }
@@ -509,7 +523,11 @@ lna_pipeline <- R6::R6Class(
           asc <- asciiSVG::ascii_svg(svg)
           return(paste(asc, collapse = "\n"))
         } else {
-          warning("ASCII engine unavailable; returning DOT string.", call. = FALSE)
+          warn_lna(
+            "ASCII engine unavailable; returning DOT string",
+            .subclass = "lna_warning_dependency",
+            location = "lna_pipeline$visualize"
+          )
           return(dot)
         }
       }
