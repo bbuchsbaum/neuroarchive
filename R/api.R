@@ -83,6 +83,8 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   if (length(plugins_from_handle) == 0) plugins_from_handle <- NULL
   header_from_handle <- result$handle$meta$header %||% list()
 
+  write_block_table_dataset(h5, block_table)
+
   materialise_plan(
     h5,
     result$plan,
@@ -90,8 +92,6 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     header = header_from_handle,
     plugins = plugins_from_handle
   )
-
-  write_block_table_dataset(h5, block_table)
 
   lnaobj <- list(
     file = if (info$in_memory) NULL else info$file,
@@ -201,22 +201,13 @@ open_lna <- read_lna
 open_output_h5 <- function(path) {
   if (is.null(path)) {
     tmp <- tempfile(fileext = ".h5")
-    h5 <- hdf5r::H5File$new(
-      tmp,
-      mode = "w",
-      driver = "core",
-      driver_info = list(backing_store = FALSE)
-    )
+    # For in-memory operation, we'll create a regular file in temp directory
+    # Modern hdf5r doesn't support the core driver parameters in the same way
+    h5 <- open_h5(tmp, mode = "w")
     if (is.null(h5) || !h5$is_valid) {
-      stop("Failed to create in-memory HDF5 file with H5File$new")
+      stop("Failed to create temporary HDF5 file")
     }
-    warning(
-      sprintf(
-        "In-memory HDF5 file (core driver) created via H5File$new using temp name: %s",
-        tmp
-      ),
-      call. = FALSE
-    )
+    # Still mark as in_memory so it gets cleaned up
     list(h5 = h5, file = tmp, in_memory = TRUE)
   } else {
     h5 <- open_h5(path, mode = "w")

@@ -95,7 +95,8 @@ test_that("read_lna forwards arguments to core_read", {
 
   captured <- list()
   local_mocked_bindings(
-    core_read = function(file, run_id, allow_plugins, validate, output_dtype, roi_mask, time_idx, lazy) {
+    core_read = function(file, run_id = NULL, allow_plugins = "installed", validate = FALSE, 
+                         output_dtype = "float32", roi_mask = NULL, time_idx = NULL, lazy = FALSE) {
       captured$core <<- list(file = file, run_id = run_id, allow_plugins = allow_plugins,
                             validate = validate, output_dtype = output_dtype,
                             roi_mask = roi_mask, time_idx = time_idx,
