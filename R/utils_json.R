@@ -17,8 +17,8 @@
 #'   values in the JSON are coerced with `as.numeric()` so that whole-number values are not
 #'   returned as integers.
 read_json_descriptor <- function(h5_group, name) {
-  stopifnot(inherits(h5_group, "H5Group")) # Basic type check
-  stopifnot(is.character(name), length(name) == 1)
+  assert_h5group(h5_group) # Basic type check
+  assert_scalar_character(name, "name")
 
 
   assert_h5_path(h5_group, name)
@@ -91,8 +91,8 @@ read_json_descriptor <- function(h5_group, name) {
 #'   a variable-length string datatype (UTF-8). Overwrites existing dataset
 #'   with the same name.
 write_json_descriptor <- function(h5_group, name, desc_list) {
-  stopifnot(inherits(h5_group, "H5Group"))
-  stopifnot(is.character(name) && length(name) == 1)
+  assert_h5group(h5_group)
+  assert_scalar_character(name, "name")
   stopifnot(is.list(desc_list))
 
   json_string <- jsonlite::toJSON(desc_list, auto_unbox = TRUE, pretty = TRUE)
@@ -109,7 +109,7 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
     # Close resources if they were successfully created
     if (!is.null(str_type) && inherits(str_type, "H5T")) str_type$close()
     if (!is.null(space) && inherits(space, "H5S")) space$close()
-    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+      safe_h5_close(dset)
   }, add = TRUE)
 
   # --- Define scalar, variable-length, UTF-8 string dataset ----

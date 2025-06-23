@@ -34,6 +34,7 @@ fac$read(tmp)
 \item \href{#method-LNAFacade-new}{\code{LNAFacade$new()}}
 \item \href{#method-LNAFacade-write}{\code{LNAFacade$write()}}
 \item \href{#method-LNAFacade-read}{\code{LNAFacade$read()}}
+\item \href{#method-LNAFacade-write_pipeline}{\code{LNAFacade$write_pipeline()}}
 \item \href{#method-LNAFacade-clone}{\code{LNAFacade$clone()}}
 }
 }
@@ -78,6 +79,10 @@ Write data to an LNA file
 }
 \if{html}{\out{</div>}}
 }
+\subsection{Returns}{
+Invisibly returns the \code{lna_write_result} from \code{write_lna()},
+including elements \code{file}, \code{plan} and \code{header}.
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LNAFacade-read"></a>}}
@@ -85,15 +90,38 @@ Write data to an LNA file
 \subsection{Method \code{read()}}{
 Read data from an LNA file
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$read(file, ...)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$read(file = self$last_output, ...)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{file}}{Path to an LNA file}
+\item{\code{file}}{Path to an LNA file. Uses \code{last_output} from the most recent \code{$write()} if missing}
 
 \item{\code{...}}{Arguments forwarded to \code{read_lna()}}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-LNAFacade-write_pipeline"></a>}}
+\if{latex}{\out{\hypertarget{method-LNAFacade-write_pipeline}{}}}
+\subsection{Method \code{write\_pipeline()}}{
+Execute a pipeline and write an LNA file
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$write\_pipeline(pipe, file, ...)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+
+\item{\code{pipe}}{An \code{lna\_pipeline} object}
+
+\item{\code{file}}{Output path}
+
+\item{\code{...}}{Additional arguments forwarded to \code{lna\_write()}}
+
 }
 \if{html}{\out{</div>}}
 }

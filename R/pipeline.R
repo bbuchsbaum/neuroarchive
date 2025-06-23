@@ -22,6 +22,41 @@ style_bold <- function(x) {
   }
 }
 
+#' Schema path cache environment
+#'
+#' Used by `schema_path_find()` to avoid repeatedly scanning installed
+#' packages for JSON schemas.
+#' @keywords internal
+.schema_path_cache <- new.env(parent = emptyenv())
+
+#' Locate a transform schema
+#'
+#' Searches loaded namespaces for a JSON schema matching `type` and
+#' caches the discovered path for future lookups.
+#'
+#' @param type Character transform type.
+#' @return File path string or `NA_character_` when not found.
+#' @keywords internal
+schema_path_find <- function(type) {
+  cache <- .schema_path_cache
+  if (exists(type, envir = cache, inherits = FALSE)) {
+    return(cache[[type]])
+  }
+
+  pkgs <- unique(c("neuroarchive", loadedNamespaces()))
+  schema_path <- NA_character_
+  for (pkg in pkgs) {
+    p <- system.file("schemas", paste0(type, ".schema.json"), package = pkg)
+    if (nzchar(p) && file.exists(p)) {
+      schema_path <- p
+      break
+    }
+  }
+
+  assign(type, schema_path, envir = cache)
+  schema_path
+}
+
 lna_pipeline <- R6::R6Class(
   "lna_pipeline",
   public = list(
@@ -153,32 +188,7 @@ lna_pipeline <- R6::R6Class(
     #' Append a transform step specification to the pipeline
     #' @param step_spec A list with elements `type` and `params`
     add_step = function(step_spec) {
-      if (!is.list(step_spec) || is.null(step_spec$type)) {
-        abort_lna(
-          "step_spec must be a list with element `type`",
-          .subclass = "lna_error_validation",
-          location = "lna_pipeline:add_step"
-        )
-      }
-
-      if (!is.character(step_spec$type) || length(step_spec$type) != 1) {
-        abort_lna(
-          "step_spec$type must be a single character string",
-          .subclass = "lna_error_validation",
-          location = "lna_pipeline:add_step"
-        )
-      }
-
-      if (!is.null(step_spec$params) && !is.list(step_spec$params)) {
-        abort_lna(
-          "step_spec$params must be a list or NULL",
-          .subclass = "lna_error_validation",
-          location = "lna_pipeline:add_step"
-        )
-      }
-
-      if (is.null(step_spec$params)) step_spec$params <- list()
-
+      step_spec <- validate_step_spec(step_spec, "lna_pipeline:add_step")
       self$step_list[[length(self$step_list) + 1]] <- step_spec
       invisible(self)
     },
@@ -352,13 +362,8 @@ lna_pipeline <- R6::R6Class(
           location = "lna_pipeline:insert_step"
         )
       }
-      if (!is.list(step_spec) || is.null(step_spec$type)) {
-        abort_lna(
-          "step_spec must be a list with element `type`",
-          .subclass = "lna_error_validation",
-          location = "lna_pipeline:insert_step"
-        )
-      }
+
+      step_spec <- validate_step_spec(step_spec, "lna_pipeline:insert_step")
 
       if (!is.null(after_index_or_type)) {
         idx <- find_step_index(self$step_list, after_index_or_type)
@@ -415,23 +420,13 @@ lna_pipeline <- R6::R6Class(
         }
       }
 
-      pkgs <- unique(c("neuroarchive", loadedNamespaces()))
-
       for (i in seq_along(self$step_list)) {
         step <- self$step_list[[i]]
         type <- step$type
         params <- step$params %||% list()
 
-        schema_path <- ""
-        for (pkg in pkgs) {
-          p <- system.file("schemas", paste0(type, ".schema.json"), package = pkg)
-          if (nzchar(p) && file.exists(p)) {
-            schema_path <- p
-            break
-          }
-        }
-
-        if (!nzchar(schema_path)) {
+        schema_path <- schema_path_find(type)
+        if (is.na(schema_path) || !nzchar(schema_path)) {
           fail(sprintf("Schema for transform '%s' not found", type), type)
           next
         }
@@ -560,5 +555,44 @@ find_step_index <- function(steps, key) {
       .subclass = "lna_error_validation"
     )
   }
+}
+
+#' Validate a step specification
+#'
+#' Internal helper used by lna_pipeline methods to verify that a
+#' step specification contains the required `type` field and an
+#' optional `params` list.
+#'
+#' @param step_spec List describing the step.
+#' @param location Character string identifying the caller for errors.
+#' @return The validated (and normalised) step specification.
+#' @keywords internal
+validate_step_spec <- function(step_spec, location) {
+  if (!is.list(step_spec) || is.null(step_spec$type)) {
+    abort_lna(
+      "step_spec must be a list with element `type`",
+      .subclass = "lna_error_validation",
+      location = location
+    )
+  }
+
+  if (!is.character(step_spec$type) || length(step_spec$type) != 1) {
+    abort_lna(
+      "step_spec$type must be a single character string",
+      .subclass = "lna_error_validation",
+      location = location
+    )
+  }
+
+  if (!is.null(step_spec$params) && !is.list(step_spec$params)) {
+    abort_lna(
+      "step_spec$params must be a list or NULL",
+      .subclass = "lna_error_validation",
+      location = location
+    )
+  }
+
+  if (is.null(step_spec$params)) step_spec$params <- list()
+  step_spec
 }
 

@@ -65,6 +65,51 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// quantize_voxel_block_rcpp
+Rcpp::List quantize_voxel_block_rcpp(NumericVector block, int bits, std::string method, bool center);
+RcppExport SEXP _neuroarchive_quantize_voxel_block_rcpp(SEXP blockSEXP, SEXP bitsSEXP, SEXP methodSEXP, SEXP centerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type block(blockSEXP);
+    Rcpp::traits::input_parameter< int >::type bits(bitsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(quantize_voxel_block_rcpp(block, bits, method, center));
+    return rcpp_result_gen;
+END_RCPP
+}
+// forward_lift_rcpp
+List forward_lift_rcpp(NumericVector data_masked_morton_ordered, LogicalVector mask_flat_morton_ordered, IntegerVector mask_dims, int levels, List scaling_factors_per_level);
+RcppExport SEXP _neuroarchive_forward_lift_rcpp(SEXP data_masked_morton_orderedSEXP, SEXP mask_flat_morton_orderedSEXP, SEXP mask_dimsSEXP, SEXP levelsSEXP, SEXP scaling_factors_per_levelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type data_masked_morton_ordered(data_masked_morton_orderedSEXP);
+    Rcpp::traits::input_parameter< LogicalVector >::type mask_flat_morton_ordered(mask_flat_morton_orderedSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type mask_dims(mask_dimsSEXP);
+    Rcpp::traits::input_parameter< int >::type levels(levelsSEXP);
+    Rcpp::traits::input_parameter< List >::type scaling_factors_per_level(scaling_factors_per_levelSEXP);
+    rcpp_result_gen = Rcpp::wrap(forward_lift_rcpp(data_masked_morton_ordered, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level));
+    return rcpp_result_gen;
+END_RCPP
+}
+// inverse_lift_rcpp
+NumericVector inverse_lift_rcpp(double root_coeff, List detail_coeffs_by_level, LogicalVector mask_flat_morton_ordered, IntegerVector mask_dims, int levels, List scaling_factors_per_level);
+RcppExport SEXP _neuroarchive_inverse_lift_rcpp(SEXP root_coeffSEXP, SEXP detail_coeffs_by_levelSEXP, SEXP mask_flat_morton_orderedSEXP, SEXP mask_dimsSEXP, SEXP levelsSEXP, SEXP scaling_factors_per_levelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type root_coeff(root_coeffSEXP);
+    Rcpp::traits::input_parameter< List >::type detail_coeffs_by_level(detail_coeffs_by_levelSEXP);
+    Rcpp::traits::input_parameter< LogicalVector >::type mask_flat_morton_ordered(mask_flat_morton_orderedSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type mask_dims(mask_dimsSEXP);
+    Rcpp::traits::input_parameter< int >::type levels(levelsSEXP);
+    Rcpp::traits::input_parameter< List >::type scaling_factors_per_level(scaling_factors_per_levelSEXP);
+    rcpp_result_gen = Rcpp::wrap(inverse_lift_rcpp(root_coeff, detail_coeffs_by_level, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sobel3d_magnitude_rcpp
 NumericVector sobel3d_magnitude_rcpp(NumericVector vol);
 RcppExport SEXP _neuroarchive_sobel3d_magnitude_rcpp(SEXP volSEXP) {
@@ -94,6 +139,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_neuroarchive_omp_encode_rcpp", (DL_FUNC) &_neuroarchive_omp_encode_rcpp, 4},
     {"_neuroarchive_sobel3d_magnitude_rcpp", (DL_FUNC) &_neuroarchive_sobel3d_magnitude_rcpp, 1},
     {"_neuroarchive_get_openmp_threads", (DL_FUNC) &_neuroarchive_get_openmp_threads, 0},
+    {"_neuroarchive_quantize_voxel_block_rcpp", (DL_FUNC) &_neuroarchive_quantize_voxel_block_rcpp, 4},
+    {"_neuroarchive_forward_lift_rcpp", (DL_FUNC) &_neuroarchive_forward_lift_rcpp, 5},
+    {"_neuroarchive_inverse_lift_rcpp", (DL_FUNC) &_neuroarchive_inverse_lift_rcpp, 6},
+    {"_neuroarchive_morton_indices_to_hash_rcpp", (DL_FUNC) &_neuroarchive_morton_indices_to_hash_rcpp, 1},
     {NULL, NULL, 0}
 };
 

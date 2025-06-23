@@ -130,9 +130,8 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     idx <- seq_len(nrow(plan$datasets))
     has_payload <- plan$datasets$payload_key != "" & !is.na(plan$datasets$payload_key)
     steps <- sum(has_payload)
-    progress_enabled <- steps > 1 && is_progress_globally_enabled()
-    loop <- function() {
-      p <- if (progress_enabled) progressr::progressor(steps = steps) else NULL
+
+    loop <- function(p) {
       for (i in idx) {
         row <- plan$datasets[i, ]
         key <- row$payload_key
@@ -153,16 +152,12 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
           h5_attr_write(dset_obj, "quant_bits", as.integer(bits_val))
           dset_obj$close()
         }
-        #write_payload(row$path, payload, row$step_index, row$dtype)
         plan$datasets$write_mode_effective[i] <- "eager"
         plan$mark_payload_written(key)
       }
     }
-    if (progress_enabled) {
-      progressr::with_progress(loop())
-    } else {
-      loop()
-    }
+
+    with_progress_loop(steps, loop)
   }
 
   write_header_section(h5, header)

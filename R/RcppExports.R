@@ -17,6 +17,10 @@ omp_encode_rcpp <- function(signal_y, dict_D, residual_norm_sq_tol, max_active_a
     .Call(`_neuroarchive_omp_encode_rcpp`, signal_y, dict_D, residual_norm_sq_tol, max_active_atoms_L)
 }
 
+quantize_voxel_block_rcpp <- function(block, bits, method, center) {
+    .Call('_neuroarchive_quantize_voxel_block_rcpp', PACKAGE = 'neuroarchive', block, bits, method, center)
+}
+
 #' Fast 3D Sobel Gradient Magnitude
 #'
 #' Computes 3D Sobel gradient magnitude with OpenMP acceleration.
@@ -41,5 +45,17 @@ sobel3d_magnitude_rcpp <- function(vol) {
 #' @export
 get_openmp_threads <- function() {
     .Call(`_neuroarchive_get_openmp_threads`)
+}
+
+forward_lift_rcpp <- function(data_masked_morton_ordered, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level) {
+    .Call('_neuroarchive_forward_lift_rcpp', PACKAGE = 'neuroarchive', data_masked_morton_ordered, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level)
+}
+
+inverse_lift_rcpp <- function(root_coeff, detail_coeffs_by_level, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level) {
+    .Call('_neuroarchive_inverse_lift_rcpp', PACKAGE = 'neuroarchive', root_coeff, detail_coeffs_by_level, mask_flat_morton_ordered, mask_dims, levels, scaling_factors_per_level)
+}
+
+morton_indices_to_hash_rcpp <- function(voxelIdx) {
+    .Call('_neuroarchive_morton_indices_to_hash_rcpp', PACKAGE = 'neuroarchive', voxelIdx)
 }
 

@@ -134,3 +134,30 @@ validate_lna(spca_file)
 issues <- validate_lna(spca_file, strict = FALSE)
 print(issues)
 ```
+
+## Mask-Adaptive Haar Octwave Example
+
+```r
+# Haar wavelet compression with optional thresholding
+oct_file <- "octwave_example.h5"
+write_lna(
+  x,
+  oct_file,
+  transforms = "spat.haar_octwave",
+  transform_params = list(
+    `spat.haar_octwave` = list(
+      levels = 2,
+      detail_threshold_type = "absolute",
+      detail_threshold_value = 0.01
+    )
+  )
+)
+
+r <- read_lna(oct_file, lazy = TRUE)
+r$subset(time_idx = 1)
+data_reco <- r$data()
+r$close()
+```
+
+The `levels` parameter sets the depth of the octree. Small detail coefficients can be removed by adjusting `detail_threshold_type` and `detail_threshold_value`.
+

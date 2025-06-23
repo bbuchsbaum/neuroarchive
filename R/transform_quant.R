@@ -72,6 +72,8 @@ forward_step.quant <- function(type, desc, handle) {
     )
   }
 
+  numeric_input <- as.numeric(input_data)
+
   if (identical(scope, "voxel")) {
     if (length(dim(input_data)) < 4) {
       warn_lna(
@@ -86,7 +88,7 @@ forward_step.quant <- function(type, desc, handle) {
   if (identical(scope, "voxel")) {
     params <- .quantize_voxel(input_data, bits, method, center)
   } else {
-    params <- .quantize_global(as.numeric(input_data), bits, method, center)
+    params <- .quantize_global(numeric_input, bits, method, center)
     params$q <- array(params$q, dim = dim(input_data))
   }
 
@@ -133,11 +135,11 @@ forward_step.quant <- function(type, desc, handle) {
   storage_type_str <- if (bits <= 8) "uint8" else "uint16"
 
   run_id <- handle$current_run_id %||% "run-01"
+  paths <- quant_paths(run_id)
   run_id <- sanitize_run_id(run_id)
-  scans_root <- lna_options("paths.scans_root")[[1]]
-  data_path <- paste0(scans_root, run_id, "/quantized")
-  scale_path <- paste0(scans_root, run_id, "/quant_scale")
-  offset_path <- paste0(scans_root, run_id, "/quant_offset")
+  data_path <- paths$data
+  scale_path <- paths$scale
+  offset_path <- paths$offset
 
   blockwise <- identical(scope, "voxel") && !is.null(handle$h5) && handle$h5$is_valid
   if (blockwise) {
@@ -173,7 +175,7 @@ forward_step.quant <- function(type, desc, handle) {
         for (x0 in seq(1, dims[1], by = slab[1])) {
           xi <- x0:min(x0 + slab[1] - 1, dims[1])
           block <- input_data[xi, yi, zi, , drop = FALSE]
-          res <- .quantize_voxel_block(block, bits, method, center)
+          res <- quantize_voxel_block_rcpp(block, bits, method, center)
           idx <- list(xi, yi, zi, seq_len(dims[4]))
           dset_q$write(args = idx, res$q)
           dset_scale$write(args = idx[1:3], res$scale)
@@ -216,12 +218,12 @@ forward_step.quant <- function(type, desc, handle) {
     offset <- NULL
   }
 
-  input_range <- range(as.numeric(input_data))
+  input_range <- range(numeric_input)
   qs <- handle$meta$quant_stats
   if (!identical(scope, "voxel")) {
-    var_x <- stats::var(as.numeric(input_data))
+    var_x <- stats::var(numeric_input)
     snr_db <- 10 * log10(var_x / ((qs$scale_val)^2 / 12))
-    hist_info <- hist(as.numeric(quantized_vals), breaks = 64, plot = FALSE)
+    counts <- tabulate(quantized_vals + 1L, nbins = 2^bits)
     quant_report <- list(
       report_version = "1.0",
       clipped_samples_count = qs$n_clipped_total,
@@ -231,8 +233,8 @@ forward_step.quant <- function(type, desc, handle) {
       effective_offset = qs$offset_val,
       estimated_snr_db = snr_db,
       histogram_quantized_values = list(
-        breaks = hist_info$breaks,
-        counts = unname(hist_info$counts)
+        breaks = seq(-0.5, 2^bits - 0.5, by = 1),
+        counts = unname(counts)
       )
     )
   } else {
@@ -241,7 +243,7 @@ forward_step.quant <- function(type, desc, handle) {
     # Sample only a fraction of voxels to estimate SNR quickly when the
     # volume is large. This keeps memory usage and runtime manageable.
     sample_n <- max(1L, floor(vox * snr_sample_frac))
-    mat <- matrix(as.numeric(input_data), vox, dims[4])
+    mat <- matrix(numeric_input, vox, dims[4])
     idx <- sample(vox, sample_n)
     var_x <- stats::var(as.numeric(mat[idx, , drop = FALSE]))
     snr_db <- 10 * log10(var_x / ((qs$scale_mean)^2 / 12))
@@ -299,8 +301,6 @@ forward_step.quant <- function(type, desc, handle) {
   }
   params_json <- as.character(jsonlite::toJSON(opts, auto_unbox = TRUE))
 
-  # message(sprintf("[[DEBUG forward_step.quant]] Structure of 'desc' before add_descriptor:"))
-  # message(paste(utils::capture.output(str(desc)), collapse = "\n"))
 
   # Use the existing desc object which has inputs/outputs set by run_transform_loop
   desc$type <- "quant"
@@ -354,11 +354,11 @@ forward_step.quant <- function(type, desc, handle) {
 #' @keywords internal
 invert_step.quant <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
+  paths <- quant_paths(run_id)
   run_id <- sanitize_run_id(run_id)
-  scans_root <- lna_options("paths.scans_root")[[1]]
-  data_path <- paste0(scans_root, run_id, "/quantized")
-  scale_path <- paste0(scans_root, run_id, "/quant_scale")
-  offset_path <- paste0(scans_root, run_id, "/quant_offset")
+  data_path <- paths$data
+  scale_path <- paths$scale
+  offset_path <- paths$offset
 
   root <- handle$h5[["/"]]
   dset <- NULL
@@ -383,7 +383,7 @@ invert_step.quant <- function(type, desc, handle) {
       location = "invert_step.quant"
     )
   }, finally = {
-    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+    safe_h5_close(dset)
   })
   if (!is.null(desc$params$bits) && !is.na(desc$params$bits)) {
     if (!is.na(attr_bits) && attr_bits != desc$params$bits) {
@@ -401,14 +401,8 @@ invert_step.quant <- function(type, desc, handle) {
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset
 
-  # Subsetting logic from original, ensure it's applied before stashing if needed
-  # For now, assuming full data is processed by quant's inverse for simplicity of this debug
-  # subset <- handle$subset ... x <- subset(x) ...
-
-  # This is desc_quant_from_json
-  # message(sprintf("[[DEBUG invert_step.quant]] Value of desc$inputs[[1]]: %s", ifelse(is.null(desc$inputs) || length(desc$inputs) == 0, "NULL_OR_EMPTY", desc$inputs[[1]]))) 
+  # Subsetting logic from original could be applied here if needed
   input_key <- if (!is.null(desc$inputs) && length(desc$inputs) > 0) desc$inputs[[1]] else "input"
-  # message(sprintf("[[DEBUG invert_step.quant]] Chosen input_key for stashing output: %s", input_key))
   
   handle <- handle$update_stash(keys = character(), new_values = setNames(list(x), input_key))
   return(handle)
@@ -502,10 +496,10 @@ invert_step.quant <- function(type, desc, handle) {
   time <- dims[4]
   mat <- matrix(as.numeric(x), vox, time)
 
-  m <- rowMeans(mat)
-  s <- apply(mat, 1, stats::sd)
-  rng_lo <- apply(mat, 1, min)
-  rng_hi <- apply(mat, 1, max)
+  m <- matrixStats::rowMeans2(mat)
+  s <- matrixStats::rowSds(mat)
+  rng_lo <- matrixStats::rowMins(mat)
+  rng_hi <- matrixStats::rowMaxs(mat)
 
   if (center) {
     max_abs <- if (identical(method, "sd")) 3 * s else pmax(abs(rng_hi - m), abs(rng_lo - m))

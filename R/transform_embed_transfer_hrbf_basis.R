@@ -117,7 +117,7 @@ invert_step.embed.transfer_hrbf_basis <- function(type, desc, handle) {
   on.exit(h5$close_all(), add = TRUE)
   tf_group <- h5[["/transforms"]]
   desc <- read_json_descriptor(tf_group, desc_name)
-  if (inherits(tf_group, "H5Group")) tf_group$close()
+  safe_h5_close(tf_group)
 
   if (!identical(desc$type, "basis.empirical_hrbf_compressed")) {
     abort_lna("Source descriptor must be of type 'basis.empirical_hrbf_compressed'",

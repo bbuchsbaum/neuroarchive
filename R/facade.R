@@ -27,12 +27,25 @@ LNAFacade <- R6::R6Class(
     },
 
     #' @description
+    #' Replace the default transform parameters
+    #' @param params Named list of default transform parameters
+    #' @return The \code{LNAFacade} object, invisibly
+    set_defaults = function(params) {
+      stopifnot(is.list(params))
+      self$default_transform_params <- params
+      invisible(self)
+    },
+
+    #' @description
     #' Write data to an LNA file
     #' @param x Array or list of arrays
     #' @param file Output path
     #' @param transforms Character vector of transforms
     #' @param transform_params Optional named list overriding defaults
     #' @param ... Additional arguments forwarded to \code{write_lna()}
+    #' @return Invisibly returns the \code{lna_write_result} from
+    #'   \code{write_lna()}, including elements \code{file}, \code{plan},
+    #'   and \code{header}.
     write = function(x, file, transforms, transform_params = NULL, ...) {
       params <- utils::modifyList(
         self$default_transform_params,
@@ -42,15 +55,27 @@ LNAFacade <- R6::R6Class(
       res <- write_lna(x = x, file = file, transforms = transforms,
                        transform_params = params, ...)
       self$last_output <- res$file
-      invisible(res$file)
+      invisible(res)
     },
 
     #' @description
     #' Read data from an LNA file
-    #' @param file Path to an LNA file
+    #' @param file Path to an LNA file. If missing, uses \code{last_output}
+    #'   from the most recent call to \code{$write()}.
     #' @param ... Arguments forwarded to \code{read_lna()}
-    read = function(file, ...) {
+    read = function(file = self$last_output, ...) {
       read_lna(file = file, ...)
+    },
+
+    #' @description
+    #' Execute a pipeline and write an LNA file
+    #' @param pipe An \code{lna_pipeline} object
+    #' @param file Output path
+    #' @param ... Additional arguments forwarded to \code{lna_write()}
+    write_pipeline = function(pipe, file, ...) {
+      res <- lna_write(pipe, file = file, ...)
+      self$last_output <- res$file
+      invisible(res$file)
     }
   )
 )

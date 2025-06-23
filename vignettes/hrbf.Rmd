@@ -72,3 +72,13 @@ write_lna(x, "transfer.h5",
 
 These tools allow sophisticated spatial representations while keeping
 files small and read/write operations fast.
+
+Core computations such as Poisson-disk sampling and sparse coding are
+implemented in C++ via Rcpp for performance. This acceleration is
+enabled by default but can be disabled with
+`options(lna.hrbf.use_rcpp_helpers = FALSE)` if a pure R fallback is
+needed.
+
+## Appendix: Mask-Adaptive Haar Octwave
+
+The `spat.haar_octwave` transform performs a Haar lifting wavelet analysis on a Morton-ordered octree derived from the voxel mask. Only root and detail coefficient datasets are stored. The `levels` parameter controls the octree depth, and small detail coefficients can be removed by specifying `detail_threshold_type` and `detail_threshold_value`. See `?spat.haar_octwave` for further reference.

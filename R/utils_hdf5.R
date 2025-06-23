@@ -510,7 +510,7 @@ h5_write_dataset <- function(h5_group, path, data,
     dset <- create_fun(NULL)
   }
 
-  if (inherits(dset, "H5D")) dset$close()
+  safe_h5_close(dset)
   invisible(TRUE)
 }
 
@@ -566,6 +566,31 @@ close_h5_safely <- function(h5) {
   if (inherits(h5, "H5File") && h5$is_valid) {
     tryCatch(h5$close_all(), error = function(e) {
       warning(paste("Error closing HDF5 handle:", conditionMessage(e)))
+    })
+  }
+  invisible(NULL)
+}
+
+#' Safely close an HDF5 object
+#'
+#' Checks that `obj` is not `NULL` and inherits from one of
+#' `"H5D"`, `"H5Group"`, or `"H5File"` before closing. `H5File`
+#' objects use `$close_all()` while other objects use `$close()`.
+#'
+#' @param obj HDF5 object to close.
+#' @return Invisible `NULL`.
+#' @keywords internal
+safe_h5_close <- function(obj) {
+  if (is.null(obj)) return(invisible(NULL))
+  if (inherits(obj, "H5File")) {
+    if (isTRUE(obj$is_valid)) {
+      tryCatch(obj$close_all(), error = function(e) {
+        warning(paste("Error closing H5File:", conditionMessage(e)))
+      })
+    }
+  } else if (inherits(obj, c("H5Group", "H5D"))) {
+    tryCatch(obj$close(), error = function(e) {
+      warning(paste("Error closing HDF5 object:", conditionMessage(e)))
     })
   }
   invisible(NULL)
@@ -795,7 +820,7 @@ h5_read <- function(h5_group, path) {
       location = "h5_read"
     )
   }, finally = {
-    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+    safe_h5_close(dset)
   })
 
   result
@@ -851,7 +876,7 @@ h5_read_subset <- function(h5_group, path, index) {
       location = "h5_read_subset"
     )
   }, finally = {
-    if (!is.null(dset) && inherits(dset, "H5D")) dset$close()
+    safe_h5_close(dset)
   })
 
   result

@@ -170,7 +170,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
             }
 
             dset <- h5[[path]]
-            on.exit(if (inherits(dset, "H5D")) dset$close(), add = TRUE)
+            on.exit(safe_h5_close(dset), add = TRUE)
             if (!is.null(ds$dims)) {
               if (!identical(as.integer(ds$dims), as.integer(dset$dims))) {
                 fail(sprintf("Dimensions mismatch for dataset '%s'", path))
