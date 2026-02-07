@@ -112,6 +112,7 @@ forward_step.temporal <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
   plan <- handle$plan
+  step_index <- plan$next_index
   fname <- plan$get_next_filename(type)
   base_name <- tools::file_path_sans_ext(fname)
   temporal_root <- lna_options("paths.temporal_root")[[1]]
@@ -142,14 +143,14 @@ forward_step.temporal <- function(type, desc, handle) {
 
 
   plan$add_dataset_def(basis_path, "temporal_basis", as.character(type), run_id,
-                       as.integer(plan$next_index), params_json,
+                       as.integer(step_index), params_json,
                        basis_path, "eager", dtype = "float32")
 
   if (!is.null(knots_data)) {
     knots_payload <- knots_data
     plan$add_payload(knots_path, knots_payload)
     plan$add_dataset_def(knots_path, "knots", as.character(type), run_id,
-                         as.integer(plan$next_index), params_json,
+                         as.integer(step_index), params_json,
                          knots_path, "eager", dtype = "float32")
   }
   
@@ -157,7 +158,7 @@ forward_step.temporal <- function(type, desc, handle) {
   plan$add_payload(coef_path, coeff_payload)
 
   plan$add_dataset_def(coef_path, "temporal_coefficients", as.character(type), run_id,
-                       as.integer(plan$next_index), params_json,
+                       as.integer(step_index), params_json,
                        coef_path, "eager", dtype = "float32")
   handle$plan <- plan
 
@@ -297,8 +298,9 @@ invert_step.temporal <- function(type, desc, handle) {
     if (length(idx) > 0 && nrow(dense) >= max(idx) && min(idx) > 0) { 
         dense <- dense[idx, , drop = FALSE]
     } else if (length(idx) > 0) {
-        # Handle out-of-bounds or empty idx if necessary, or let it error if that's desired.
-        warning("time_idx for temporal subsetting is invalid or out of bounds.")
+        # If a downstream inverse step expands the time axis (e.g., delta),
+        # applying time_idx here may be premature. Only warn in debug mode.
+        if (dbg) warning("time_idx for temporal subsetting is invalid or out of bounds.")
     }
   }
   if (dbg) message(sprintf("[invert_step.temporal] Dense dims after subsetting: %s", paste(dim(dense), collapse="x")))

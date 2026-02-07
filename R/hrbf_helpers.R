@@ -10,7 +10,10 @@
 #' @keywords internal
 label_components <- function(mask_arr_3d) {
   dims <- dim(mask_arr_3d)
-  use_rcpp <- isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
+  # Check if there are any NA values - Rcpp version doesn't handle NA correctly
+  has_na <- anyNA(mask_arr_3d)
+
+  use_rcpp <- !has_na && isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
     exists("label_components_6N_rcpp")
 
   if (use_rcpp) {
@@ -33,7 +36,8 @@ label_components <- function(mask_arr_3d) {
   for (i in seq_len(dims[1])) {
     for (j in seq_len(dims[2])) {
       for (k in seq_len(dims[3])) {
-        if (mask_arr_3d[i, j, k] && !visited[i, j, k]) {
+        # Treat NA as background (FALSE)
+        if (isTRUE(mask_arr_3d[i, j, k]) && !visited[i, j, k]) {
           comp_id <- comp_id + 1L
           q <- list(c(i, j, k))
           while (length(q) > 0) {
@@ -49,7 +53,7 @@ label_components <- function(mask_arr_3d) {
               if (ni >= 1 && ni <= dims[1] &&
                   nj >= 1 && nj <= dims[2] &&
                   nk >= 1 && nk <= dims[3] &&
-                  mask_arr_3d[ni, nj, nk] && !visited[ni, nj, nk]) {
+                  isTRUE(mask_arr_3d[ni, nj, nk]) && !visited[ni, nj, nk]) {
                 q[[length(q) + 1L]] <- c(ni, nj, nk)
               }
             }
@@ -88,13 +92,24 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
                                          component_id_for_seed_offset = 0,
                                          edge_binary_map = NULL,
                                          density_factor = 1.5) {
-  if (!inherits(mask_neurovol, "LogicalNeuroVol")) {
-    abort_lna("mask_neurovol must be LogicalNeuroVol",
+  if (!inherits(mask_neurovol, "LogicalNeuroVol") && !(is.array(mask_neurovol) && is.logical(mask_neurovol))) {
+    abort_lna("mask_neurovol must be LogicalNeuroVol or logical array",
               .subclass = "lna_error_validation",
               location = "poisson_disk_sample_neuroim2")
   }
 
-  mask_arr <- as.array(mask_neurovol)
+  if (is.array(mask_neurovol)) {
+    mask_arr <- mask_neurovol
+    storage.mode(mask_arr) <- "logical"
+  } else {
+    mask_arr <- as.array(mask_neurovol)
+    # Handle case where as.array doesn't dispatch and returns a list
+    if (is.list(mask_arr) && !is.null(mask_arr$arr)) {
+      mask_arr <- mask_arr$arr
+    }
+    if (!is.array(mask_arr)) mask_arr <- as.logical(mask_arr)
+    else storage.mode(mask_arr) <- "logical"
+  }
   spc <- tryCatch(space(mask_neurovol), error = function(e) NULL)
   spacing_vec <- tryCatch(spacing(spc), error = function(e) c(1, 1, 1))
 
@@ -105,6 +120,20 @@ poisson_disk_sample_neuroim2 <- function(mask_neurovol, radius_mm, seed,
                 location = "poisson_disk_sample_neuroim2")
     }
   }
+
+  # Save and restore R's RNG state so internal set.seed/sample calls
+
+  # don't pollute the caller's RNG stream
+
+  old_rng <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE))
+    get(".Random.seed", envir = globalenv()) else NULL
+  on.exit({
+    if (is.null(old_rng)) {
+      rm(".Random.seed", envir = globalenv())
+    } else {
+      assign(".Random.seed", old_rng, envir = globalenv())
+    }
+  }, add = TRUE)
 
   comp_info <- label_components(mask_arr)
   use_rcpp <- isTRUE(getOption("lna.hrbf.use_rcpp_helpers", TRUE)) &&
@@ -323,7 +352,18 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
   }
 
   if (is.null(mask_arr)) {
-    mask_arr <- as.array(mask_neurovol)
+    if (is.array(mask_neurovol)) {
+      mask_arr <- mask_neurovol
+      storage.mode(mask_arr) <- "logical"
+    } else {
+      mask_arr <- as.array(mask_neurovol)
+      # Handle case where as.array doesn't dispatch and returns a list
+      if (is.list(mask_arr) && !is.null(mask_arr$arr)) {
+        mask_arr <- mask_arr$arr
+      }
+      if (!is.array(mask_arr)) mask_arr <- as.logical(mask_arr)
+      else storage.mode(mask_arr) <- "logical"
+    }
   }
   if (is.null(mask_world_coords)) {
     mask_coords_vox <- which(mask_arr, arr.ind = TRUE)
@@ -491,6 +531,15 @@ compute_edge_map_neuroim2 <- function(source_spec, data_handle,
     inp <- data_handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
     X <- as_dense_mat(inp$value)
     mean_vec <- colMeans(X)
+    # Ensure mean_vec has the right length and reshape to volume
+    if (length(mean_vec) != prod(dims)) {
+      abort_lna(
+        sprintf("mean_vec length (%d) does not match volume size (%d)",
+                length(mean_vec), prod(dims)),
+        .subclass = "lna_error_validation",
+        location = "compute_edge_map_neuroim2"
+      )
+    }
     vol <- array(mean_vec, dim = dims)
     grad_map <- sobel_mag(vol)
   } else if (identical(source_spec, "structural_path")) {

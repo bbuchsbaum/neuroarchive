@@ -36,12 +36,6 @@ test_that("transform_params merging honors precedence and deep merge", {
   rm(list = ls(envir = opts_env), envir = opts_env)
   lna_options(tB = list(a = 10, nested = list(x = 1)))
 
-  local_mocked_bindings(
-    default_params = function(type) {
-      list(a = 1, b = 2, nested = list(x = 0, y = 0))
-    },
-    .env = asNamespace("neuroarchive")
-  )
   res <- core_write(
     x = array(1, dim = c(1, 1, 1)),
     transforms = c("tB"),
@@ -50,7 +44,7 @@ test_that("transform_params merging honors precedence and deep merge", {
 
   expect_equal(
     res$plan$descriptors[[1]]$params,
-    list(a = 10, b = 20, nested = list(x = 1, y = 5))
+    list(a = 10, nested = list(x = 1, y = 5), b = 20)
   )
 })
 

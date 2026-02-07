@@ -165,24 +165,75 @@ forward_step.quant <- function(type, desc, handle) {
     dset_offset <- root[[offset_path]]
 
     slab <- bs$slab_dims
+    has_slab_fill <- function() {
+      dll <- getLoadedDLLs()[["neuroarchive"]]
+      if (is.null(dll)) return(FALSE)
+      routines <- getDLLRegisteredRoutines(dll)
+      !is.null(routines) &&
+        "_neuroarchive_quantize_voxel_slab_fill_rcpp" %in% names(routines$`.Call`)
+    }
+    use_slab_fill <- has_slab_fill()
+    slab_cache <- new.env(parent = emptyenv())
+    get_slab_buffers <- function(slab_dims, nt) {
+      key <- paste0(slab_dims, collapse = "x")
+      if (!exists(key, envir = slab_cache, inherits = FALSE)) {
+        vox <- prod(slab_dims)
+        assign(
+          key,
+          list(
+            q = array(integer(vox * nt), dim = c(slab_dims, nt)),
+            scale = array(numeric(vox), dim = slab_dims),
+            offset = array(numeric(vox), dim = slab_dims)
+          ),
+          envir = slab_cache
+        )
+      }
+      get(key, envir = slab_cache, inherits = FALSE)
+    }
+
     n_clipped_total <- 0L
     sc_min <- Inf; sc_max <- -Inf; sc_sum <- 0; sc_sum_sq <- 0
     off_min <- Inf; off_max <- -Inf; off_sum <- 0; off_sum_sq <- 0
+    time_idx <- seq_len(dims[4])
+    idx4 <- vector("list", 4)
+    idx4[[4]] <- time_idx
+    idx3 <- vector("list", 3)
     for (z in seq(1, dims[3], by = slab[3])) {
       zi <- z:min(z + slab[3] - 1, dims[3])
       for (y in seq(1, dims[2], by = slab[2])) {
         yi <- y:min(y + slab[2] - 1, dims[2])
         for (x0 in seq(1, dims[1], by = slab[1])) {
           xi <- x0:min(x0 + slab[1] - 1, dims[1])
-          block <- input_data[xi, yi, zi, , drop = FALSE]
-          res <- quantize_voxel_block_rcpp(block, bits, method, center)
-          idx <- list(xi, yi, zi, seq_len(dims[4]))
-          dset_q$write(args = idx, res$q)
-          dset_scale$write(args = idx[1:3], res$scale)
-          dset_offset$write(args = idx[1:3], res$offset)
-          n_clipped_total <- n_clipped_total + res$n_clipped_total
-          sc <- as.numeric(res$scale)
-          of <- as.numeric(res$offset)
+          start <- c(xi[1], yi[1], zi[1])
+          slab_dims <- c(length(xi), length(yi), length(zi))
+          idx4[[1]] <- xi
+          idx4[[2]] <- yi
+          idx4[[3]] <- zi
+          idx3[[1]] <- xi
+          idx3[[2]] <- yi
+          idx3[[3]] <- zi
+
+          if (use_slab_fill) {
+            buffers <- get_slab_buffers(slab_dims, dims[4])
+            slab_nclip <- quantize_voxel_slab_fill_rcpp(
+              input_data, start, slab_dims, bits, method, center,
+              buffers$q, buffers$scale, buffers$offset
+            )
+            dset_q$write(args = idx4, buffers$q)
+            dset_scale$write(args = idx3, buffers$scale)
+            dset_offset$write(args = idx3, buffers$offset)
+            n_clipped_total <- n_clipped_total + slab_nclip
+            sc <- buffers$scale
+            of <- buffers$offset
+          } else {
+            res <- quantize_voxel_slab_rcpp(input_data, start, slab_dims, bits, method, center)
+            dset_q$write(args = idx4, res$q)
+            dset_scale$write(args = idx3, res$scale)
+            dset_offset$write(args = idx3, res$offset)
+            n_clipped_total <- n_clipped_total + res$n_clipped_total
+            sc <- res$scale
+            of <- res$offset
+          }
           sc_min <- min(sc_min, min(sc))
           sc_max <- max(sc_max, max(sc))
           sc_sum <- sc_sum + sum(sc)
@@ -401,7 +452,39 @@ invert_step.quant <- function(type, desc, handle) {
   offset <- as.numeric(h5_read(root, offset_path))
   x <- q * scale + offset
 
-  # Subsetting logic from original could be applied here if needed
+  subset <- handle$subset
+  roi_mask <- subset$roi_mask %||% subset$roi
+  time_idx <- subset$time_idx %||% subset$time
+
+  dims <- dim(x)
+  if (!is.null(dims) && length(dims) >= 4 && !is.null(roi_mask)) {
+    vox_total <- prod(dims[1:3])
+    time_total <- dims[4]
+    mat <- matrix(as.numeric(x), nrow = vox_total, ncol = time_total)
+
+    roi_vec <- as.logical(roi_mask)
+    if (length(roi_vec) != vox_total) {
+      abort_lna(
+        "roi_mask must have length equal to the number of voxels",
+        .subclass = "lna_error_validation",
+        location = "invert_step.quant:roi_mask"
+      )
+    }
+    mat <- mat[which(roi_vec), , drop = FALSE]
+
+    if (!is.null(time_idx)) {
+      idx <- as.integer(time_idx)
+      idx <- idx[idx >= 1L & idx <= ncol(mat)]
+      mat <- mat[, idx, drop = FALSE]
+    }
+
+    x <- mat
+  } else if (!is.null(dims) && length(dims) >= 4 && !is.null(time_idx)) {
+    idx <- as.integer(time_idx)
+    idx <- idx[idx >= 1L & idx <= dims[4]]
+    x <- x[, , , idx, drop = FALSE]
+  }
+
   input_key <- if (!is.null(desc$inputs) && length(desc$inputs) > 0) desc$inputs[[1]] else "input"
   
   handle <- handle$update_stash(keys = character(), new_values = setNames(list(x), input_key))

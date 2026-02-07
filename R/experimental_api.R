@@ -842,7 +842,9 @@ basis_space_embed <- function(data,
                       basis_params = list(),
                       compression_ratio = NULL,
                       return_basis = FALSE) {
-  
+
+  stopifnot(is.matrix(data), is.numeric(data))
+
   # Set default basis parameters
   default_params <- list(
     sigma0 = 6,
@@ -851,25 +853,28 @@ basis_space_embed <- function(data,
     kernel_type = "gaussian",
     seed = 1L
   )
-  
+
   # Merge with user parameters
-  basis_params <- modifyList(default_params, basis_params)
-  
-  # Adjust parameters for compression ratio if specified
-  if (!is.null(compression_ratio)) {
-    n_voxels <- sum(as.logical(mask))
-    target_components <- ceiling(n_voxels * compression_ratio)
-    # Adjust levels to approximately achieve target components
-    # This would require iterative basis generation in practice
-  }
-  
-  # TODO: This function needs proper implementation
-  # The called functions don't exist in the expected form
-  abort_lna(
-    "basis_space_embed() is not yet implemented. Use hrbf_generate_basis() and hrbf_project_matrix() directly.",
-    .subclass = "lna_error_not_implemented", 
-    location = "experimental_api::basis_space_embed"
+  params <- modifyList(default_params, basis_params)
+
+  # Generate the HRBF basis (atoms x voxels sparse matrix)
+  B <- hrbf_generate_basis(params, mask)
+
+  # Project: coefficients = data %*% t(B)  (time x atoms)
+  coefficients <- as.matrix(Matrix::tcrossprod(as_dense_mat(data), B))
+
+  result <- list(
+    coefficients = coefficients,
+    params = params,
+    n_atoms = nrow(B),
+    n_voxels = ncol(data),
+    n_time = nrow(data)
   )
+  if (return_basis) {
+    result$basis <- B
+  }
+  class(result) <- "lna_basis_embed_result"
+  result
 }
 
 #' Reconstruct data from spatial basis embedding
@@ -910,13 +915,30 @@ basis_space_reconstruct <- function(embedded_result,
                             mask,
                             subset_time = NULL,
                             subset_voxels = NULL) {
-  
-  # TODO: This function needs proper implementation
-  abort_lna(
-    "basis_space_reconstruct() is not yet implemented. Use hrbf_reconstruct_matrix() directly.",
-    .subclass = "lna_error_not_implemented",
-    location = "experimental_api::basis_space_reconstruct"
-  )
+
+  stopifnot(inherits(embedded_result, "lna_basis_embed_result"))
+
+  coeff <- embedded_result$coefficients
+  params <- embedded_result$params
+
+  if (!is.null(subset_time)) {
+    coeff <- coeff[subset_time, , drop = FALSE]
+  }
+
+  # Regenerate basis and reconstruct: data = coeff %*% B
+  B <- if (!is.null(embedded_result$basis)) {
+    embedded_result$basis
+  } else {
+    hrbf_generate_basis(params, mask)
+  }
+
+  Xhat <- as.matrix(coeff %*% B)
+
+  if (!is.null(subset_voxels)) {
+    Xhat <- Xhat[, subset_voxels, drop = FALSE]
+  }
+
+  Xhat
 }
 
 #' Visualize spatial basis functions

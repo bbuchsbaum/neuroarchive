@@ -112,7 +112,7 @@
     wavelet <- wl
   }
   J <- log2(n_time)
-  filter <- wavelets::wavelet(wavelet)
+  filter <- wavelets::wt.filter(wavelet)
   basis <- matrix(0, n_time, n_time)
   for (k in seq_len(n_time)) {
     e_k <- numeric(n_time)

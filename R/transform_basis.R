@@ -39,10 +39,16 @@ invert_step.basis <- function(type, desc, handle) {
     )
   }
 
-  coeff_key <- desc$outputs[[1]] %||% "coefficients"
-  input_key  <- desc$inputs[[1]] %||% "dense_mat"
+  # In the default pipeline this step *produces* the basis matrix during the
+  # forward pass, while the following step (typically `embed`) produces the
+  # coefficient matrix. On inversion, the preceding step (e.g. `invert_step.embed`)
+  # may already have reconstructed the dense matrix and stored it under
+  # `desc$outputs[[1]]`. We therefore treat `desc$outputs[[1]]` as the *incoming*
+  # key and `desc$inputs[[1]]` as the *target* key.
+  incoming_key <- desc$outputs[[1]] %||% "coefficients"
+  target_key <- desc$inputs[[1]] %||% "input"
 
-  if (!handle$has_key(coeff_key)) {
+  if (!handle$has_key(incoming_key)) {
     # Nothing to reconstruct; return handle unchanged
     return(handle)
   }
@@ -50,35 +56,60 @@ invert_step.basis <- function(type, desc, handle) {
   root <- handle$h5[["/"]]
   basis <- h5_read(root, basis_path)
 
-  coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
+  incoming <- handle$get_inputs(incoming_key)[[incoming_key]]
 
   subset <- handle$subset
   roi_mask <- subset$roi_mask %||% subset$roi
-  if (!is.null(roi_mask)) {
-    vox_idx <- which(as.logical(roi_mask))
+  # Determine K (components) and V (voxels) from stored basis matrix.
+  k_components <- if (identical(storage_order, "component_x_voxel")) nrow(basis) else ncol(basis)
+  v_voxels <- if (identical(storage_order, "component_x_voxel")) ncol(basis) else nrow(basis)
+
+  dense <- NULL
+
+  if (is.matrix(incoming) && ncol(incoming) == v_voxels) {
+    # Already reconstructed dense matrix (time x voxel); just pass through.
+    dense <- incoming
+  } else {
+    # Treat incoming as coefficients (time x component).
+    coeff <- as.matrix(incoming)
+
+    if (!is.null(roi_mask)) {
+      vox_idx <- which(as.logical(roi_mask))
+      if (identical(storage_order, "component_x_voxel")) {
+        basis <- basis[, vox_idx, drop = FALSE]
+      } else {
+        basis <- basis[vox_idx, , drop = FALSE]
+      }
+      v_voxels <- ncol(basis)
+    }
+    time_idx <- subset$time_idx %||% subset$time
+    if (!is.null(time_idx)) {
+      time_idx <- as.integer(time_idx)
+      if (length(time_idx) > 0 && max(time_idx) <= nrow(coeff) && min(time_idx) > 0) {
+        coeff <- coeff[time_idx, , drop = FALSE]
+      }
+    }
+
+    if (ncol(coeff) != k_components) {
+      abort_lna(
+        sprintf(
+          "basis invert expects %d components but incoming matrix has %d columns",
+          as.integer(k_components), as.integer(ncol(coeff))
+        ),
+        .subclass = "lna_error_runtime",
+        location = "invert_step.basis:dim_mismatch"
+      )
+    }
+
     if (identical(storage_order, "component_x_voxel")) {
-      basis <- basis[, vox_idx, drop = FALSE]
+      dense <- coeff %*% basis
     } else {
-      basis <- basis[vox_idx, , drop = FALSE]
+      dense <- coeff %*% t(basis)
     }
   }
-  time_idx <- subset$time_idx %||% subset$time
-  if (!is.null(time_idx)) {
-    coeff <- coeff[time_idx, , drop = FALSE]
-  }
 
-  if (identical(storage_order, "component_x_voxel")) {
-    # Basis is stored as component x voxel, coefficients are time x component
-    # Reconstruction: coeff %*% basis -> (time x component) %*% (component x voxel) = time x voxel
-    dense <- coeff %*% basis
-  } else {
-    # Basis is stored as voxel x component, need to transpose for multiplication
-    # Reconstruction: coeff %*% t(basis) -> (time x component) %*% (component x voxel) = time x voxel
-    dense <- coeff %*% t(basis)
-  }
-
-  handle$update_stash(keys = coeff_key,
-                      new_values = setNames(list(dense), input_key))
+  handle$update_stash(keys = incoming_key,
+                      new_values = setNames(list(dense), target_key))
 }
 
 #' Basis Transform - Forward Step

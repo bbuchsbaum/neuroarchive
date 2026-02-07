@@ -32,14 +32,21 @@ test_that("LNAFacade$write_pipeline forwards to lna_write", {
   captured <- list()
   fake_result <- list(file = "out.h5")
 
-  local_mocked_bindings(
-    lna_write = function(pipe_arg, file, ...) {
-      captured$pipe <<- pipe_arg
-      captured$file <<- file
-      fake_result
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  ns <- asNamespace("neuroarchive")
+  original_lna_write <- get("lna_write", envir = ns)
+  mock_fn <- function(pipe_arg, file, ...) {
+    captured$pipe <<- pipe_arg
+    captured$file <<- file
+    fake_result
+  }
+  if (bindingIsLocked("lna_write", ns)) unlockBinding("lna_write", ns)
+  assign("lna_write", mock_fn, envir = ns)
+  lockBinding("lna_write", ns)
+  withr::defer({
+    if (bindingIsLocked("lna_write", ns)) unlockBinding("lna_write", ns)
+    assign("lna_write", original_lna_write, envir = ns)
+    lockBinding("lna_write", ns)
+  })
 
   res <- fac$write_pipeline(pipe, file = "out.h5")
 

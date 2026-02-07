@@ -117,8 +117,8 @@ test_that("HDF5 attribute helpers handle edge cases and errors", {
   expect_error(h5_attr_delete(h5_file, "bad"), "must be an H5Group or H5D object")
 
   # Invalid name type
-  expect_error(h5_attr_write(root_group, 123, 1), "is.character\\(name\\) is not TRUE")
-  expect_error(h5_attr_write(root_group, c("a","b"), 1), "length\\(name\\) == 1 is not TRUE")
+  expect_error(h5_attr_write(root_group, 123, 1), "character string")
+  expect_error(h5_attr_write(root_group, c("a","b"), 1), "character string")
 
   # Read non-existent
   expect_error(h5_attr_read(root_group, "does_not_exist"), "Attribute .* not found")

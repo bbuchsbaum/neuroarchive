@@ -193,7 +193,9 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
       )
     }
 
-    unknown <- setdiff(names(transform_params), transforms)
+    step_keys <- sprintf("step_%02d", seq_along(transforms))
+    allowed <- union(unique(transforms), step_keys)
+    unknown <- setdiff(names(transform_params), allowed)
     if (length(unknown) > 0) {
       abort_lna(
         paste0(
@@ -209,19 +211,26 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
   pkg_opts <- lna_options()
   merged <- setNames(vector("list", length(transforms)), transforms)
 
-  for (type in transforms) {
+  for (i in seq_along(transforms)) {
+    type <- transforms[[i]]
     defaults <- default_params(type)
     pkg_default <- pkg_opts[[type]]
-    user <- transform_params[[type]]
+    user_type <- transform_params[[type]]
+    user_step <- transform_params[[sprintf("step_%02d", i)]]
 
     params <- defaults
     if (is.list(pkg_default)) {
       params <- utils::modifyList(params, pkg_default, keep.null = TRUE)
     }
-    if (is.list(user)) {
-      params <- utils::modifyList(params, user, keep.null = TRUE)
+    if (is.list(user_type)) {
+      params <- utils::modifyList(params, user_type, keep.null = TRUE)
+    }
+    # Step-specific params override type-level params for that position.
+    if (is.list(user_step)) {
+      params <- utils::modifyList(params, user_step, keep.null = TRUE)
     }
     merged[[type]] <- params
+    merged[[sprintf("step_%02d", i)]] <- params
   }
 
   merged

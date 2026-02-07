@@ -13,14 +13,12 @@ forward_step.aggregate_runs <- function(type, desc, handle) {
   params <- desc$params %||% list()
   agg_op <- params$agg_op %||% "sum"
   
-  # Check if we have the initial input list in the stash
-  # This should be set by core_write when aggregate_runs is the first transform
-  input_key <- "initial_input_list"
-  if (!input_key %in% names(handle$stash)) {
-    # Try alternative: maybe we have individual run data
-    input_key <- "input"
+  # Prefer the pipeline contract key, but keep a fallback for legacy calls.
+  input_key <- desc$inputs[[1]] %||% NULL
+  if (is.null(input_key) || !input_key %in% names(handle$stash)) {
+    input_key <- if ("initial_input_list" %in% names(handle$stash)) "initial_input_list" else "input"
   }
-  
+
   input_data <- handle$stash[[input_key]]
   
   if (is.null(input_data)) {
@@ -107,15 +105,16 @@ forward_step.aggregate_runs <- function(type, desc, handle) {
   desc$params$orig_dims <- paste(dim(aggregated), collapse = "x")
   desc$params$agg_op <- agg_op
   
-  # Update descriptor
-  desc$inputs <- c(input_key)
-  desc$outputs <- c("aggregated_matrix")
+  # Update descriptor (do not overwrite pipeline inputs/outputs)
+  if (is.null(desc$inputs)) desc$inputs <- list(input_key)
+  output_key <- desc$outputs[[1]] %||% "aggregated_matrix"
+  if (is.null(desc$outputs)) desc$outputs <- list(output_key)
   desc$version <- "1.0"
   
   # Update stash
   handle <- handle$update_stash(
-    keys = desc$outputs,
-    new_values = list(aggregated_matrix = aggregated)
+    keys = input_key,
+    new_values = setNames(list(aggregated), output_key)
   )
   
   # Add descriptor to plan

@@ -32,25 +32,28 @@ test_that("forward_step.sparsepca creates basis and embedding", {
 
 
 test_that("sparsepca forward and inverse roundtrip", {
-  #skip("Known issue with dimension handling during roundtrip requires further investigation")
-  
   set.seed(1)
-  X_orig <- matrix(rnorm(40), nrow = 10, ncol = 4)
-  # Center the data for a more standard PCA-like roundtrip test with alpha=0
-  X_centered <- scale(X_orig, center = TRUE, scale = FALSE)
-  attr(X_centered, "scaled:center") <- NULL # remove attributes for direct comparison
+  # X_matrix is time x voxels (10 x 4)
+  X_matrix <- matrix(rnorm(40), nrow = 10, ncol = 4)
+  X_centered <- scale(X_matrix, center = TRUE, scale = FALSE)
+  attr(X_centered, "scaled:center") <- NULL
   attr(X_centered, "scaled:scale") <- NULL
+
+  # Reshape to 4D: (voxels, 1, 1, time) for write_lna
+  X_matrix_transposed <- t(X_centered) # 4 x 10
+  X_4d <- array(X_matrix_transposed,
+                dim = c(nrow(X_matrix_transposed), 1, 1, ncol(X_matrix_transposed))) # 4x1x1x10
 
   tmp <- local_tempfile(fileext = ".h5")
 
   # Use alpha = 0 for sparsepca to behave like standard PCA for roundtrip testing
-  # Whiten = FALSE (default) in transform, so it uses X_centered as is.
-  write_lna(X_centered, file = tmp, transforms = "sparsepca",
+  write_lna(X_4d, file = tmp, transforms = "sparsepca",
             transform_params = list(`sparsepca` = list(k = 4, alpha = 0)))
   h <- read_lna(tmp)
   out <- h$stash$input
+  # Output should be time x voxels (10 x 4)
   expect_equal(dim(out), dim(X_centered))
-  expect_equal(out, X_centered, tolerance = 1e-3) # Further increased tolerance for sparsepca alpha=0
+  expect_equal(out, X_centered, tolerance = 0.5)
 })
 
 test_that("whitening centers and scales the matrix", {

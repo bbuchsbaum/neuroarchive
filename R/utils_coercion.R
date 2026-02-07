@@ -84,6 +84,8 @@ convert_to_masked_vox_time_matrix <- function(x, mask_3d_array) {
   }
 
   mask_idx <- which(as.logical(mask_3d_array))
+  nvox <- prod(dim(mask_3d_array))
+  nmask <- length(mask_idx)
 
   # neuroim2 object support if package is available
   if (inherits(x, "NeuroVec")) {
@@ -99,21 +101,45 @@ convert_to_masked_vox_time_matrix <- function(x, mask_3d_array) {
 
   if (is.array(x) && length(dim(x)) == 4) {
     d <- dim(x)
-    vox_time <- matrix(as.numeric(aperm(x, c(1, 2, 3, 4))),
-                       nrow = prod(d[1:3]), ncol = d[4])
-    return(vox_time[mask_idx, , drop = FALSE])
+    spatial_n <- prod(d[1:3])
+    if (!identical(as.integer(spatial_n), as.integer(nvox))) {
+      abort_lna(
+        "mask_3d_array dimensions do not match x spatial dimensions",
+        .subclass = "lna_error_validation",
+        location = "convert_to_masked_vox_time_matrix:mask_dims"
+      )
+    }
+
+    time_n <- d[4]
+    if (nmask == 0) {
+      return(matrix(numeric(0), nrow = 0, ncol = time_n))
+    }
+
+    # Low-allocation extraction: avoid building a full (Voxels x Time) matrix.
+    offsets <- spatial_n * rep(0:(time_n - 1L), each = nmask)
+    idx_vec <- rep.int(mask_idx, times = time_n) + offsets
+    out <- matrix(as.numeric(x[idx_vec]), nrow = nmask, ncol = time_n)
+    return(out)
   }
 
   mat <- as_dense_mat(x)
 
-  if (nrow(mat) == length(mask_idx)) {
+  if (nrow(mat) == nvox) {
     return(mat[mask_idx, , drop = FALSE])
   }
 
-  if (ncol(mat) == length(mask_idx)) {
+  if (ncol(mat) == nvox) {
     return(t(mat)[mask_idx, , drop = FALSE])
   }
 
-  # Fallback: assume mat already MaskedVoxels x Time with correct rows
+  # Already masked: Voxel x Time or Time x Voxel
+  if (nrow(mat) == nmask) {
+    return(mat)
+  }
+  if (ncol(mat) == nmask) {
+    return(t(mat))
+  }
+
+  # Fallback: return as-is
   mat
 }

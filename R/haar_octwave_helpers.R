@@ -3,8 +3,8 @@
 #' Reconstructs a Time x MaskedVoxels matrix from Haar octwave
 #' coefficients as produced by `perform_haar_lift_analysis`.
 #'
-#' @param coeff_list List with elements `root` (matrix `Time x 1`) and
-#'   `detail` (list of length `levels`, each a `Time x Nvox` matrix).
+#' @param coeff_list List with elements `root` (matrix `Time x Nroot`) and
+#'   `detail` (list of length `levels`, each a `Time x Ndetail` matrix).
 #' @param mask_3d_array Logical 3D array defining the voxel mask.
 #' @param levels Number of decomposition levels used.
 #' @param z_order_seed Seed used for Morton ordering (must match the one
@@ -42,30 +42,52 @@ perform_haar_lift_synthesis <- function(coeff_list, mask_3d_array, levels,
   n_vox <- length(morton_idx)
   reco_morton <- matrix(0, nrow = n_time, ncol = n_vox)
 
+  has_call <- function(sym) {
+    dll <- getLoadedDLLs()[["neuroarchive"]]
+    if (is.null(dll)) return(FALSE)
+    routines <- getDLLRegisteredRoutines(dll)
+    !is.null(routines) && sym %in% names(routines$`.Call`)
+  }
   use_rcpp <- isTRUE(getOption("lna.hwt.use_rcpp", TRUE)) &&
-    exists("inverse_lift_rcpp")
+    exists("inverse_lift_rcpp") && has_call("_neuroarchive_inverse_lift_rcpp")
 
-  for (tt in seq_len(n_time)) {
-    detail_vecs <- lapply(seq_len(levels),
-                          function(lvl) coeff_list$detail[[lvl]][tt, ])
-    if (use_rcpp) {
-      reco_morton[tt, ] <- inverse_lift_rcpp(
-        coeff_list$root[tt, 1],
-        detail_vecs,
-        mask_flat_morton,
-        dim(mask_3d_array),
-        levels,
-        scalings
-      )
-    } else {
-      reco_morton[tt, ] <- inverse_lift_R(
-        coeff_list$root[tt, 1],
-        detail_vecs,
-        mask_flat_morton,
-        dim(mask_3d_array),
-        levels,
-        scalings
-      )
+  use_batch <- use_rcpp && n_time > 1L &&
+    isTRUE(getOption("lna.hwt.use_rcpp_batch", TRUE)) &&
+    exists("inverse_lift_matrix_rcpp") &&
+    has_call("_neuroarchive_inverse_lift_matrix_rcpp")
+
+  if (use_batch) {
+    reco_morton <- inverse_lift_matrix_rcpp(
+      coeff_list$root,
+      coeff_list$detail,
+      mask_flat_morton,
+      dim(mask_3d_array),
+      levels,
+      scalings
+    )
+  } else {
+    for (tt in seq_len(n_time)) {
+      detail_vecs <- lapply(seq_len(levels),
+                            function(lvl) coeff_list$detail[[lvl]][tt, ])
+      if (use_rcpp) {
+        reco_morton[tt, ] <- inverse_lift_rcpp(
+          coeff_list$root[tt, ],
+          detail_vecs,
+          mask_flat_morton,
+          dim(mask_3d_array),
+          levels,
+          scalings
+        )
+      } else {
+        reco_morton[tt, ] <- inverse_lift_R(
+          coeff_list$root[tt, ],
+          detail_vecs,
+          mask_flat_morton,
+          dim(mask_3d_array),
+          levels,
+          scalings
+        )
+      }
     }
   }
 
@@ -91,6 +113,7 @@ get_morton_ordered_indices <- function(mask_3d_array, z_order_seed = 42L) {
   }
 
   mask_logical <- as.logical(mask_3d_array)
+  dim(mask_logical) <- dim(mask_3d_array)
   vox_coords <- which(mask_logical, arr.ind = TRUE)
   if (nrow(vox_coords) == 0L) {
     return(integer(0))
@@ -114,9 +137,7 @@ get_morton_ordered_indices <- function(mask_3d_array, z_order_seed = 42L) {
                     bitwShiftL(bitwAnd(bitwShiftR(z, shift), 1L), 3L * shift + 2L))
   }
 
-  set.seed(z_order_seed)
-  tie_break <- runif(length(codes))
-  ordering <- order(codes, tie_break)
+  ordering <- order(codes)
   ordered_coords <- vox_coords[ordering, , drop = FALSE]
 
   linear_idx <- (ordered_coords[, 1] - 1L) +
@@ -137,11 +158,19 @@ get_morton_ordered_indices <- function(mask_3d_array, z_order_seed = 42L) {
 #' @return Character scalar ``"sha1:<hash>"``.
 #' @keywords internal
 morton_indices_to_hash <- function(ordered_indices_vector) {
+  ordered_indices_vector <- as.integer(ordered_indices_vector)
   use_rcpp <- isTRUE(getOption("lna.hwt.use_rcpp", TRUE)) &&
     exists("morton_indices_to_hash_rcpp")
   if (use_rcpp) {
-    return(morton_indices_to_hash_rcpp(as.integer(ordered_indices_vector)))
+    out <- tryCatch(
+      morton_indices_to_hash_rcpp(ordered_indices_vector),
+      error = function(e) NULL
+    )
+    if (is.character(out) && length(out) == 1) {
+      return(out)
+    }
   }
+
   hash_val <- digest::digest(ordered_indices_vector, algo = "sha1",
                              serialize = TRUE)
   paste0("sha1:", hash_val)
@@ -162,35 +191,57 @@ precompute_haar_scalings <- function(mask_3d_array, levels) {
   }
 
   mask_logical <- as.logical(mask_3d_array)
+  dim(mask_logical) <- dim(mask_3d_array)
+
   scalings <- vector("list", levels)
   current <- mask_logical
   for (lvl in seq_len(levels)) {
     dims <- dim(current)
-    x_seq <- seq(1L, dims[1], by = 2L)
-    y_seq <- seq(1L, dims[2], by = 2L)
-    z_seq <- seq(1L, dims[3], by = 2L)
-    counts <- integer(length(x_seq) * length(y_seq) * length(z_seq))
-    idx <- 1L
-    for (x in x_seq) {
-      for (y in y_seq) {
-        for (z in z_seq) {
-          block <- current[
-            x:min(x + 1L, dims[1]),
-            y:min(y + 1L, dims[2]),
-            z:min(z + 1L, dims[3])
-          ]
-          counts[idx] <- sum(block)
-          idx <- idx + 1L
+    nx <- dims[1]; ny <- dims[2]; nz <- dims[3]
+    nbx <- as.integer(ceiling(nx / 2))
+    nby <- as.integer(ceiling(ny / 2))
+    nbz <- as.integer(ceiling(nz / 2))
+
+    counts_grid <- array(0L, dim = c(nbx, nby, nbz))
+    for (i in seq_len(nbx)) {
+      xi <- (2L * i - 1L):min(2L * i, nx)
+      for (j in seq_len(nby)) {
+        yj <- (2L * j - 1L):min(2L * j, ny)
+        for (k in seq_len(nbz)) {
+          zk <- (2L * k - 1L):min(2L * k, nz)
+          counts_grid[i, j, k] <- sum(current[xi, yj, zk])
         }
       }
     }
+
+    if (!any(counts_grid > 0L)) {
+      abort_lna(
+        sprintf("mask has no valid blocks at level %d", lvl),
+        .subclass = "lna_error_validation",
+        location = "precompute_haar_scalings:empty"
+      )
+    }
+
+    coords <- which(counts_grid > 0L, arr.ind = TRUE)
+    bits <- ceiling(log2(max(dim(counts_grid))))
+    codes <- vapply(
+      seq_len(nrow(coords)),
+      function(ii) .encode_morton3d(coords[ii, 1] - 1L, coords[ii, 2] - 1L, coords[ii, 3] - 1L, bits),
+      integer(1)
+    )
+    ordering <- order(codes)
+    coords <- coords[ordering, , drop = FALSE]
+    counts <- counts_grid[coords]
+
     scalings[[lvl]] <- list(
       sqrt_nvalid = sqrt(as.numeric(counts)),
       sqrt_nvalid_div_8 = sqrt(as.numeric(counts) / 8)
     )
-    current <- array(counts > 0,
-                     dim = c(length(x_seq), length(y_seq), length(z_seq)))
+
+    # Next level mask is the non-empty blocks at this level (in grid order)
+    current <- counts_grid > 0L
   }
+
   scalings
 }
 
@@ -211,6 +262,7 @@ get_valid_finest_blocks <- function(mask_3d_array) {
   }
 
   mask_logical <- as.logical(mask_3d_array)
+  dim(mask_logical) <- dim(mask_3d_array)
   dims <- dim(mask_logical)
   x_seq <- seq(1L, dims[1], by = 2L)
   y_seq <- seq(1L, dims[2], by = 2L)
@@ -259,11 +311,11 @@ get_valid_finest_blocks <- function(mask_3d_array) {
 #' Pure-R forward Haar lifting implementation
 #'
 #' @keywords internal
-forward_lift_R <- function(data_masked_morton_ordered,
-                           mask_flat_morton_ordered,
-                           mask_dims,
-                           levels,
-                           scaling_factors_per_level) {
+	forward_lift_R <- function(data_masked_morton_ordered,
+	                           mask_flat_morton_ordered,
+	                           mask_dims,
+	                           levels,
+	                           scaling_factors_per_level) {
   current <- data_masked_morton_ordered
   detail_list <- vector("list", levels)
   for (lvl in seq_len(levels)) {
@@ -284,28 +336,38 @@ forward_lift_R <- function(data_masked_morton_ordered,
         idx_out <- idx_out + nv
       }
     }
-    detail_list[[lvl]] <- dvec
-    current <- next_data
-  }
-  list(root_coeff = current[1], detail_coeffs_by_level = detail_list)
-}
+	    detail_list[[lvl]] <- dvec
+	    current <- next_data
+	  }
+	  list(root_coeff = current, detail_coeffs_by_level = detail_list)
+	}
 
 #' Pure-R inverse Haar lifting implementation
 #'
 #' @keywords internal
-inverse_lift_R <- function(root_coeff,
-                           detail_coeffs_by_level,
-                           mask_flat_morton_ordered,
-                           mask_dims,
-                           levels,
-                           scaling_factors_per_level) {
-  current <- root_coeff
-  for (lvl in rev(seq_len(levels))) {
-    sc <- scaling_factors_per_level[[lvl]]
-    counts <- as.integer(round(sc$sqrt_nvalid^2))
-    next_data <- numeric(sum(counts))
-    idx_out <- 1L
-    idx_det <- 1L
+	inverse_lift_R <- function(root_coeff,
+	                           detail_coeffs_by_level,
+	                           mask_flat_morton_ordered,
+	                           mask_dims,
+	                           levels,
+	                           scaling_factors_per_level) {
+	  current <- as.numeric(root_coeff)
+	  for (lvl in rev(seq_len(levels))) {
+	    sc <- scaling_factors_per_level[[lvl]]
+	    counts <- as.integer(round(sc$sqrt_nvalid^2))
+	    if (length(current) != length(counts)) {
+	      abort_lna(
+	        sprintf(
+	          "root/lowpass coefficient length mismatch at level %d (expected %d, got %d)",
+	          lvl, length(counts), length(current)
+	        ),
+	        .subclass = "lna_error_validation",
+	        location = "inverse_lift_R"
+	      )
+	    }
+	    next_data <- numeric(sum(counts))
+	    idx_out <- 1L
+	    idx_det <- 1L
     for (b in seq_along(counts)) {
       nv <- counts[b]
       if (nv > 0) {
@@ -336,10 +398,34 @@ perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
               location = "perform_haar_lift_analysis:data")
   }
 
+  nvox_mask <- sum(as.logical(mask_3d_array))
+  if (nvox_mask == 0L) {
+    abort_lna("mask has no active voxels",
+              .subclass = "lna_error_validation",
+              location = "perform_haar_lift_analysis:mask_empty")
+  }
+
+  # Be permissive about orientation: accept either Time x Nmask (preferred)
+  # or Nmask x Time (auto-transposed).
+  if (ncol(data_matrix_T_x_Nmask) == nvox_mask) {
+    data_T_x_Nmask <- data_matrix_T_x_Nmask
+  } else if (nrow(data_matrix_T_x_Nmask) == nvox_mask) {
+    data_T_x_Nmask <- t(data_matrix_T_x_Nmask)
+  } else {
+    abort_lna(
+      sprintf(
+        "data_matrix dimensions must match mask voxels (%d) in either rows or columns; got %s",
+        nvox_mask, paste(dim(data_matrix_T_x_Nmask), collapse = "x")
+      ),
+      .subclass = "lna_error_validation",
+      location = "perform_haar_lift_analysis:data_dims"
+    )
+  }
+
   morton_idx <- get_morton_ordered_indices(mask_3d_array, z_order_seed)
   mask_linear <- which(as.logical(mask_3d_array))
   perm <- match(morton_idx, mask_linear)
-  data_morton <- data_matrix_T_x_Nmask[, perm, drop = FALSE]
+  data_morton <- data_T_x_Nmask[, perm, drop = FALSE]
 
   full_order <- get_morton_ordered_indices(array(TRUE, dim(mask_3d_array)),
                                            z_order_seed)
@@ -349,35 +435,84 @@ perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
   scalings <- precompute_haar_scalings(mask_3d_array, levels)
 
   n_time <- nrow(data_morton)
-  n_vox <- length(morton_idx)
-  root_coeffs <- matrix(0, nrow = n_time, ncol = 1)
-  detail_coeffs <- lapply(seq_len(levels),
-                          function(i) matrix(0, nrow = n_time, ncol = n_vox))
 
+  has_call <- function(sym) {
+    dll <- getLoadedDLLs()[["neuroarchive"]]
+    if (is.null(dll)) return(FALSE)
+    routines <- getDLLRegisteredRoutines(dll)
+    !is.null(routines) && sym %in% names(routines$`.Call`)
+  }
   use_rcpp <- isTRUE(getOption("lna.hwt.use_rcpp", TRUE)) &&
-    exists("forward_lift_rcpp")
+    exists("forward_lift_rcpp") && has_call("_neuroarchive_forward_lift_rcpp")
 
-  for (tt in seq_len(n_time)) {
-    if (use_rcpp) {
-      res <- forward_lift_rcpp(
-        data_morton[tt, ],
-        mask_flat_morton,
-        dim(mask_3d_array),
-        levels,
-        scalings
-      )
-    } else {
-      res <- forward_lift_R(
-        data_morton[tt, ],
-        mask_flat_morton,
-        dim(mask_3d_array),
-        levels,
-        scalings
-      )
-    }
-    root_coeffs[tt, 1] <- res$root_coeff
-    for (lvl in seq_len(levels)) {
-      detail_coeffs[[lvl]][tt, ] <- res$detail_coeffs_by_level[[lvl]]
+  use_batch <- use_rcpp && n_time > 1L &&
+    isTRUE(getOption("lna.hwt.use_rcpp_batch", TRUE)) &&
+    exists("forward_lift_matrix_rcpp") &&
+    has_call("_neuroarchive_forward_lift_matrix_rcpp")
+
+  if (use_batch) {
+    res <- forward_lift_matrix_rcpp(
+      data_morton,
+      mask_flat_morton,
+      dim(mask_3d_array),
+      levels,
+      scalings
+    )
+    return(list(root = res$root_coeff, detail = res$detail_coeffs_by_level))
+  }
+
+  # Probe first timepoint to allocate correctly shaped outputs
+  probe <- if (use_rcpp) {
+    forward_lift_rcpp(
+      data_morton[1, ],
+      mask_flat_morton,
+      dim(mask_3d_array),
+      levels,
+      scalings
+    )
+  } else {
+    forward_lift_R(
+      data_morton[1, ],
+      mask_flat_morton,
+      dim(mask_3d_array),
+      levels,
+      scalings
+    )
+  }
+
+  root_probe <- as.numeric(probe$root_coeff)
+  root_coeffs <- matrix(0, nrow = n_time, ncol = length(root_probe))
+  detail_widths <- vapply(probe$detail_coeffs_by_level, length, integer(1))
+  detail_coeffs <- lapply(detail_widths, function(w) matrix(0, nrow = n_time, ncol = w))
+
+  root_coeffs[1, ] <- root_probe
+  for (lvl in seq_len(levels)) {
+    detail_coeffs[[lvl]][1, ] <- probe$detail_coeffs_by_level[[lvl]]
+  }
+
+  if (n_time > 1) {
+    for (tt in 2:n_time) {
+      res <- if (use_rcpp) {
+        forward_lift_rcpp(
+          data_morton[tt, ],
+          mask_flat_morton,
+          dim(mask_3d_array),
+          levels,
+          scalings
+        )
+      } else {
+        forward_lift_R(
+          data_morton[tt, ],
+          mask_flat_morton,
+          dim(mask_3d_array),
+          levels,
+          scalings
+        )
+      }
+      root_coeffs[tt, ] <- as.numeric(res$root_coeff)
+      for (lvl in seq_len(levels)) {
+        detail_coeffs[[lvl]][tt, ] <- res$detail_coeffs_by_level[[lvl]]
+      }
     }
   }
 
@@ -412,36 +547,43 @@ perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
 #' @keywords internal
 .compute_block_map <- function(mask_3d_array, levels) {
   mask_logical <- as.logical(mask_3d_array)
+  dim(mask_logical) <- dim(mask_3d_array)
   mapping <- vector("list", levels)
   current <- mask_logical
   for (lvl in seq_len(levels)) {
     dims <- dim(current)
-    x_seq <- seq(1L, dims[1], by = 2L)
-    y_seq <- seq(1L, dims[2], by = 2L)
-    z_seq <- seq(1L, dims[3], by = 2L)
-    nbx <- length(x_seq); nby <- length(y_seq); nbz <- length(z_seq)
-    nblocks <- nbx * nby * nbz
-    counts <- integer(nblocks)
-    codes <- integer(nblocks)
-    bits <- ceiling(log2(max(nbx, nby, nbz)))
-    idx <- 1L
-    for (i in seq_along(x_seq)) {
-      for (j in seq_along(y_seq)) {
-        for (k in seq_along(z_seq)) {
-          block <- current[
-            x_seq[i]:min(x_seq[i] + 1L, dims[1]),
-            y_seq[j]:min(y_seq[j] + 1L, dims[2]),
-            z_seq[k]:min(z_seq[k] + 1L, dims[3])
-          ]
-          counts[idx] <- sum(block)
-          codes[idx] <- .encode_morton3d(i - 1L, j - 1L, k - 1L, bits)
-          idx <- idx + 1L
+    nx <- dims[1]; ny <- dims[2]; nz <- dims[3]
+    nbx <- as.integer(ceiling(nx / 2))
+    nby <- as.integer(ceiling(ny / 2))
+    nbz <- as.integer(ceiling(nz / 2))
+
+    counts_grid <- array(0L, dim = c(nbx, nby, nbz))
+    for (i in seq_len(nbx)) {
+      xi <- (2L * i - 1L):min(2L * i, nx)
+      for (j in seq_len(nby)) {
+        yj <- (2L * j - 1L):min(2L * j, ny)
+        for (k in seq_len(nbz)) {
+          zk <- (2L * k - 1L):min(2L * k, nz)
+          counts_grid[i, j, k] <- sum(current[xi, yj, zk])
         }
       }
     }
+
+    coords <- which(counts_grid > 0L, arr.ind = TRUE)
+    bits <- ceiling(log2(max(dim(counts_grid))))
+    codes <- vapply(
+      seq_len(nrow(coords)),
+      function(ii) .encode_morton3d(coords[ii, 1] - 1L, coords[ii, 2] - 1L, coords[ii, 3] - 1L, bits),
+      integer(1)
+    )
+    ordering <- order(codes)
+    codes <- codes[ordering]
+    counts <- counts_grid[coords][ordering]
     start <- c(0L, cumsum(counts)[-length(counts)])
+
     mapping[[lvl]] <- list(code = codes, count = counts, start = start)
-    current <- array(counts > 0L, dim = c(nbx, nby, nbz))
+
+    current <- counts_grid > 0L
   }
   mapping
 }

@@ -32,6 +32,7 @@ fac$read(tmp)
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-LNAFacade-new}{\code{LNAFacade$new()}}
+\item \href{#method-LNAFacade-set_defaults}{\code{LNAFacade$set_defaults()}}
 \item \href{#method-LNAFacade-write}{\code{LNAFacade$write()}}
 \item \href{#method-LNAFacade-read}{\code{LNAFacade$read()}}
 \item \href{#method-LNAFacade-write_pipeline}{\code{LNAFacade$write_pipeline()}}
@@ -53,6 +54,26 @@ Create a new LNAFacade
 \item{\code{transform_params}}{Named list of default transform parameters}
 }
 \if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-LNAFacade-set_defaults"></a>}}
+\if{latex}{\out{\hypertarget{method-LNAFacade-set_defaults}{}}}
+\subsection{Method \code{set_defaults()}}{
+Replace the default transform parameters
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$set_defaults(params)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{params}}{Named list of default transform parameters}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The \code{LNAFacade} object, invisibly
 }
 }
 \if{html}{\out{<hr>}}
@@ -80,8 +101,9 @@ Write data to an LNA file
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-Invisibly returns the \code{lna_write_result} from \code{write_lna()},
-including elements \code{file}, \code{plan} and \code{header}.
+Invisibly returns the \code{lna_write_result} from
+  \code{write_lna()}, including elements \code{file}, \code{plan},
+  and \code{header}.
 }
 }
 \if{html}{\out{<hr>}}
@@ -96,7 +118,8 @@ Read data from an LNA file
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{file}}{Path to an LNA file. Uses \code{last_output} from the most recent \code{$write()} if missing}
+\item{\code{file}}{Path to an LNA file. If missing, uses \code{last_output}
+from the most recent call to \code{$write()}.}
 
 \item{\code{...}}{Arguments forwarded to \code{read_lna()}}
 }
@@ -106,22 +129,20 @@ Read data from an LNA file
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-LNAFacade-write_pipeline"></a>}}
 \if{latex}{\out{\hypertarget{method-LNAFacade-write_pipeline}{}}}
-\subsection{Method \code{write\_pipeline()}}{
+\subsection{Method \code{write_pipeline()}}{
 Execute a pipeline and write an LNA file
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$write\_pipeline(pipe, file, ...)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{LNAFacade$write_pipeline(pipe, file, ...)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-
-\item{\code{pipe}}{An \code{lna\_pipeline} object}
+\item{\code{pipe}}{An \code{lna_pipeline} object}
 
 \item{\code{file}}{Output path}
 
-\item{\code{...}}{Additional arguments forwarded to \code{lna\_write()}}
-
+\item{\code{...}}{Additional arguments forwarded to \code{lna_write()}}
 }
 \if{html}{\out{</div>}}
 }

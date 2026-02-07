@@ -14,14 +14,11 @@ test_that("pipeline verbs chain cleanly", {
   expect_equal(step_types, c("basis", "embed.pca", "quant"))
 
   captured <- list()
-  local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
-      captured$transforms <<- transforms
-      captured$params <<- transform_params
-      list(ok = TRUE)
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    captured$transforms <<- transforms
+    captured$params <<- transform_params
+    list(ok = TRUE)
+  })
 
   lna_write(pipe, file = "out.h5")
   expect_equal(captured$transforms, c("basis", "embed.pca", "quant"))

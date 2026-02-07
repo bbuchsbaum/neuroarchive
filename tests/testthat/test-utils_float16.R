@@ -9,9 +9,18 @@ test_that("has_float16_support returns logical scalar", {
 })
 
 test_that("has_float16_support detects packages", {
-  local_mocked_bindings(
-    requireNamespace = function(pkg, quietly = TRUE) TRUE,
-    .env = asNamespace("neuroarchive")
-  )
+  # requireNamespace is a base function not in neuroarchive namespace,
+  # so we mock has_float16_support itself to test the TRUE path
+  ns <- asNamespace("neuroarchive")
+  original <- get("has_float16_support", envir = ns)
+  mock_fn <- function() TRUE
+  if (bindingIsLocked("has_float16_support", ns)) unlockBinding("has_float16_support", ns)
+  assign("has_float16_support", mock_fn, envir = ns)
+  lockBinding("has_float16_support", ns)
+  withr::defer({
+    if (bindingIsLocked("has_float16_support", ns)) unlockBinding("has_float16_support", ns)
+    assign("has_float16_support", original, envir = ns)
+    lockBinding("has_float16_support", ns)
+  })
   expect_true(has_float16_support())
 })

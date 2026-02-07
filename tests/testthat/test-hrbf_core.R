@@ -50,5 +50,5 @@ test_that("hrbf helpers match transform outputs", {
   out2 <- neuroarchive:::invert_step.spat.hrbf_project("spat.hrbf_project", fdesc, h_inv)
   dense_tr <- out2$stash$input_dense_mat
 
-  expect_equal(dense_direct, dense_tr)
+  expect_equal(as.matrix(dense_direct), as.matrix(dense_tr))
 })

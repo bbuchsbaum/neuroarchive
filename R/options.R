@@ -16,15 +16,32 @@ lna_options <- function(...) {
   .lna_opts <- get(".lna_opts", envir = lna_options_env)
   args <- list(...)
   if (length(args) == 0) {
-    return(as.list(.lna_opts))
+    merged <- default_opts
+    current <- as.list(.lna_opts, all.names = TRUE)
+    if (length(current) > 0) {
+      merged[names(current)] <- current
+    }
+    return(merged)
   }
   if (is.null(names(args))) {
-    return(mget(unlist(args), envir = .lna_opts, ifnotfound = list(NULL)))
+    keys <- unlist(args, use.names = FALSE)
+    out <- setNames(vector("list", length(keys)), keys)
+    for (i in seq_along(keys)) {
+      key <- keys[[i]]
+      if (exists(key, envir = .lna_opts, inherits = FALSE)) {
+        out[[i]] <- get(key, envir = .lna_opts, inherits = FALSE)
+      } else if (key %in% names(default_opts)) {
+        out[[i]] <- default_opts[[key]]
+      } else {
+        out[i] <- list(NULL)
+      }
+    }
+    return(out)
   }
   for (nm in names(args)) {
     assign(nm, args[[nm]], envir = .lna_opts)
   }
-  invisible(as.list(.lna_opts))
+  invisible(lna_options())
 }
 
 lna_options_env <- new.env(parent = emptyenv())

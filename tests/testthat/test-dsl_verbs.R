@@ -44,14 +44,11 @@ test_that("quant() pipeline executes via lna_write", {
   arr <- array(1, dim = c(1,1,1))
 
   captured <- list()
-  local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
-      captured$transforms <<- transforms
-      captured$transform_params <<- transform_params
-      list(ok = TRUE)
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    captured$transforms <<- transforms
+    captured$transform_params <<- transform_params
+    list(ok = TRUE)
+  })
 
   pipe <- quant(arr)
   lna_write(pipe, file = "foo.h5")
@@ -65,14 +62,11 @@ test_that("pca -> embed -> quant pipeline executes", {
   X <- matrix(rnorm(20), nrow = 5)
 
   captured <- list()
-  local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
-      captured$transforms <<- transforms
-      captured$transform_params <<- transform_params
-      list(ok = TRUE)
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    captured$transforms <<- transforms
+    captured$transform_params <<- transform_params
+    list(ok = TRUE)
+  })
 
   pipe <- pca(X, k = 2)
   pipe <- embed(pipe)

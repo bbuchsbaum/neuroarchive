@@ -80,9 +80,15 @@ lna_write <- function(pipeline_obj, file, ...,
   }
 
   transform_types <- vapply(pipeline_obj$step_list, function(s) s$type, character(1))
-  transform_params_list <- lapply(pipeline_obj$step_list, function(s) s$params)
-  # Name by position to avoid duplicates when same type appears multiple times
-  names(transform_params_list) <- sprintf("step_%02d", seq_along(transform_params_list))
+  transform_params_list <- list()
+  for (i in seq_along(pipeline_obj$step_list)) {
+    step <- pipeline_obj$step_list[[i]]
+    step_key <- sprintf("step_%02d", i)
+    # Keep positional keys for per-step specificity and duplicate transform types.
+    transform_params_list[[step_key]] <- step$params
+    # Also expose a type-key alias for backward compatibility with older callers/tests.
+    transform_params_list[[step$type]] <- step$params
+  }
 
   extra_args <- utils::modifyList(pipeline_obj$engine_opts %||% list(), list(...))
 

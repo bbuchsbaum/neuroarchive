@@ -45,10 +45,61 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   h5_attr_write(root, "creator", "lna R package v0.0.1")
   h5_attr_write(root, "required_transforms", character(0))
 
+  expand_dataset_path <- function(path, origin) {
+    if (!is.character(path) || length(path) != 1L || !nzchar(path)) return(path)
+    if (startsWith(path, "/scans/") ||
+        startsWith(path, "/basis/") ||
+        startsWith(path, "/transforms/") ||
+        startsWith(path, "/header/") ||
+        startsWith(path, "/plugins/") ||
+        startsWith(path, "/spatial/")) {
+      return(path)
+    }
+    if (is.character(origin) && length(origin) == 1L && grepl("^run-[0-9]+$", origin)) {
+      if (!startsWith(path, "/")) path <- paste0("/", path)
+      return(paste0("/scans/", origin, path))
+    }
+    path
+  }
+
+  expand_descriptor_for_write <- function(desc, origin) {
+    if (!is.list(desc)) return(desc)
+    out <- desc
+    if (is.list(out$datasets)) {
+      out$datasets <- lapply(out$datasets, function(d) {
+        if (is.list(d) && is.character(d$path) && length(d$path) == 1L) {
+          d$path <- expand_dataset_path(d$path, origin)
+        }
+        d
+      })
+    }
+    if (is.list(out$params) && length(out$params) > 0) {
+      for (nm in names(out$params)) {
+        val <- out$params[[nm]]
+        if (is.character(val) && length(val) == 1L && startsWith(val, "/") &&
+            (grepl("path$", nm) || grepl("_path$", nm))) {
+          out$params[[nm]] <- expand_dataset_path(val, origin)
+        }
+      }
+    }
+    out
+  }
+
   # Write descriptors
   if (length(plan$descriptors) > 0) {
     for (nm in names(plan$descriptors)) {
-      write_json_descriptor(tf_group, nm, plan$descriptors[[nm]])
+      step_str <- regmatches(nm, regexpr("^[0-9]+", nm))
+      step_idx <- suppressWarnings(as.integer(step_str))
+      origin <- NULL
+      if (is.finite(step_idx) && nrow(plan$datasets) > 0) {
+        rows <- which(plan$datasets$step_index == step_idx)
+        if (length(rows) > 0) {
+          origins <- unique(plan$datasets$origin[rows])
+          if (length(origins) > 0) origin <- origins[[1]]
+        }
+      }
+      desc_for_write <- expand_descriptor_for_write(plan$descriptors[[nm]], origin)
+      write_json_descriptor(tf_group, nm, desc_for_write)
     }
   }
 
@@ -143,16 +194,17 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         }
         if (!is.null(p)) p(message = row$path)
 
-        write_payload(row$path, payload, row$step_index, row$dtype)
+        write_path <- expand_dataset_path(row$path, row$origin)
+        write_payload(write_path, payload, row$step_index, row$dtype)
         if (row$producer == "quant" && row$role == "quantized") {
           bits_val <- tryCatch(jsonlite::fromJSON(row$params_json)$bits,
                                error = function(e) NULL)
           bits_val <- bits_val %||% 8L
-          dset_obj <- root[[row$path]]
+          dset_obj <- root[[write_path]]
           h5_attr_write(dset_obj, "quant_bits", as.integer(bits_val))
           dset_obj$close()
         }
-        plan$datasets$write_mode_effective[i] <- "eager"
+        plan$set_write_mode_effective(i, "eager")
         plan$mark_payload_written(key)
       }
     }

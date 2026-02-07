@@ -36,5 +36,10 @@ hrbf_project_matrix <- function(X, mask, params) {
 hrbf_reconstruct_matrix <- function(coeff, mask, params) {
   B <- hrbf_generate_basis(params, mask)
   coeff_dense <- as_dense_mat(coeff)
-  coeff_dense %*% B  # Matrix multiplication will preserve Matrix objects
+  result <- coeff_dense %*% B
+  # Convert Matrix objects to regular matrix for compatibility
+  if (inherits(result, "Matrix")) {
+    result <- as.matrix(result)
+  }
+  result
 }

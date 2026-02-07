@@ -542,15 +542,43 @@ open_h5 <- function(path, mode = "a") {
     )
   }
 
-  tryCatch(
-    hdf5r::H5File$new(path, mode = mode),
-    error = function(e) {
-      abort_lna(
-        sprintf("Failed to open HDF5 file '%s': %s", path, conditionMessage(e)),
-        .subclass = "lna_error_io",
-        location = "open_h5"
-      )
+  if (mode %in% c("r", "r+") && !file.exists(path)) {
+    abort_lna(
+      sprintf("HDF5 file does not exist: '%s'", path),
+      .subclass = "lna_error_io",
+      location = "open_h5"
+    )
+  }
+
+  max_attempts <- if (mode %in% c("r", "r+")) 6L else 1L
+  last_error <- NULL
+
+  for (attempt in seq_len(max_attempts)) {
+    h5 <- tryCatch(
+      hdf5r::H5File$new(path, mode = mode),
+      error = function(e) {
+        last_error <<- e
+        NULL
+      }
+    )
+    if (!is.null(h5)) {
+      return(h5)
     }
+
+    # Retry read opens briefly to tolerate transient lock/flush timing.
+    if (attempt < max_attempts && mode %in% c("r", "r+") && file.exists(path)) {
+      Sys.sleep(0.02 * attempt)
+    } else {
+      break
+    }
+  }
+
+  abort_lna(
+    sprintf("Failed to open HDF5 file '%s': %s",
+            path,
+            if (!is.null(last_error)) conditionMessage(last_error) else "unknown error"),
+    .subclass = "lna_error_io",
+    location = "open_h5"
   )
 }
 
@@ -641,7 +669,13 @@ assert_h5_path <- function(h5, path) {
     )
   }
 
-  if (!h5$exists(path)) {
+  # Wrap exists() call to catch HDF5 errors for invalid paths
+  path_exists <- tryCatch(
+    h5$exists(path),
+    error = function(e) FALSE
+  )
+
+  if (!path_exists) {
     abort_lna(
       sprintf("HDF5 path '%s' not found", path),
       .subclass = "lna_error_missing_path",
@@ -771,7 +805,7 @@ h5_read <- function(h5_group, path) {
     )
   }
 
-  if (!h5_group$exists(path)) {
+  if (!path_exists_safely(h5_group, path)) {
     abort_lna(
       sprintf("Dataset '%s' not found", path),
       .subclass = "lna_error_missing_path",

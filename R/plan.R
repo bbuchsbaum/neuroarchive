@@ -9,8 +9,6 @@
 #' @keywords internal
 Plan <- R6::R6Class("Plan",
   public = list(
-    #' @field datasets A tibble storing definitions for HDF5 datasets to be created.
-    datasets = NULL,
     #' @field descriptors A list storing transform descriptor lists.
     descriptors = NULL,
     #' @field payloads A list storing data payloads to be written.
@@ -31,18 +29,20 @@ Plan <- R6::R6Class("Plan",
           location = "Plan$initialize"
         )
       }
-      self$datasets <- tibble::tibble(
-        path = character(),
-        role = character(),
-        producer = character(),
-        origin = character(),
-        step_index = integer(),
-        params_json = character(),
-        payload_key = character(),
-        write_mode = character(),
-        write_mode_effective = character(), # Added based on Spec v1.4
-        dtype = character()
+      private$.datasets_cols <- list(
+        path = list(),
+        role = list(),
+        producer = list(),
+        origin = list(),
+        step_index = list(),
+        params_json = list(),
+        payload_key = list(),
+        write_mode = list(),
+        write_mode_effective = list(),
+        dtype = list()
       )
+      private$.datasets_cache <- private$.materialize_datasets()
+      private$.datasets_cache_valid <- TRUE
       self$descriptors <- list()
       self$payloads <- list()
       self$next_index <- 0L
@@ -73,7 +73,7 @@ Plan <- R6::R6Class("Plan",
       }
       if (key %in% names(self$payloads) && !overwrite) {
         abort_lna(
-          sprintf("Payload key '%s' already exists in plan", key),
+          sprintf("Payload key '%s' already exists in plan.", key),
           .subclass = "lna_error_duplicate_key",
           location = "Plan$add_payload"
         )
@@ -143,8 +143,7 @@ Plan <- R6::R6Class("Plan",
         )
       }
 
-      self$datasets <- tibble::add_row(
-        self$datasets,
+      private$.append_dataset_row(
         path = path,
         role = role,
         producer = producer,
@@ -180,7 +179,7 @@ Plan <- R6::R6Class("Plan",
       }
       if (transform_name %in% names(self$descriptors)) {
         abort_lna(
-          sprintf("Descriptor name '%s' already exists in plan", transform_name),
+          sprintf("Descriptor name '%s' already exists in plan.", transform_name),
           .subclass = "lna_error_duplicate_key",
           location = "Plan$add_descriptor"
         )
@@ -230,8 +229,9 @@ Plan <- R6::R6Class("Plan",
     #' definitions exist, fall back to `origin_label` when it matches the run
     #' pattern. Returns `NULL` when no run information is available.
     first_run_id = function() {
-      if (nrow(self$datasets) > 0) {
-        ids <- self$datasets$origin
+      datasets <- self$datasets
+      if (nrow(datasets) > 0) {
+        ids <- datasets$origin
         run_like <- grep("^run-[0-9]+$", ids, value = TRUE)
         if (length(run_like) > 0) return(run_like[1])
       }
@@ -239,6 +239,43 @@ Plan <- R6::R6Class("Plan",
         return(self$origin_label)
       }
       NULL
+    },
+
+    #' @description
+    #' Set the effective write mode for a dataset definition.
+    #' @param i Integer row index in `datasets`.
+    #' @param mode Character scalar, e.g. `"eager"`.
+    set_write_mode_effective = function(i, mode) {
+      if (!is.numeric(i) || length(i) != 1 || is.na(i) || i %% 1 != 0) {
+        abort_lna(
+          "i must be a single integer index",
+          .subclass = "lna_error_validation",
+          location = "Plan$set_write_mode_effective"
+        )
+      }
+      if (!is.character(mode) || length(mode) != 1 || !nzchar(mode)) {
+        abort_lna(
+          "mode must be a non-empty character scalar",
+          .subclass = "lna_error_validation",
+          location = "Plan$set_write_mode_effective"
+        )
+      }
+
+      idx <- as.integer(i)
+      n <- length(private$.datasets_cols$path)
+      if (idx < 1L || idx > n) {
+        abort_lna(
+          sprintf("Dataset index %d out of bounds (n=%d)", idx, n),
+          .subclass = "lna_error_validation",
+          location = "Plan$set_write_mode_effective"
+        )
+      }
+
+      private$.datasets_cols$write_mode_effective[[idx]] <- mode
+      if (isTRUE(private$.datasets_cache_valid)) {
+        private$.datasets_cache$write_mode_effective[[idx]] <- mode
+      }
+      invisible(self)
     },
 
     #' @description
@@ -291,7 +328,7 @@ Plan <- R6::R6Class("Plan",
       }
       if (!key %in% names(self$payloads)) {
         warn_lna(
-          sprintf("Payload key '%s' not found in plan when trying to mark as written", key),
+          sprintf("Payload key '%s' not found in plan when trying to mark as written.", key),
           .subclass = "lna_warning_missing_key",
           location = "Plan$mark_payload_written"
         )
@@ -300,5 +337,99 @@ Plan <- R6::R6Class("Plan",
       }
       invisible(self)
     }
+  ),
+  active = list(
+    #' @field datasets A tibble storing definitions for HDF5 datasets to be created.
+    datasets = function(value) {
+      if (missing(value)) {
+        if (!isTRUE(private$.datasets_cache_valid)) {
+          private$.datasets_cache <- private$.materialize_datasets()
+          private$.datasets_cache_valid <- TRUE
+        }
+        return(private$.datasets_cache)
+      }
+
+      if (!tibble::is_tibble(value)) {
+        abort_lna(
+          "datasets must be a tibble",
+          .subclass = "lna_error_validation",
+          location = "Plan$datasets<-"
+        )
+      }
+      required_cols <- c(
+        "path", "role", "producer", "origin", "step_index", "params_json",
+        "payload_key", "write_mode", "write_mode_effective", "dtype"
+      )
+      missing_cols <- setdiff(required_cols, names(value))
+      if (length(missing_cols) > 0) {
+        abort_lna(
+          paste0("datasets missing required column(s): ", paste(missing_cols, collapse = ", ")),
+          .subclass = "lna_error_validation",
+          location = "Plan$datasets<-"
+        )
+      }
+
+      private$.datasets_cols <- lapply(required_cols, function(nm) {
+        as.list(value[[nm]])
+      })
+      names(private$.datasets_cols) <- required_cols
+      private$.datasets_cache <- value[, required_cols, drop = FALSE]
+      private$.datasets_cache_valid <- TRUE
+      invisible(value)
+    }
+  ),
+  private = list(
+    .datasets_cols = NULL,
+    .datasets_cache = NULL,
+    .datasets_cache_valid = FALSE,
+
+    .append_dataset_row = function(path, role, producer, origin, step_index, params_json,
+                                   payload_key, write_mode, write_mode_effective, dtype) {
+      cols <- private$.datasets_cols
+      cols$path[[length(cols$path) + 1L]] <- path
+      cols$role[[length(cols$role) + 1L]] <- role
+      cols$producer[[length(cols$producer) + 1L]] <- producer
+      cols$origin[[length(cols$origin) + 1L]] <- origin
+      cols$step_index[[length(cols$step_index) + 1L]] <- step_index
+      cols$params_json[[length(cols$params_json) + 1L]] <- params_json
+      cols$payload_key[[length(cols$payload_key) + 1L]] <- payload_key
+      cols$write_mode[[length(cols$write_mode) + 1L]] <- write_mode
+      cols$write_mode_effective[[length(cols$write_mode_effective) + 1L]] <- write_mode_effective
+      cols$dtype[[length(cols$dtype) + 1L]] <- dtype
+      private$.datasets_cols <- cols
+      private$.datasets_cache_valid <- FALSE
+      invisible(NULL)
+    },
+
+    .materialize_datasets = function() {
+      cols <- private$.datasets_cols
+      if (is.null(cols) || length(cols$path) == 0) {
+        return(tibble::tibble(
+          path = character(),
+          role = character(),
+          producer = character(),
+          origin = character(),
+          step_index = integer(),
+          params_json = character(),
+          payload_key = character(),
+          write_mode = character(),
+          write_mode_effective = character(),
+          dtype = character()
+        ))
+      }
+
+      tibble::tibble(
+        path = as.character(unlist(cols$path, use.names = FALSE)),
+        role = as.character(unlist(cols$role, use.names = FALSE)),
+        producer = as.character(unlist(cols$producer, use.names = FALSE)),
+        origin = as.character(unlist(cols$origin, use.names = FALSE)),
+        step_index = as.integer(unlist(cols$step_index, use.names = FALSE)),
+        params_json = as.character(unlist(cols$params_json, use.names = FALSE)),
+        payload_key = as.character(unlist(cols$payload_key, use.names = FALSE)),
+        write_mode = as.character(unlist(cols$write_mode, use.names = FALSE)),
+        write_mode_effective = as.character(unlist(cols$write_mode_effective, use.names = FALSE)),
+        dtype = as.character(unlist(cols$dtype, use.names = FALSE))
+      )
+    }
   )
-) 
+)

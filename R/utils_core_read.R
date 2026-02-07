@@ -157,11 +157,24 @@ process_run_core_read <- function(rid, h5, runs, subset_params, transforms,
     current_run_id = rid
   )
 
+  # Load persisted mask if present (required for spatial transforms like
+  # spat.haar_octwave).
+  root <- h5[["/"]]
+  on.exit(safe_h5_close(root), add = TRUE)
+  mask_path <- file.path("scans", rid, "data", "mask")
+  mask_arr <- tryCatch(h5_read(root, mask_path), error = function(e) NULL)
+  if (!is.null(mask_arr)) {
+    mask_logical <- as.logical(mask_arr)
+    dim(mask_logical) <- dim(mask_arr)
+    handle <- handle$with(mask_info = list(
+      mask = mask_logical,
+      active_voxels = sum(mask_logical)
+    ))
+  }
+
   if (nrow(transforms) > 0) {
     handle <- apply_invert_transforms(handle, transforms, tf_group, validate, h5)
   } else {
-    root <- h5[["/"]]
-      on.exit(safe_h5_close(root), add = TRUE)
     path <- file.path("scans", rid, "data", "values")
     data <- h5_read(root, path)
     handle <- handle$with(stash = list(input = data))
@@ -169,4 +182,3 @@ process_run_core_read <- function(rid, h5, runs, subset_params, transforms,
 
   finalize_handle_for_read(handle, output_dtype, allow_plugins, file)
 }
-

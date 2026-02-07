@@ -3,7 +3,9 @@ library(neuroarchive)
 
 test_that("LogicalNeuroVol mask warns on space mismatch", {
   FakeSpace <- function(dim, trans) structure(list(dim = dim, trans = trans), class = "FakeSpace")
+  trans <- function(x, ...) UseMethod("trans")
   trans.FakeSpace <- function(x) x$trans
+  dim <- function(x) UseMethod("dim")
   dim.FakeSpace <- function(x) x$dim
   space <- function(x, ...) UseMethod("space")
   space.FakeLogicalNeuroVol <- function(x, ...) attr(x, "space")
@@ -19,12 +21,14 @@ test_that("LogicalNeuroVol mask warns on space mismatch", {
   class(input_obj) <- "DenseNeuroVec"
 
   withr::defer({
-    rm(FakeSpace, trans.FakeSpace, dim.FakeSpace, space, space.FakeLogicalNeuroVol,
+    rm(FakeSpace, trans, trans.FakeSpace, dim, dim.FakeSpace, space, space.FakeLogicalNeuroVol,
        as.array.FakeLogicalNeuroVol, space.DenseNeuroVec, envir = .GlobalEnv)
   }, envir = parent.frame())
 
   assign("FakeSpace", FakeSpace, envir = .GlobalEnv)
+  assign("trans", trans, envir = .GlobalEnv)
   assign("trans.FakeSpace", trans.FakeSpace, envir = .GlobalEnv)
+  assign("dim", dim, envir = .GlobalEnv)
   assign("dim.FakeSpace", dim.FakeSpace, envir = .GlobalEnv)
   assign("space", space, envir = .GlobalEnv)
   assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir = .GlobalEnv)

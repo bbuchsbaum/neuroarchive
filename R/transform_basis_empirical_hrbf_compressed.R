@@ -85,12 +85,22 @@ invert_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   root <- handle$h5[["/"]]
   Vt <- h5_read(root, vt_path)
 
-  # B_dict should already be loaded from the structured-code branch above
-  # If not, we have a logic error since codes should always be structured format
+  # B_dict may not be loaded if codes was a plain matrix (not structured list format)
   if (!exists("B_dict")) {
-    abort_lna("B_dict not found - codes format not recognized",
-              .subclass = "lna_error_validation", 
-              location = "invert_step.basis.empirical_hrbf_compressed:missing_dict")
+    mask_neurovol <- handle$mask_info$mask
+    if (is.null(mask_neurovol)) {
+      abort_lna("mask_info$mask missing",
+                .subclass = "lna_error_validation",
+                location = "invert_step.basis.empirical_hrbf_compressed:mask")
+    }
+    path_parts <- strsplit(dict_path, "/")[[1]]
+    dname <- tail(path_parts, 1)
+    gpath <- paste(head(path_parts, -1), collapse = "/")
+    if (gpath == "") gpath <- "/"
+    tf_group <- root[[gpath]]
+    dict_desc <- read_json_descriptor(tf_group, dname)
+    safe_h5_close(tf_group)
+    B_dict <- hrbf_basis_from_params(dict_desc$params, mask_neurovol)
   }
 
   bits <- p$omp_quant_bits %||% 5
@@ -265,7 +275,14 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   sigma_vec <- sigs
   level_vec <- level_vec
 
-  mask_arr <- as.array(mask_neurovol)
+  if (is.array(mask_neurovol)) {
+    mask_arr <- mask_neurovol
+    storage.mode(mask_arr) <- "logical"
+  } else {
+    mask_arr <- as.array(mask_neurovol)
+    if (!is.array(mask_arr)) mask_arr <- as.logical(mask_arr)
+    else storage.mode(mask_arr) <- "logical"
+  }
   mask_linear_indices <- which(mask_arr)
   vox_coords <- which(mask_arr, arr.ind = TRUE)
   mask_coords_world <- voxel_to_world(vox_coords)
@@ -333,11 +350,12 @@ forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
     }
   }
 
-  if (!exists(".omp_encode_R", inherits = FALSE)) {
+  fallback <- get0(".omp_encode_R", envir = environment(.omp_encode), inherits = TRUE)
+  if (!is.function(fallback)) {
     stop("omp_encode_rcpp unavailable and R fallback missing", call. = FALSE)
   }
 
-  .omp_encode_R(y, D, tol = tol, max_nonzero = max_nonzero)
+  fallback(y, D, tol = tol, max_nonzero = max_nonzero)
 }
 
 .quantize_weights <- function(w, bits = 5L) {
@@ -357,4 +375,3 @@ lna_default.basis.empirical_hrbf_compressed <- function() {
   list(svd_rank = 120L, omp_tol = 0.01, omp_sparsity_limit = 32L,
        omp_quant_bits = 5L)
 }
-

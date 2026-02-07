@@ -25,10 +25,28 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
               location = "forward_step.spat.hrbf:mask")
   }
 
-  mask_arr <- as.array(mask_neurovol)
-  cached_mask_world_coords <- neuroim2::grid_to_coord(
-    mask_neurovol, which(mask_arr, arr.ind = TRUE)
-  )
+  if (is.array(mask_neurovol)) {
+    mask_arr <- mask_neurovol
+    storage.mode(mask_arr) <- "logical"
+  } else {
+    mask_arr <- as.array(mask_neurovol)
+    # Handle case where as.array doesn't dispatch and returns a list
+    if (is.list(mask_arr) && !is.null(mask_arr$arr)) {
+      mask_arr <- mask_arr$arr
+    }
+    if (!is.array(mask_arr)) mask_arr <- as.logical(mask_arr)
+    else storage.mode(mask_arr) <- "logical"
+  }
+  cached_mask_world_coords <- tryCatch({
+    neuroim2::grid_to_coord(mask_neurovol, which(mask_arr, arr.ind = TRUE))
+  }, error = function(e) {
+    spc <- tryCatch(space(mask_neurovol), error = function(e) NULL)
+    spacing_vec <- tryCatch(spacing(spc), error = function(e) c(1, 1, 1))
+    origin_vec <- tryCatch(origin(spc), error = function(e) c(0, 0, 0))
+    vox_coords <- which(mask_arr, arr.ind = TRUE)
+    sweep(vox_coords - 1, 2, spacing_vec, `*`) +
+      matrix(origin_vec, nrow(vox_coords), 3, byrow = TRUE)
+  })
   mask_linear_indices <- as.integer(which(mask_arr))
 
   ## Advanced parameter validation / stubs ----
@@ -146,6 +164,8 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   desc$params <- p
   desc$version <- "1.0"
   desc$inputs <- desc$inputs %||% character()
+  # Preserve pipeline-assigned output key, or default to "coefficients_hrbf"
+  pipeline_output_key <- if (!is.null(desc$outputs) && length(desc$outputs) > 0) desc$outputs[[1]] else "coefficients_hrbf"
   desc$outputs <- character()
   datasets <- list()
   desc$datasets <- datasets
@@ -179,13 +199,13 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   inp <- handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
   input_key <- inp$key
   X <- as_dense_mat(inp$value)
-  coeff <- tcrossprod(X, B_final)
+  coeff <- as.matrix(tcrossprod(X, B_final))
 
   run_id <- handle$current_run_id %||% "run-01"
   run_id <- sanitize_run_id(run_id)
   coef_path <- file.path("/scans", run_id, "embedding", "coefficients_hrbf")
   desc$inputs <- c(desc$inputs, input_key)
-  desc$outputs <- c(desc$outputs, "coefficients_hrbf")
+  desc$outputs <- c(desc$outputs, pipeline_output_key)
   desc$datasets[[length(desc$datasets) + 1L]] <-
     list(path = coef_path, role = "coefficients_hrbf")
 
@@ -197,11 +217,13 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
 
   handle$plan <- plan
 
+  stash_vals <- list(hrbf_centres = C_total,
+                     hrbf_sigmas = sigma_vec,
+                     hrbf_basis = B_final,
+                     coefficients_hrbf = coeff)
+  stash_vals[[pipeline_output_key]] <- coeff
   handle$update_stash(keys = character(),
-                      new_values = list(hrbf_centres = C_total,
-                                         hrbf_sigmas = sigma_vec,
-                                         hrbf_basis = B_final,
-                                         coefficients_hrbf = coeff))
+                      new_values = stash_vals)
 }
 #' Inverse step for the 'spat.hrbf' transform
 #'

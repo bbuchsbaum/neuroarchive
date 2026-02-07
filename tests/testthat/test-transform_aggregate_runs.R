@@ -38,7 +38,7 @@ test_that("forward_step.aggregate_runs aggregates multiple runs correctly", {
   stored_desc <- plan$descriptors[[1]]
   
   # Check descriptor values in the plan
-  expect_equal(stored_desc$outputs, "aggregated_matrix")
+  expect_equal(stored_desc$outputs[[1]], "aggregated_matrix")
   expect_equal(stored_desc$params$runs_included, c("run1", "run2", "run3"))
   expect_equal(stored_desc$params$agg_op, "sum")
   expect_equal(stored_desc$params$orig_dims, "3x8")

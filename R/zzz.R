@@ -6,6 +6,14 @@
 #' @keywords internal
 
 .onLoad <- function(libname, pkgname) {
+  # Ensure our S3 shims for hdf5r are registered even when the package is only
+  # loaded (not attached). This avoids brittle path handling differences across
+  # hdf5r versions in tests and internal helpers.
+  if (requireNamespace("hdf5r", quietly = TRUE)) {
+    try(registerS3method("[[<-", "H5File", `[[<-.H5File`, envir = asNamespace(pkgname)),
+        silent = TRUE)
+  }
+
   # Auto-discover and register transforms
   tryCatch({
     n_transforms <- discover_and_register_transforms(validate = FALSE)

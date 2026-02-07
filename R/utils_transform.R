@@ -82,8 +82,24 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
   stopifnot(is.numeric(step_idx), length(step_idx) == 1)
 
   fun_name <- if (identical(direction, "forward")) "forward_step" else "invert_step"
-  
-  method_specific_fun <- getS3method(fun_name, type, optional = TRUE)
+
+  # Resolve the S3 method with a preference for `.GlobalEnv` overrides.
+  #
+  # Rationale: `getS3method()` defaults to searching the caller frame, which
+  # inside package code strongly prefers namespace-registered methods. Tests
+  # and ad-hoc plugin workflows often define `forward_step.<type>` or
+  # `invert_step.<type>` in `.GlobalEnv` to override a built-in transform. We
+  # explicitly check `.GlobalEnv` first so those overrides are honored.
+  resolve_step_method <- function(fun_name, type) {
+    direct_name <- paste(fun_name, type, sep = ".")
+    if (exists(direct_name, envir = .GlobalEnv, inherits = FALSE)) {
+      candidate <- get(direct_name, envir = .GlobalEnv, inherits = FALSE)
+      if (is.function(candidate)) return(candidate)
+    }
+    getS3method(fun_name, type, optional = TRUE)
+  }
+
+  method_specific_fun <- resolve_step_method(fun_name, type)
   
   if (is.null(method_specific_fun)) {
     msg <- sprintf(
@@ -114,7 +130,7 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
     abort_lna(detailed_msg, 
               .subclass = "lna_error_transform_step", 
               parent_error = e, 
-              location = sprintf("%s:%s:step%d", fun_name, type, step_idx))
+              location = sprintf("%s:%s[%d]", fun_name, type, step_idx))
   })
   
   if (!inherits(res_handle, "DataHandle")) {

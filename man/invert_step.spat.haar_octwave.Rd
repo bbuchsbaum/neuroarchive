@@ -7,8 +7,10 @@
 \method{invert_step}{spat.haar_octwave}(type, desc, handle)
 }
 \description{
-Placeholder inverse step that reconstructs data from Haar wavelet coefficients.
-This implementation currently returns zeros and will be replaced by a full
-inverse lifting routine.
+Loads the coefficient datasets written by the forward step and
+performs full Haar lifting synthesis to reconstruct the dense
+voxel-time matrix.  The mask used for reconstruction is verified
+against the descriptor's stored Morton hash.  Optional `time_idx`
+and `roi_mask` subsetting is honoured before updating the stash.
 }
 \keyword{internal}

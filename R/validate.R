@@ -164,7 +164,7 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
           for (ds in desc$datasets) {
             path <- ds$path
             if (is.null(path) || !nzchar(path)) next
-            if (!h5$exists(path)) {
+            if (!path_exists_safely(h5, path)) {
               fail(sprintf("Dataset '%s' referenced in %s missing", path, nm))
               next
             }
@@ -266,4 +266,3 @@ runtime_validate_step <- function(type, desc, h5) {
 
   invisible(TRUE)
 }
-

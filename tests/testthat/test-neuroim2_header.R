@@ -92,16 +92,34 @@ test_that("write_lna auto-populates header from NeuroObj", {
   expect_equal(space(neuro_obj), sp)
 
   captured <- list()
-  local_mocked_bindings(
-    core_write = function(x, transforms, transform_params, mask = NULL,
-                          header = NULL, plugins = NULL, run_id = NULL) {
-      captured$header <<- header
-      captured$x <<- x
-      list(handle = DataHandle$new(), plan = Plan$new())
-    },
-    materialise_plan = function(...) list(),
-    .env = asNamespace("neuroarchive")
-  )
+  ns <- asNamespace("neuroarchive")
+  orig_core_write <- get("core_write", envir = ns)
+  orig_materialise <- get("materialise_plan", envir = ns)
+
+  mock_core_write <- function(x, transforms, transform_params, mask = NULL,
+                        header = NULL, plugins = NULL, run_id = NULL,
+                        h5 = NULL) {
+    captured$header <<- header
+    captured$x <<- x
+    list(handle = DataHandle$new(), plan = Plan$new())
+  }
+  mock_materialise <- function(...) list()
+
+  if (bindingIsLocked("core_write", ns)) unlockBinding("core_write", ns)
+  assign("core_write", mock_core_write, envir = ns)
+  lockBinding("core_write", ns)
+  if (bindingIsLocked("materialise_plan", ns)) unlockBinding("materialise_plan", ns)
+  assign("materialise_plan", mock_materialise, envir = ns)
+  lockBinding("materialise_plan", ns)
+
+  withr::defer({
+    if (bindingIsLocked("core_write", ns)) unlockBinding("core_write", ns)
+    assign("core_write", orig_core_write, envir = ns)
+    lockBinding("core_write", ns)
+    if (bindingIsLocked("materialise_plan", ns)) unlockBinding("materialise_plan", ns)
+    assign("materialise_plan", orig_materialise, envir = ns)
+    lockBinding("materialise_plan", ns)
+  })
 
   write_lna(neuro_obj, file = tempfile(fileext = ".h5"), transforms = character(0))
 

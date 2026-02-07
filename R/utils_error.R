@@ -9,7 +9,7 @@
 #' @param .subclass Character string giving the LNA error subclass.
 #' @return No return value. This function always throws an error.
 #' @keywords internal
-abort_lna <- function(message, ..., .subclass, location = NULL, parent = NULL) {
+abort_lna <- function(message, ..., .subclass = "lna_error", location = NULL, parent = NULL) {
   stopifnot(is.character(message), length(message) == 1)
   stopifnot(is.character(.subclass))
   rlang::abort(
@@ -35,7 +35,12 @@ abort_lna <- function(message, ..., .subclass, location = NULL, parent = NULL) {
 #' @keywords internal
 warn_lna <- function(message, ..., .subclass = "lna_warning", location = NULL) {
   stopifnot(is.character(message), length(message) == 1)
-  warning(message, call. = FALSE)
+  rlang::warn(
+    message,
+    ...,
+    .subclass = .subclass,
+    location = location
+  )
 }
 
 #' Error thrown when `lna_reader` methods are called after the reader is closed.

@@ -17,14 +17,11 @@ test_that("delta() merges parameters and executes", {
   expect_equal(step$params$order, 3L)
 
   captured <- list()
-  local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
-      captured$transforms <<- transforms
-      captured$transform_params <<- transform_params
-      list(ok = TRUE)
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    captured$transforms <<- transforms
+    captured$transform_params <<- transform_params
+    list(ok = TRUE)
+  })
   lna_write(pipe, file = "tmp.h5")
   expect_equal(captured$transforms, "delta")
   expect_equal(captured$transform_params$delta$order, 3L)
@@ -40,14 +37,11 @@ test_that("temporal() verb adds step and executes", {
   expect_equal(step$params$kind, "bspline")
 
   captured <- list()
-  local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
-      captured$transforms <<- transforms
-      captured$transform_params <<- transform_params
-      list(ok = TRUE)
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    captured$transforms <<- transforms
+    captured$transform_params <<- transform_params
+    list(ok = TRUE)
+  })
   lna_write(pipe, file = "tmp.h5")
   expect_equal(captured$transforms, "temporal")
   expect_equal(captured$transform_params$temporal$kind, "bspline")

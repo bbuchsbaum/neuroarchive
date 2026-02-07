@@ -10,25 +10,57 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
   defaults <- lna_default.spat.haar_octwave()
   p <- modifyList(defaults, p_in)
 
+  mask_neurovol <- handle$mask_info$mask
+  if (is.null(mask_neurovol)) {
+    abort_lna("mask_info$mask missing",
+              .subclass = "lna_error_validation",
+              location = "forward_step.spat.haar_octwave:mask")
+  }
+  if (is.array(mask_neurovol)) {
+    mask_arr <- mask_neurovol
+    storage.mode(mask_arr) <- "logical"
+  } else {
+    mask_arr <- as.array(mask_neurovol)
+    if (!is.array(mask_arr)) mask_arr <- as.logical(mask_arr)
+    else storage.mode(mask_arr) <- "logical"
+  }
+
+  vox_coords <- NULL
   levels <- p$levels
-  if (is.null(levels) || !is.numeric(levels) || levels < 1) {
-    abort_lna("levels parameter required and must be >=1",
+  if (is.null(levels)) {
+    vox_coords <- which(mask_arr, arr.ind = TRUE)
+    if (nrow(vox_coords) == 0L) {
+      abort_lna("mask has no active voxels",
+                .subclass = "lna_error_validation",
+                location = "forward_step.spat.haar_octwave:mask_empty")
+    }
+    extents <- c(
+      max(vox_coords[, 1]) - min(vox_coords[, 1]) + 1L,
+      max(vox_coords[, 2]) - min(vox_coords[, 2]) + 1L,
+      max(vox_coords[, 3]) - min(vox_coords[, 3]) + 1L
+    )
+    levels <- max(1L, as.integer(ceiling(log2(max(extents)))))
+    p$levels <- levels
+  } else if (!is.numeric(levels) || levels < 1) {
+    abort_lna("levels parameter must be >=1",
               .subclass = "lna_error_validation",
               location = "forward_step.spat.haar_octwave:levels")
   }
   levels <- as.integer(levels)
   z_seed <- p$z_order_seed %||% 42L
 
-  mask_arr <- handle$mask_info$mask
-  if (is.null(mask_arr)) {
-    abort_lna("mask_info$mask missing",
-              .subclass = "lna_error_validation",
-              location = "forward_step.spat.haar_octwave:mask")
+  input_key <- desc$inputs[[1]] %||% NULL
+  input_val <- NULL
+  if (!is.null(input_key) && input_key %in% names(handle$stash)) {
+    input_val <- handle$stash[[input_key]]
+  } else {
+    inp <- handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
+    input_key <- inp$key
+    input_val <- inp$value
   }
+  if (is.null(desc$inputs)) desc$inputs <- list(input_key)
 
-  inp <- handle$pull_first(c("input_dense_mat", "dense_mat", "input"))
-  input_key <- inp$key
-  X_masked_vox_time <- convert_to_masked_vox_time_matrix(inp$value, mask_arr)
+  X_masked_vox_time <- convert_to_masked_vox_time_matrix(input_val, mask_arr)
 
   coeffs <- perform_haar_lift_analysis(t(X_masked_vox_time), mask_arr,
                                        levels, z_seed)
@@ -57,7 +89,9 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
   }
 
   # Metadata -------------------------------------------------------------
-  vox_coords <- which(as.logical(mask_arr), arr.ind = TRUE)
+  if (is.null(vox_coords)) {
+    vox_coords <- which(mask_arr, arr.ind = TRUE)
+  }
   bbox <- c(min(vox_coords[, 1]) - 1L, max(vox_coords[, 1]) - 1L,
             min(vox_coords[, 2]) - 1L, max(vox_coords[, 2]) - 1L,
             min(vox_coords[, 3]) - 1L, max(vox_coords[, 3]) - 1L)
@@ -71,7 +105,7 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
     lowpass_counts[lv] <- length(counts)
     detail_counts[lv] <- sum(counts)
   }
-  lowpass_counts[levels + 1L] <- 1L
+  lowpass_counts[levels + 1L] <- ncol(coeffs$root)
 
   # Valid finest blocks ---------------------------------------------
   valid_blocks <- get_valid_finest_blocks(mask_arr)
@@ -89,8 +123,8 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
 
   desc$params <- p
   desc$version <- "1.0"
-  desc$inputs <- c(input_key)
-  desc$outputs <- c("wavelet_coefficients")
+  output_key <- desc$outputs[[1]] %||% "wavelet_coefficients"
+  if (is.null(desc$outputs)) desc$outputs <- list(output_key)
 
   datasets <- list(list(path = "/wavelet/level_ROOT/coefficients",
                         role = "wavelet_coefficients"))
@@ -139,8 +173,11 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
 
   C_total <- cbind(coeffs$root, do.call(cbind, coeffs$detail))
 
-  handle$update_stash(keys = character(),
-                      new_values = list(wavelet_coefficients = C_total))
+  new_values <- list(wavelet_coefficients = C_total)
+  if (!identical(output_key, "wavelet_coefficients")) {
+    new_values[[output_key]] <- C_total
+  }
+  handle$update_stash(keys = input_key, new_values = new_values)
 }
 
 #' Inverse step for the 'spat.haar_octwave' transform
@@ -155,10 +192,18 @@ invert_step.spat.haar_octwave <- function(type, desc, handle) {
   p <- desc$params %||% list()
   z_seed <- p$z_order_seed %||% 42L
 
-  mask_arr <- handle$mask_info$mask
-  if (is.null(mask_arr)) {
+  mask_neurovol <- handle$mask_info$mask
+  if (is.null(mask_neurovol)) {
     abort_lna("mask_info$mask missing", .subclass = "lna_error_validation",
               location = "invert_step.spat.haar_octwave:mask")
+  }
+  if (is.array(mask_neurovol)) {
+    mask_arr <- mask_neurovol
+    storage.mode(mask_arr) <- "logical"
+  } else {
+    mask_arr <- as.array(mask_neurovol)
+    if (!is.array(mask_arr)) mask_arr <- as.logical(mask_arr)
+    else storage.mode(mask_arr) <- "logical"
   }
 
   stored_hash <- p$morton_hash_mask_indices
@@ -186,12 +231,12 @@ invert_step.spat.haar_octwave <- function(type, desc, handle) {
   root_path <- NULL
   detail_paths <- list()
   for (d in datasets) {
-    p <- d$path
-    if (grepl("/wavelet/level_ROOT/coefficients$", p)) {
-      root_path <- p
-    } else if (grepl("/wavelet/level_[0-9]+/detail_coefficients$", p)) {
-      lvl <- as.integer(sub(".*/level_([0-9]+)/detail_coefficients$", "\\1", p))
-      detail_paths[[lvl + 1L]] <- p
+    path <- d$path
+    if (grepl("/wavelet/level_ROOT/coefficients$", path)) {
+      root_path <- path
+    } else if (grepl("/wavelet/level_[0-9]+/detail_coefficients$", path)) {
+      lvl <- as.integer(sub(".*/level_([0-9]+)/detail_coefficients$", "\\1", path))
+      detail_paths[[lvl + 1L]] <- path
     }
   }
   if (is.null(root_path)) {
@@ -212,8 +257,11 @@ invert_step.spat.haar_octwave <- function(type, desc, handle) {
     for (lv in seq_along(detail_paths)) {
       idx <- indices_by_level[[lv]]
       if (length(idx) > 0) {
-        detail_coeffs[[lv]] <- h5_read_subset(h5root, detail_paths[[lv]],
-                                              list(NULL, idx))
+        detail_coeffs[[lv]] <- h5_read_subset(
+          h5root,
+          detail_paths[[lv]],
+          list(seq_len(nrow(root_coeffs)), idx)
+        )
       } else {
         detail_coeffs[[lv]] <- matrix(nrow = nrow(root_coeffs), ncol = 0)
       }

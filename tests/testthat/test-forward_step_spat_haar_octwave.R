@@ -2,6 +2,26 @@ library(testthat)
 
 # Unit tests for forward_step.spat.haar_octwave (HWT-S1-10)
 
+local_mock_perform_haar_lift_analysis <- function(mock_fn, envir = parent.frame()) {
+  ns <- asNamespace("neuroarchive")
+  pkg_env <- if ("package:neuroarchive" %in% search()) as.environment("package:neuroarchive") else NULL
+  original <- get("perform_haar_lift_analysis", envir = ns)
+
+  withr::defer({
+    if (bindingIsLocked("perform_haar_lift_analysis", ns)) unlockBinding("perform_haar_lift_analysis", ns)
+    assign("perform_haar_lift_analysis", original, envir = ns)
+    lockBinding("perform_haar_lift_analysis", ns)
+    if (!is.null(pkg_env) && exists("perform_haar_lift_analysis", envir = pkg_env, inherits = FALSE)) {
+      assign("perform_haar_lift_analysis", original, envir = pkg_env)
+    }
+    if (exists("perform_haar_lift_analysis", envir = envir, inherits = FALSE)) {
+      rm("perform_haar_lift_analysis", envir = envir)
+    }
+  }, envir = envir)
+
+  testthat::local_mocked_bindings(perform_haar_lift_analysis = mock_fn, .env = ns)
+}
+
 test_that("forward_step.spat.haar_octwave basic IO", {
   mask <- array(TRUE, dim = c(2,2,2))
   X <- array(1:16, dim = c(2,2,2,2))
@@ -13,15 +33,14 @@ test_that("forward_step.spat.haar_octwave basic IO", {
   desc <- list(type = "spat.haar_octwave", params = list(levels = 1))
 
   called <- FALSE
-  testthat::local_mocked_bindings(
-    perform_haar_lift_analysis = function(data_matrix_T_x_Nmask, mask_3d_array, levels, z_order_seed = 42L) {
+  local_mock_perform_haar_lift_analysis(
+    function(data_matrix_T_x_Nmask, mask_3d_array, levels, z_order_seed = 42L) {
       called <<- TRUE
       list(
         root = matrix(1, nrow = 2, ncol = 1),
         detail = list(matrix(2, nrow = 2, ncol = 8))
       )
-    },
-    .env = asNamespace("neuroarchive")
+    }
   )
 
   out <- neuroarchive:::forward_step.spat.haar_octwave("spat.haar_octwave", desc, h)
@@ -74,15 +93,14 @@ test_that("forward_step.spat.haar_octwave sparsifies details", {
                          0.4, -0.8, 0.1, 1.2, -0.1, 0.2, 2.5, -0.4),
                        nrow = 2, byrow = TRUE)
 
-  testthat::local_mocked_bindings(
-    perform_haar_lift_analysis = function(data_matrix_T_x_Nmask, mask_3d_array,
-                                          levels, z_order_seed = 42L) {
+  local_mock_perform_haar_lift_analysis(
+    function(data_matrix_T_x_Nmask, mask_3d_array,
+             levels, z_order_seed = 42L) {
       list(
         root = matrix(1, nrow = 2, ncol = 1),
         detail = list(detail_in)
       )
-    },
-    .env = asNamespace("neuroarchive")
+    }
   )
 
   out <- neuroarchive:::forward_step.spat.haar_octwave("spat.haar_octwave", desc, h)
@@ -91,4 +109,3 @@ test_that("forward_step.spat.haar_octwave sparsifies details", {
   expect_true(all(abs(dmat[abs(detail_in) < 0.5]) == 0))
   expect_true(all(dmat[abs(detail_in) >= 0.5] == detail_in[abs(detail_in) >= 0.5]))
 })
-

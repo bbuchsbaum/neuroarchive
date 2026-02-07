@@ -11,7 +11,8 @@ core_write(
   mask = NULL,
   header = NULL,
   plugins = NULL,
-  run_id = NULL
+  run_id = NULL,
+  h5 = NULL
 )
 }
 \arguments{

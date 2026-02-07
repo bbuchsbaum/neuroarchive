@@ -12,8 +12,6 @@ Defines the structure and operations for planning the write
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
-\item{\code{datasets}}{A tibble storing definitions for HDF5 datasets to be created.}
-
 \item{\code{descriptors}}{A list storing transform descriptor lists.}
 
 \item{\code{payloads}}{A list storing data payloads to be written.}
@@ -21,6 +19,13 @@ Defines the structure and operations for planning the write
 \item{\code{next_index}}{An integer counter for naming transforms sequentially.}
 
 \item{\code{origin_label}}{A string label identifying the source (e.g., run ID).}
+}
+\if{html}{\out{</div>}}
+}
+\section{Active bindings}{
+\if{html}{\out{<div class="r6-active-bindings">}}
+\describe{
+\item{\code{datasets}}{A tibble storing definitions for HDF5 datasets to be created.}
 }
 \if{html}{\out{</div>}}
 }
@@ -33,6 +38,7 @@ Defines the structure and operations for planning the write
 \item \href{#method-Plan-add_descriptor}{\code{Plan$add_descriptor()}}
 \item \href{#method-Plan-get_next_filename}{\code{Plan$get_next_filename()}}
 \item \href{#method-Plan-first_run_id}{\code{Plan$first_run_id()}}
+\item \href{#method-Plan-set_write_mode_effective}{\code{Plan$set_write_mode_effective()}}
 \item \href{#method-Plan-import_from_array}{\code{Plan$import_from_array()}}
 \item \href{#method-Plan-mark_payload_written}{\code{Plan$mark_payload_written()}}
 \item \href{#method-Plan-clone}{\code{Plan$clone()}}
@@ -172,6 +178,25 @@ pattern. Returns `NULL` when no run information is available.
 \if{html}{\out{<div class="r">}}\preformatted{Plan$first_run_id()}\if{html}{\out{</div>}}
 }
 
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Plan-set_write_mode_effective"></a>}}
+\if{latex}{\out{\hypertarget{method-Plan-set_write_mode_effective}{}}}
+\subsection{Method \code{set_write_mode_effective()}}{
+Set the effective write mode for a dataset definition.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Plan$set_write_mode_effective(i, mode)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{i}}{Integer row index in `datasets`.}
+
+\item{\code{mode}}{Character scalar, e.g. `"eager"`.}
+}
+\if{html}{\out{</div>}}
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Plan-import_from_array"></a>}}

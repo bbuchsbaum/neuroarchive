@@ -16,7 +16,7 @@ test_that("open_h5 creates and closes files", {
 
 test_that("open_h5 errors for missing file", {
   missing <- file.path(tempdir(), "does_not_exist.h5")
-  expect_error(neuroarchive:::open_h5(missing, mode = "r"), "Failed to open HDF5 file")
+  expect_error(neuroarchive:::open_h5(missing, mode = "r"), "HDF5 file does not exist")
 })
 
 test_that("close_h5_safely tolerates invalid objects", {

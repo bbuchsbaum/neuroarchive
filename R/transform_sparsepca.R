@@ -167,8 +167,9 @@ forward_step.sparsepca <- function(type, desc, handle) {
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
   
-  main_output_key <- desc$outputs[[1]] 
-  
+  main_output_key <- if (!is.null(desc$outputs) && length(desc$outputs) > 0) desc$outputs[[1]] else "sparsepca_embedding"
+  desc$outputs <- c(main_output_key)
+
   desc$datasets <- list(
     list(path = basis_h5_path, role = "basis_matrix"),
     list(path = embed_h5_path, role = "coefficients"), 
@@ -294,8 +295,9 @@ invert_step.sparsepca <- function(type, desc, handle) {
     Xhat <- Xhat[subset$time_idx, , drop = FALSE]
   }
 
-  output_key <- desc$inputs[[1]] %||% "input" 
-  handle$update_stash(keys = names(handle$stash), 
+  output_key <- desc$inputs[[1]] %||% "input"
+  coeff_key <- desc$outputs[[1]] %||% "sparsepca_embedding"
+  handle$update_stash(keys = coeff_key,
                       new_values = setNames(list(Xhat), output_key))
 }
 

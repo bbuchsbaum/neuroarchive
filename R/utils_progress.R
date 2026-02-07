@@ -10,7 +10,12 @@ is_progress_globally_enabled <- function() {
   if (length(active_handlers_list) == 0) {
     return(FALSE)
   }
-  !all(sapply(active_handlers_list, function(h) inherits(h, "handler_void")))
+  # Check if all handlers are void handlers
+  all_void <- all(sapply(active_handlers_list, function(h) {
+    # handler_void handlers have class "void_progression_handler"
+    inherits(h, "void_progression_handler")
+  }))
+  !all_void
 }
 
 #' Run a loop with optional progress reporting

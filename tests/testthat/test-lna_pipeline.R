@@ -91,19 +91,16 @@ test_that("lna_write forwards arguments to write_lna", {
   captured <- list()
   fake_result <- list(fake = TRUE)
 
-  local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id, header, checksum = "none") {
-      captured$x <<- x
-      captured$file <<- file
-      captured$transforms <<- transforms
-      captured$transform_params <<- transform_params
-      captured$run_id <<- run_id
-      captured$header <<- header
-      captured$checksum <<- checksum
-      fake_result
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, header, checksum = "none") {
+    captured$x <<- x
+    captured$file <<- file
+    captured$transforms <<- transforms
+    captured$transform_params <<- transform_params
+    captured$run_id <<- run_id
+    captured$header <<- header
+    captured$checksum <<- checksum
+    fake_result
+  })
 
   res <- lna_write(pipe, file = "foo.h5", header = list(a = 1))
 
@@ -111,7 +108,7 @@ test_that("lna_write forwards arguments to write_lna", {
   expect_identical(captured$x, arr)
   expect_equal(captured$file, "foo.h5")
   expect_equal(captured$transforms, "quant")
-  expect_equal(captured$transform_params, list(quant = list(bits = 8)))
+  expect_equal(captured$transform_params, list(step_01 = list(bits = 8), quant = list(bits = 8)))
   expect_equal(captured$run_id, "run-01")
   expect_equal(captured$header, list(a = 1))
   expect_equal(captured$checksum, "sha256")  # Check the default .checksum value
@@ -124,19 +121,16 @@ test_that("lna_write works with empty pipeline", {
   pipe <- as_pipeline(arr)
 
   captured <- list()
-  local_mocked_bindings(
-    write_lna = function(x, file, transforms, transform_params, run_id, checksum = "none") {
-      captured$transforms <<- transforms
-      captured$transform_params <<- transform_params
-      captured$checksum <<- checksum
-      list(ok = TRUE)
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    captured$transforms <<- transforms
+    captured$transform_params <<- transform_params
+    captured$checksum <<- checksum
+    list(ok = TRUE)
+  })
 
   lna_write(pipe, file = "bar.h5")
   expect_length(captured$transforms, 0L)
-  expect_equal(captured$transform_params, setNames(list(), character(0)))  # Named list with no elements
+  expect_equal(captured$transform_params, list())  # Empty list with no elements
   expect_equal(captured$checksum, "sha256")  # Check the default .checksum value
 })
 
@@ -147,17 +141,14 @@ test_that("lna_write surfaces core errors with context", {
   pipe <- as_pipeline(arr)
   pipe$add_step(list(type = "quant", params = list()))
 
-  local_mocked_bindings(
-    write_lna = function(...) {
-      neuroarchive:::abort_lna(
-        "boom",
-        step_index = 0,
-        transform_type = "quant",
-        .subclass = "lna_error_internal"
-      )
-    },
-    .env = asNamespace("neuroarchive")
-  )
+  local_mock_write_lna(function(...) {
+    neuroarchive:::abort_lna(
+      "boom",
+      step_index = 0,
+      transform_type = "quant",
+      .subclass = "lna_error_internal"
+    )
+  })
 
   expect_error(
     lna_write(pipe, file = "out.h5")

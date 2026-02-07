@@ -74,7 +74,8 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     mask = mask,
     header = header,
     plugins = plugins,
-    run_id = run_id
+    run_id = run_id,
+    h5 = h5
   )
  
   validate_block_table(block_table, result$handle$mask_info$active_voxels)
@@ -93,9 +94,15 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     plugins = plugins_from_handle
   )
 
+  handle_out <- result$handle
+  if (!is.null(handle_out) && "h5" %in% names(handle_out)) {
+    handle_out$h5 <- NULL
+  }
+
   lnaobj <- list(
     file = if (info$in_memory) NULL else info$file,
     plan = result$plan,
+    handle = handle_out,
     transform_params = header_from_handle$transform_params,
     header = header_from_handle
   )
@@ -207,22 +214,26 @@ open_output_h5 <- function(path) {
     if (is.null(h5) || !h5$is_valid) {
       stop("Failed to create temporary HDF5 file")
     }
-    # Still mark as in_memory so it gets cleaned up
-    list(h5 = h5, file = tmp, in_memory = TRUE)
+    # Keep explicit cleanup flag separate from in_memory semantics.
+    list(h5 = h5, file = tmp, in_memory = TRUE, cleanup_file = TRUE)
   } else {
     h5 <- open_h5(path, mode = "w")
     if (is.null(h5) || !h5$is_valid) {
       stop(sprintf("Failed to open HDF5 file '%s'", path))
     }
-    list(h5 = h5, file = path, in_memory = FALSE)
+    list(h5 = h5, file = path, in_memory = FALSE, cleanup_file = FALSE)
   }
 }
 
 close_output_h5 <- function(info) {
   if (!is.null(info$h5) && info$h5$is_valid) {
-    info$h5$close_all()
+    # Best-effort flush/close to avoid transient read-after-write lock races
+    tryCatch(info$h5$flush(), error = function(e) invisible(NULL))
+    tryCatch(info$h5$close_all(), error = function(e) {
+      warning(paste("Error closing output HDF5 handle:", conditionMessage(e)))
+    })
   }
-  if (isTRUE(info$in_memory) && file.exists(info$file)) {
+  if (isTRUE(info$cleanup_file) && file.exists(info$file)) {
     unlink(info$file, force = TRUE)
   }
   invisible(NULL)

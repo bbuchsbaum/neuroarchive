@@ -15,9 +15,19 @@
 #' @return A list with `handle` and `plan` objects.
 #' @keywords internal
 core_write <- function(x, transforms, transform_params = list(),
-                       mask = NULL, header = NULL, plugins = NULL, run_id = NULL) {
+                       mask = NULL, header = NULL, plugins = NULL, run_id = NULL,
+                       h5 = NULL) {
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
+  if (!is.null(h5)) {
+    if (!inherits(h5, "H5File") || !isTRUE(h5$is_valid)) {
+      abort_lna(
+        "h5 must be a valid hdf5r::H5File handle",
+        .subclass = "lna_error_validation",
+        location = "core_write:h5"
+      )
+    }
+  }
 
   req_dims <- determine_required_dims(transforms, mask)
   x <- validate_input_data(x, min_dims = req_dims)
@@ -40,13 +50,19 @@ core_write <- function(x, transforms, transform_params = list(),
     initial_meta = list(mask = mask_info$array, header = header_list,
                         plugins = plugin_list),
     plan = plan,
+    h5 = h5,
     run_ids = run_ids,
     current_run_id = current_run_id,
     mask_info = if (!is.null(mask_info$array)) list(
-      mask = mask_info$array,
+      mask = if (inherits(mask, "LogicalNeuroVol")) mask else mask_info$array,
+      mask_array = mask_info$array,
       active_voxels = mask_info$active_voxels
     ) else NULL
   )
+
+  if (!is.null(mask_info$array)) {
+    add_mask_data(handle)
+  }
 
   merged_params <- resolve_transform_params(transforms, transform_params)
   handle <- run_transform_loop(handle, transforms, merged_params)
@@ -127,13 +143,22 @@ run_transform_loop <- function(handle, transforms, params) {
   step_loop <- function(p) {
     h <- handle
     current_key <- "input"
-    for (type in transforms) {
+    for (i in seq_along(transforms)) {
+      type <- transforms[[i]]
       if (!is.null(p)) p(message = type)
       step_idx <- h$plan$next_index
       output_key <- paste0(type, "_s", step_idx, "_out")
+      # Canonical output key for the aggregate_runs step. This helps ensure
+      # ad-hoc / test-defined aggregate methods can rely on a stable key.
+      if (identical(type, "aggregate_runs") && identical(current_key, "input")) {
+        output_key <- "aggregated_matrix"
+      }
+      step_key <- sprintf("step_%02d", i)
+      step_params <- params[[step_key]]
+      if (is.null(step_params)) step_params <- params[[type]]
       desc <- list(
         type = type,
-        params = params[[type]],
+        params = step_params,
         inputs = list(current_key),
         outputs = list(output_key)
       )
@@ -178,6 +203,43 @@ add_initial_data <- function(handle) {
   invisible(handle)
 }
 
+add_mask_data <- function(handle) {
+  if (is.null(handle$mask_info) || is.null(handle$mask_info$mask)) {
+    return(invisible(handle))
+  }
+  mask_arr <- handle$mask_info$mask_array %||% handle$mask_info$mask
+  if (inherits(mask_arr, "LogicalNeuroVol")) mask_arr <- as.array(mask_arr)
+  mask_uint8 <- as.integer(as.logical(mask_arr))
+  dim(mask_uint8) <- dim(mask_arr)
+
+  plan <- handle$plan
+  add_one <- function(run_label) {
+    run_label <- sanitize_run_id(run_label)
+    path <- file.path("/scans", run_label, "data", "mask")
+    plan$add_payload(path, mask_uint8, overwrite = TRUE)
+    plan$add_dataset_def(
+      path = path,
+      role = "mask",
+      producer = "core_write_mask",
+      origin = run_label,
+      step_index = 0L,
+      params_json = "{}",
+      payload_key = path,
+      write_mode = "eager",
+      dtype = "uint8"
+    )
+  }
+
+  run_ids <- handle$run_ids
+  if (!is.null(run_ids) && length(run_ids) > 0) {
+    for (rid in run_ids) add_one(rid)
+  } else {
+    add_one(handle$current_run_id %||% "run-01")
+  }
+
+  invisible(handle)
+}
+
 #' Validate and normalise mask argument
 #'
 #' @param mask Optional mask object.
@@ -192,15 +254,13 @@ validate_mask <- function(mask, input = NULL) {
   # Helper function to try global override first, then neuroim2 namespace
   safe_call_method <- function(fn_name, obj) {
     if (exists(fn_name, envir = .GlobalEnv, mode = "function")) {
-      global_fn <- get(fn_name, envir = .GlobalEnv)
-      # Try direct S3 dispatch if global generic exists
-      if (methods::isGeneric(fn_name)) {
-        method_name <- paste0(fn_name, ".", class(obj)[1])
-        if (exists(method_name, envir = .GlobalEnv, mode = "function")) {
-          return(get(method_name, envir = .GlobalEnv)(obj))
-        }
+      # Try method-specific version first
+      method_name <- paste0(fn_name, ".", class(obj)[1])
+      if (exists(method_name, envir = .GlobalEnv, mode = "function")) {
+        return(get(method_name, envir = .GlobalEnv)(obj))
       }
       # Fallback to calling the global generic/function itself
+      global_fn <- get(fn_name, envir = .GlobalEnv)
       return(global_fn(obj))
     } else if (exists(fn_name, envir = asNamespace("neuroim2"), mode = "function")) {
       return(get(fn_name, envir = asNamespace("neuroim2"))(obj))
@@ -220,10 +280,14 @@ validate_mask <- function(mask, input = NULL) {
         mask_trans <- tryCatch(safe_call_method("trans", mask_space), error = function(e) NULL)
         input_trans <- tryCatch(safe_call_method("trans", input_space), error = function(e) NULL)
 
-        if (!is.null(mask_dims) && !is.null(input_dims) &&
-            (!identical(mask_dims, input_dims) ||
-             (!is.null(mask_trans) && !is.null(input_trans) && !identical(mask_trans, input_trans)))) {
-          warn_lna("Mask orientation/space differs from input data; reslice mask to data space for accurate application.")
+        if (!is.null(mask_dims) && !is.null(input_dims)) {
+          dims_differ <- !identical(mask_dims, input_dims)
+          trans_differ <- !is.null(mask_trans) && !is.null(input_trans) &&
+                          !identical(mask_trans, input_trans)
+          if (dims_differ || trans_differ) {
+            warn_lna("Mask orientation/space differs from input data; reslice mask to data space for accurate application.",
+                     .subclass = "lna_warning_mask_space")
+          }
         }
       }
     }

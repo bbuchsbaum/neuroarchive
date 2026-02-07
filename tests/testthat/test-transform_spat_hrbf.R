@@ -7,7 +7,7 @@ FakeSpace <- function(dim, spacing_v, origin_v=c(0,0,0)) {
 space.FakeLogicalNeuroVol <- function(x, ...) attr(x,"space")
 spacing.FakeSpace <- function(x, ...) x$spacing
 origin.FakeSpace <- function(x, ...) x$origin
-as.array.FakeLogicalNeuroVol <- function(x, ...) x$arr
+as.array.LogicalNeuroVol <- function(x, ...) x$arr
 
 
 test_that("forward_step.spat.hrbf generates centres and hash", {
@@ -19,10 +19,10 @@ test_that("forward_step.spat.hrbf generates centres and hash", {
   assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
   assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
     rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+       origin.FakeSpace, as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   plan <- Plan$new()
@@ -122,10 +122,10 @@ test_that("forward_step.spat.hrbf warns when anisotropic atoms requested", {
   assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
   assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
     rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+       origin.FakeSpace, as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   tmp <- local_tempfile(fileext = ".h5")
@@ -158,10 +158,10 @@ test_that("forward_step.spat.hrbf warns for derivative Gaussian atoms", {
   assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
   assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
     rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+       origin.FakeSpace, as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   plan <- Plan$new()
@@ -187,10 +187,10 @@ test_that("forward_step.spat.hrbf warns for centre steering map", {
   assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
   assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
     rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+       origin.FakeSpace, as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   tmp <- local_tempfile(fileext = ".h5")
@@ -222,10 +222,10 @@ test_that("forward_step.spat.hrbf warns for differential encoding", {
   assign("space.FakeLogicalNeuroVol", space.FakeLogicalNeuroVol, envir=.GlobalEnv)
   assign("spacing.FakeSpace", spacing.FakeSpace, envir=.GlobalEnv)
   assign("origin.FakeSpace", origin.FakeSpace, envir=.GlobalEnv)
-  assign("as.array.FakeLogicalNeuroVol", as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+  assign("as.array.LogicalNeuroVol", as.array.LogicalNeuroVol, envir=.GlobalEnv)
   withr::defer({
     rm(FakeSpace, space.FakeLogicalNeuroVol, spacing.FakeSpace,
-       origin.FakeSpace, as.array.FakeLogicalNeuroVol, envir=.GlobalEnv)
+       origin.FakeSpace, as.array.LogicalNeuroVol, envir=.GlobalEnv)
   }, envir = parent.frame())
 
   plan <- Plan$new()
