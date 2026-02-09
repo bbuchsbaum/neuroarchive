@@ -74,39 +74,42 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
     temp_copy_path <- tempfile(fileext = ".h5")
     file.copy(current_file_path, temp_copy_path, overwrite = TRUE)
 
-    h5_temp_copy <- NULL
     calculated_checksum_on_copy <- NULL
-    
-    tryCatch({
-      h5_temp_copy <- open_h5(temp_copy_path, mode = "r+")
-      root_temp_copy <- h5_temp_copy[["/"]]
-      if (h5_attr_exists(root_temp_copy, "lna_checksum")) {
-        h5_attr_delete(root_temp_copy, "lna_checksum")
-      }
-      # Now, lna_checksum attribute is guaranteed not to exist or has been deleted.
-      # Write the placeholder anew.
-      h5_attr_write(root_temp_copy, "lna_checksum", placeholder_checksum)
-      
-      # Important: close the temp file *before* hashing it
-      neuroarchive:::close_h5_safely(h5_temp_copy)
-      h5_temp_copy <- NULL # Mark as closed for finally block
-      
-      calculated_checksum_on_copy <- digest::digest(file = temp_copy_path, algo = "sha256")
-    }, finally = {
-      if (!is.null(h5_temp_copy) && inherits(h5_temp_copy, "H5File") && h5_temp_copy$is_valid) {
-        neuroarchive:::close_h5_safely(h5_temp_copy)
-      }
-      if (file.exists(temp_copy_path)) {
-        unlink(temp_copy_path)
-      }
-    })
+    is_valid_hash <- nchar(stored_checksum_value) == 64L &&
+      grepl("^[0-9a-f]{64}$", stored_checksum_value)
 
-    # Reopen the original file for subsequent validation steps if any
-    h5 <- open_h5(file, mode = "r") # Re-open the original file
-    root <- h5[["/"]] # Re-assign root based on the new h5 handle
-
-    if (!is.null(calculated_checksum_on_copy) && !identical(calculated_checksum_on_copy, stored_checksum_value)) {
+    if (!is_valid_hash) {
+      # Stored value isn't a valid SHA256 hex string — always fail
+      if (file.exists(temp_copy_path)) unlink(temp_copy_path)
+      h5 <- open_h5(file, mode = "r")
+      root <- h5[["/"]]
       fail("Checksum does not match")
+    } else {
+      tryCatch({
+        # Use raw binary replacement to avoid HDF5 attribute delete/recreate
+        # which changes file layout and breaks byte-level comparison.
+        raw_bytes <- readBin(temp_copy_path, "raw", file.info(temp_copy_path)$size)
+        stored_raw <- charToRaw(stored_checksum_value)
+        placeholder_raw <- charToRaw(placeholder_checksum)
+        pos <- grepRaw(stored_raw, raw_bytes, fixed = TRUE)
+        if (length(pos) == 1L) {
+          raw_bytes[pos:(pos + 63L)] <- placeholder_raw
+          writeBin(raw_bytes, temp_copy_path)
+          calculated_checksum_on_copy <- digest::digest(file = temp_copy_path, algo = "sha256")
+        }
+      }, finally = {
+        if (file.exists(temp_copy_path)) {
+          unlink(temp_copy_path)
+        }
+      })
+
+      # Reopen the original file for subsequent validation steps if any
+      h5 <- open_h5(file, mode = "r")
+      root <- h5[["/"]]
+
+      if (is.null(calculated_checksum_on_copy) || !identical(calculated_checksum_on_copy, stored_checksum_value)) {
+        fail("Checksum does not match")
+      }
     }
   }
 

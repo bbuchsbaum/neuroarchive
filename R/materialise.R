@@ -289,16 +289,31 @@ write_sha256_checksum <- function(h5, root) {
 
   if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
     hash_val <- digest::digest(file = file_path, algo = "sha256")
-    h5_tmp <- NULL
-    tryCatch({
-      h5_tmp <- open_h5(file_path, mode = "r+")
-      root_tmp <- h5_tmp[["/"]]
-      h5_attr_write(root_tmp, "lna_checksum", hash_val)
-    }, finally = {
-      if (!is.null(h5_tmp) && inherits(h5_tmp, "H5File") && h5_tmp$is_valid) {
-        neuroarchive:::close_h5_safely(h5_tmp)
-      }
-    })
+    # Use raw binary replacement to preserve file layout. HDF5 attribute
+    # delete/recreate via h5attr<- changes internal structure, making the
+    # stored hash unverifiable. Since placeholder and hash are both 64-byte
+    # ASCII strings, a direct byte swap is safe and preserves the layout
+    # that was hashed.
+    raw_bytes <- readBin(file_path, "raw", file.info(file_path)$size)
+    placeholder_raw <- charToRaw(placeholder)
+    hash_raw <- charToRaw(hash_val)
+    pos <- grepRaw(placeholder_raw, raw_bytes, fixed = TRUE)
+    if (length(pos) == 1L) {
+      raw_bytes[pos:(pos + 63L)] <- hash_raw
+      writeBin(raw_bytes, file_path)
+    } else {
+      warning("Could not locate placeholder checksum in file; falling back to HDF5 attribute write")
+      h5_tmp <- NULL
+      tryCatch({
+        h5_tmp <- open_h5(file_path, mode = "r+")
+        root_tmp <- h5_tmp[["/"]]
+        h5_attr_write(root_tmp, "lna_checksum", hash_val)
+      }, finally = {
+        if (!is.null(h5_tmp) && inherits(h5_tmp, "H5File") && h5_tmp$is_valid) {
+          neuroarchive:::close_h5_safely(h5_tmp)
+        }
+      })
+    }
   } else {
     warning(
       "Checksum requested but file path unavailable or invalid; skipping write of checksum attribute.")

@@ -17,8 +17,7 @@ create_valid_lna <- function(path, checksum = TRUE) {
 test_that("validate_lna succeeds on valid file", {
   tmp <- local_tempfile(fileext = ".h5")
   create_valid_lna(tmp)
-  # Temporarily disable checksum validation for this test due to persistent mismatch issues
-  expect_true(validate_lna(tmp, checksum = FALSE))
+  expect_true(validate_lna(tmp))
 })
 
 
