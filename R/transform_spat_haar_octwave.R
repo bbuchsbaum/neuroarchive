@@ -4,6 +4,8 @@
 #' defined in `haar_octwave_helpers.R`. Coefficients for each level
 #' are written to the plan and a concatenated matrix is stashed for
 #' downstream transforms.
+#' @method forward_step spat.haar_octwave
+#' @export
 #' @keywords internal
 forward_step.spat.haar_octwave <- function(type, desc, handle) {
   p_in <- desc$params %||% list()
@@ -187,6 +189,8 @@ forward_step.spat.haar_octwave <- function(type, desc, handle) {
 #' voxel-time matrix.  The mask used for reconstruction is verified
 #' against the descriptor's stored Morton hash.  Optional `time_idx`
 #' and `roi_mask` subsetting is honoured before updating the stash.
+#' @method invert_step spat.haar_octwave
+#' @export
 #' @keywords internal
 invert_step.spat.haar_octwave <- function(type, desc, handle) {
   p <- desc$params %||% list()

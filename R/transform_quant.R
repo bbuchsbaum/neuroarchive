@@ -7,6 +7,8 @@
 #' @param type,desc,handle Internal arguments used by the transform
 #'   dispatcher.
 #' @return None. Updates the write plan and `handle$meta`.
+#' @method forward_step quant
+#' @export
 #' @keywords internal
 forward_step.quant <- function(type, desc, handle) {
   opts <- desc$params %||% list()
@@ -165,14 +167,15 @@ forward_step.quant <- function(type, desc, handle) {
     dset_offset <- root[[offset_path]]
 
     slab <- bs$slab_dims
-    has_slab_fill <- function() {
+    has_call <- function(sym) {
       dll <- getLoadedDLLs()[["neuroarchive"]]
       if (is.null(dll)) return(FALSE)
       routines <- getDLLRegisteredRoutines(dll)
       !is.null(routines) &&
-        "_neuroarchive_quantize_voxel_slab_fill_rcpp" %in% names(routines$`.Call`)
+        sym %in% names(routines$`.Call`)
     }
-    use_slab_fill <- has_slab_fill()
+    use_slab_fill <- has_call("_neuroarchive_quantize_voxel_slab_fill_rcpp")
+    use_slab_rcpp <- has_call("_neuroarchive_quantize_voxel_slab_rcpp")
     slab_cache <- new.env(parent = emptyenv())
     get_slab_buffers <- function(slab_dims, nt) {
       key <- paste0(slab_dims, collapse = "x")
@@ -225,8 +228,17 @@ forward_step.quant <- function(type, desc, handle) {
             n_clipped_total <- n_clipped_total + slab_nclip
             sc <- buffers$scale
             of <- buffers$offset
-          } else {
+          } else if (use_slab_rcpp) {
             res <- quantize_voxel_slab_rcpp(input_data, start, slab_dims, bits, method, center)
+            dset_q$write(args = idx4, res$q)
+            dset_scale$write(args = idx3, res$scale)
+            dset_offset$write(args = idx3, res$offset)
+            n_clipped_total <- n_clipped_total + res$n_clipped_total
+            sc <- res$scale
+            of <- res$offset
+          } else {
+            block <- input_data[xi, yi, zi, , drop = FALSE]
+            res <- .quantize_voxel_block(block, bits, method, center)
             dset_q$write(args = idx4, res$q)
             dset_scale$write(args = idx3, res$scale)
             dset_offset$write(args = idx3, res$offset)
@@ -389,7 +401,9 @@ forward_step.quant <- function(type, desc, handle) {
   }
 
   handle$plan <- plan
-  handle <- handle$update_stash(keys = input_key, new_values = list())
+  output_key <- desc$outputs[[1]] %||% "quantized"
+  handle <- handle$update_stash(keys = input_key,
+                                new_values = setNames(list(quantized_vals), output_key))
   return(handle)
 }
 
@@ -402,6 +416,8 @@ forward_step.quant <- function(type, desc, handle) {
 #' @param type,desc,handle Internal arguments used by the transform
 #'   dispatcher.
 #' @return None. Places the reconstructed array into `handle$stash`.
+#' @method invert_step quant
+#' @export
 #' @keywords internal
 invert_step.quant <- function(type, desc, handle) {
   run_id <- handle$current_run_id %||% "run-01"
@@ -471,11 +487,13 @@ invert_step.quant <- function(type, desc, handle) {
       )
     }
     mat <- mat[which(roi_vec), , drop = FALSE]
+    handle$subset_applied$roi_mask <- TRUE
 
     if (!is.null(time_idx)) {
       idx <- as.integer(time_idx)
       idx <- idx[idx >= 1L & idx <= ncol(mat)]
       mat <- mat[, idx, drop = FALSE]
+      handle$subset_applied$time_idx <- TRUE
     }
 
     x <- mat
@@ -483,6 +501,7 @@ invert_step.quant <- function(type, desc, handle) {
     idx <- as.integer(time_idx)
     idx <- idx[idx >= 1L & idx <= dims[4]]
     x <- x[, , , idx, drop = FALSE]
+    handle$subset_applied$time_idx <- TRUE
   }
 
   input_key <- if (!is.null(desc$inputs) && length(desc$inputs) > 0) desc$inputs[[1]] else "input"

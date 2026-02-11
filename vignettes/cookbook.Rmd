@@ -1,163 +1,234 @@
 ---
-title: "LNA Cookbook"
+title: LNA Cookbook
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{LNA Cookbook}
-  %\VignetteEngine{rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
-This vignette demonstrates common workflows using the `neuroarchive`
-package.
+```{r setup, include = FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  eval = TRUE
+)
+```
 
-```r
+This vignette collects short, self-contained recipes for common
+`neuroarchive` workflows. Each recipe creates its own data and temp
+files so you can run any section independently.
+
+```{r}
 library(neuroarchive)
 ```
 
-## Quantisation and Lazy Reading
+## Quantization and Lazy Reading
 
-```r
-# Create some example data
+Write data with quantization and read a temporal subset lazily (without
+loading the entire file into memory).
+
+```{r quant_lazy}
 x <- array(rnorm(128), dim = c(4, 4, 4, 2))
+tmp <- tempfile(fileext = ".h5")
 
-# Write with quant transform
-write_lna(x, "cookbook.h5", transforms = "quant")
+write_lna(x, tmp, transforms = "quant")
 
-# Open lazily and read a subset
-r <- read_lna("cookbook.h5", lazy = TRUE)
+# Open lazily and read a single timepoint
+r <- read_lna(tmp, lazy = TRUE)
 r$subset(time_idx = 1)
 subset_data <- r$data()
 r$close()
+
+cat(sprintf("Full data: %s\n", paste(dim(x), collapse = " x ")))
+cat(sprintf("Subset shape: %s\n", paste(dim(subset_data), collapse = " x ")))
 ```
 
 ## PCA Compression Pipeline
 
-```r
-# Use basis -> embed -> quant for PCA-based compression
-pca_file <- "pca_example.h5"
-write_lna(
-  x,
-  pca_file,
-  transforms = c("basis", "embed", "quant"),
-  transform_params = list(basis = list(k = 5))
-)
+Combine PCA basis decomposition with quantization for higher compression.
 
-# Validate the resulting file
-validate_lna(pca_file)
+```{r pca_pipeline}
+set.seed(1)
+x <- array(rnorm(4 * 4 * 4 * 10), dim = c(4, 4, 4, 10))
+tmp <- tempfile(fileext = ".h5")
+
+write_lna(x, tmp,
+          transforms = c("basis", "quant"),
+          transform_params = list(basis = list(k = 5)))
+
+handle <- read_lna(tmp)
+recon <- handle$stash$input
+
+cat(sprintf("Original range: [%.2f, %.2f]\n", min(x), max(x)))
+cat(sprintf("Correlation: %.4f\n",
+            cor(as.vector(x), as.vector(recon))))
 ```
 
-### ROI and Time Slicing
+## ROI and Time Slicing
 
-```r
-r <- read_lna(pca_file, lazy = TRUE)
-roi <- array(runif(64) > 0.5, dim = c(4,4,4))
-r$subset(roi_mask = roi, time_idx = 1:2)
-roi_slice <- r$data()
+Use a binary mask to read only voxels in a region of interest,
+combined with time indexing.
+
+```{r roi_slicing}
+set.seed(2)
+x <- array(rnorm(4 * 4 * 4 * 6), dim = c(4, 4, 4, 6))
+tmp <- tempfile(fileext = ".h5")
+
+write_lna(x, tmp,
+          transforms = "quant",
+          transform_params = list(quant = list(bits = 8)))
+
+r <- read_lna(tmp, lazy = TRUE)
+
+# Create a binary ROI mask (keep ~half the voxels)
+roi <- array(runif(64) > 0.5, dim = c(4, 4, 4))
+r$subset(roi_mask = roi, time_idx = 1:3)
+roi_data <- r$data()
 r$close()
+
+cat(sprintf("Voxels in ROI: %d\n", sum(roi)))
+cat(sprintf("ROI subset shape: %s\n",
+            paste(dim(roi_data), collapse = " x ")))
 ```
 
-### Selecting Runs with Glob Patterns
+## Temporal Transform (DCT)
 
-```r
-# Load multiple runs matching a pattern
-handles <- read_lna(pca_file, run_id = "run-*", lazy = FALSE)
+Project time series onto a DCT basis for temporal compression.
+
+```{r temporal_dct}
+set.seed(3)
+x <- array(rnorm(4 * 4 * 4 * 20), dim = c(4, 4, 4, 20))
+tmp <- tempfile(fileext = ".h5")
+
+write_lna(x, tmp,
+          transforms = c("temporal", "quant"),
+          transform_params = list(
+            temporal = list(kind = "dct", n_basis = 10),
+            quant = list(bits = 8)
+          ))
+
+handle <- read_lna(tmp)
+recon <- handle$stash$input
+
+cat(sprintf("Correlation: %.4f\n",
+            cor(as.vector(x), as.vector(recon))))
+cat(sprintf("File size: %.1f KB\n",
+            file.info(tmp)$size / 1024))
 ```
 
-## Scaffolding a New Transform
+## Delta Transform (Lossless)
 
-```r
-paths <- scaffold_transform("mycustom")
-# After editing `paths$r_file` to implement the transform,
-# it can be used like any built-in step:
-# write_lna(x, "custom.h5", transforms = "mycustom")
+Delta encoding computes first-order differences along the time axis.
+It is lossless and often helps subsequent quantization.
+
+```{r delta_transform}
+set.seed(4)
+x <- array(rnorm(4 * 4 * 4 * 8), dim = c(4, 4, 4, 8))
+tmp <- tempfile(fileext = ".h5")
+
+write_lna(x, tmp, transforms = "delta")
+
+handle <- read_lna(tmp)
+recon <- handle$stash$input
+
+cat(sprintf("Max reconstruction error: %e\n",
+            max(abs(as.vector(x) - as.vector(recon)))))
 ```
 
-This creates template files in `R/`, `inst/schemas/`, and `tests/` for a
-new transform implementation.
+## Haar Octave Wavelet
 
-## Temporal Transform Example
+The `spat.haar_octwave` transform performs a 3D Haar wavelet analysis
+using Morton-curve ordering. Small detail coefficients can be
+thresholded for lossy spatial compression.
 
-```r
-# DCT temporal compression then quantisation
-temp_file <- "temporal_example.h5"
-write_lna(
-  x,
-  temp_file,
-  transforms = c("temporal", "quant"),
-  transform_params = list(temporal = list(kind = "dct", n_basis = 3))
-)
+```{r haar_octwave}
+set.seed(5)
+x <- array(rnorm(4 * 4 * 4 * 4), dim = c(4, 4, 4, 4))
+mask <- array(TRUE, dim = c(4, 4, 4))
+tmp <- tempfile(fileext = ".h5")
 
-# Read back the temporally compressed data
-read_lna(temp_file)
+write_lna(x, tmp,
+          mask = mask,
+          transforms = "spat.haar_octwave",
+          transform_params = list(
+            spat.haar_octwave = list(levels = 2)
+          ))
+
+handle <- read_lna(tmp)
+recon <- handle$stash$input
+
+# Spatial transforms return a time-by-voxel matrix
+cat(sprintf("Output shape: %s\n", paste(dim(recon), collapse = " x ")))
+cat(sprintf("File size: %.1f KB\n", file.info(tmp)$size / 1024))
 ```
 
-## Delta Transform Example
+## Validate an LNA File
 
-```r
-# Compute first order differences along the time axis after quantisation
-delta_file <- "delta_example.h5"
-write_lna(
-  x,
-  delta_file,
-  transforms = c("quant", "delta"),
-  transform_params = list(delta = list(axis = 4))
-)
+`validate_lna()` checks file structure, schema conformance, and
+SHA-256 checksums.
 
-read_lna(delta_file)
+```{r validate}
+set.seed(6)
+x <- array(rnorm(4 * 4 * 4 * 2), dim = c(4, 4, 4, 2))
+tmp <- tempfile(fileext = ".h5")
+
+write_lna(x, tmp, transforms = "quant")
+
+# Returns TRUE when the file is sound
+is_valid <- validate_lna(tmp)
+cat(sprintf("Valid: %s\n", is_valid))
 ```
 
-## Custom Sparse PCA Pipeline
+## Multi-Step Pipeline
 
-```r
-# Scaffold the example transforms (once per project)
-scaffold_transform("myorg.aggregate_runs")
-scaffold_transform("myorg.sparsepca")
+Chain three transforms for aggressive compression: PCA reduces
+dimensions, then temporal DCT compresses in time, and finally 8-bit
+quantization minimizes storage.
 
-# After implementing forward_step and invert_step in the generated files
-# the transforms can be chained like any built-in step
-spca_file <- "spca_example.h5"
-write_lna(
-  list(run1 = x, run2 = x * 0.5),
-  spca_file,
-  transforms = c("myorg.aggregate_runs", "myorg.sparsepca", "quant"),
-  transform_params = list(`myorg.sparsepca` = list(k = 10))
-)
+```{r multistep}
+set.seed(7)
+x <- array(rnorm(6 * 6 * 6 * 30), dim = c(6, 6, 6, 30))
+tmp <- tempfile(fileext = ".h5")
+
+write_lna(x, tmp,
+          transforms = c("basis", "temporal", "quant"),
+          transform_params = list(
+            basis = list(k = 15),
+            temporal = list(kind = "dct", n_basis = 20),
+            quant = list(bits = 8)
+          ))
+
+handle <- read_lna(tmp)
+recon <- handle$stash$input
+
+input_kb <- prod(dim(x)) * 4 / 1024
+output_kb <- file.info(tmp)$size / 1024
+cat(sprintf("Input: %.1f KB -> Output: %.1f KB (%.1fx)\n",
+            input_kb, output_kb, input_kb / output_kb))
+cat(sprintf("Correlation: %.4f\n",
+            cor(as.vector(x), as.vector(recon))))
 ```
 
-## Understanding `validate_lna()` Output
-
-```r
-# Validation returns TRUE when the file is sound
-validate_lna(spca_file)
-
-# With strict = FALSE all issues are reported instead of throwing
-issues <- validate_lna(spca_file, strict = FALSE)
-print(issues)
+```{r cleanup, include = FALSE}
+# Clean up all temp files created in this vignette
+tmp_files <- ls(pattern = "^tmp")
+for (f in tmp_files) {
+  val <- get(f)
+  if (is.character(val) && file.exists(val)) unlink(val)
+}
 ```
-
-## Mask-Adaptive Haar Octwave Example
-
-```r
-# Haar wavelet compression with optional thresholding
-oct_file <- "octwave_example.h5"
-write_lna(
-  x,
-  oct_file,
-  transforms = "spat.haar_octwave",
-  transform_params = list(
-    `spat.haar_octwave` = list(
-      levels = 2,
-      detail_threshold_type = "absolute",
-      detail_threshold_value = 0.01
-    )
-  )
-)
-
-r <- read_lna(oct_file, lazy = TRUE)
-r$subset(time_idx = 1)
-data_reco <- r$data()
-r$close()
-```
-
-The `levels` parameter sets the depth of the octree. Small detail coefficients can be removed by adjusting `detail_threshold_type` and `detail_threshold_value`.
-

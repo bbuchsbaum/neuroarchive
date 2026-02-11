@@ -19,6 +19,38 @@ core_write <- function(x, transforms, transform_params = list(),
                        h5 = NULL) {
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
+
+  # Validate transform types have known forward_step methods
+  if (length(transforms) > 0) {
+    unknown <- transforms[vapply(transforms, function(t) {
+      is.null(.resolve_transform_method("forward_step", t))
+    }, logical(1))]
+    if (length(unknown) > 0) {
+      known <- names(which(vapply(
+        as.character(utils::methods("forward_step")),
+        function(m) !identical(sub("^forward_step\\.", "", m), "default"),
+        logical(1)
+      )))
+      known <- sub("^forward_step\\.", "", known)
+      runtime_known <- sub(
+        "^forward_step\\.",
+        "",
+        ls(.runtime_transform_methods, pattern = "^forward_step\\.", all.names = TRUE)
+      )
+      if (length(runtime_known) > 0) {
+        known <- unique(c(known, runtime_known))
+      }
+      abort_lna(
+        sprintf(
+          "Unknown transform type(s): %s. Available: %s",
+          paste(sQuote(unknown), collapse = ", "),
+          paste(sQuote(known), collapse = ", ")
+        ),
+        .subclass = "lna_error_validation",
+        location = "core_write:transforms"
+      )
+    }
+  }
   if (!is.null(h5)) {
     if (!inherits(h5, "H5File") || !isTRUE(h5$is_valid)) {
       abort_lna(

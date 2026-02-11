@@ -1,3 +1,51 @@
+# Internal validation for option names and types
+.validate_option <- function(nm, value, strict = TRUE) {
+  if (!(nm %in% names(default_opts))) {
+    # Try fuzzy match
+    candidates <- agrep(nm, names(default_opts), value = TRUE, max.distance = 0.2)
+    suggestion <- if (length(candidates) > 0) {
+      paste0(" Did you mean: ", paste(sQuote(candidates), collapse = ", "), "?")
+    } else {
+      ""
+    }
+    if (strict) {
+      warning(sprintf("Unknown option '%s'.%s", nm, suggestion), call. = FALSE)
+    }
+    return(invisible(NULL))
+  }
+
+  # Type check against default value
+  default_val <- default_opts[[nm]]
+  if (is.null(default_val) || is.list(default_val)) {
+    # List-typed defaults accept any list (or NULL)
+    if (!is.null(value) && !is.list(value) && is.list(default_val)) {
+      stop(sprintf("Option '%s' expects a list, got %s.", nm, class(value)[1]),
+           call. = FALSE)
+    }
+    return(invisible(NULL))
+  }
+
+  # Check numeric/integer/character/logical type compatibility
+  if (is.integer(default_val) && !is.numeric(value)) {
+    stop(sprintf("Option '%s' expects an integer, got %s.", nm, class(value)[1]),
+         call. = FALSE)
+  }
+  if (is.numeric(default_val) && !is.numeric(value)) {
+    stop(sprintf("Option '%s' expects a numeric value, got %s.", nm, class(value)[1]),
+         call. = FALSE)
+  }
+  if (is.character(default_val) && !is.character(value)) {
+    stop(sprintf("Option '%s' expects a character value, got %s.", nm, class(value)[1]),
+         call. = FALSE)
+  }
+  if (is.logical(default_val) && !is.logical(value)) {
+    stop(sprintf("Option '%s' expects a logical value, got %s.", nm, class(value)[1]),
+         call. = FALSE)
+  }
+
+  invisible(NULL)
+}
+
 #' Package Options for LNA
 #'
 #' Provides a lightweight mechanism for storing global package defaults.
@@ -38,7 +86,14 @@ lna_options <- function(...) {
     }
     return(out)
   }
+  # Check for .strict parameter
+  strict <- TRUE
+  if (".strict" %in% names(args)) {
+    strict <- args[[".strict"]]
+    args[[".strict"]] <- NULL
+  }
   for (nm in names(args)) {
+    .validate_option(nm, args[[nm]], strict = strict)
     assign(nm, args[[nm]], envir = .lna_opts)
   }
   invisible(lna_options())
@@ -47,11 +102,13 @@ lna_options <- function(...) {
 lna_options_env <- new.env(parent = emptyenv())
 default_opts <- list(
   # I/O Configuration
-  write.compression_level = 0L,
+  write.compression_level = 4L,
   write.chunk_target_mib = 1,
   write.file_line_limit = 50L,
   read.file_line_limit = 1000L,
   read.strict_mask_hash_validation = FALSE,
+  write.quant.nbit.shuffle = FALSE,
+  write.quant.nbit.deflate_level = 0L,
   
   # Memory and Performance
   memory.target_slab_bytes = 64e6,  # 64 MB

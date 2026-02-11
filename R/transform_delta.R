@@ -6,6 +6,8 @@
 #' stash the resulting delta stream. If `desc$outputs` is `NULL`, the default
 #' key `"delta_stream"` is used. An empty character vector results in no
 #' stash update.
+#' @method forward_step delta
+#' @export
 #' @keywords internal
 forward_step.delta <- function(type, desc, handle) {
   # Get incoming params, or an empty list if NULL
@@ -180,6 +182,8 @@ forward_step.delta <- function(type, desc, handle) {
 #' \code{\link{forward_step.delta}}. When `coding_method` was
 #' `'rle'`, the stored matrix of run lengths and values is expanded back to
 #' the full set of differences before reconstruction.
+#' @method invert_step delta
+#' @export
 #' @keywords internal
 invert_step.delta <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -265,6 +269,7 @@ invert_step.delta <- function(type, desc, handle) {
     first_vals <- first_vals[, vox_idx, drop = FALSE]
     deltas <- deltas[, vox_idx, drop = FALSE]
     dims[-axis] <- length(vox_idx)
+    handle$subset_applied$roi_mask <- TRUE
   }
 
   if (!is.null(time_idx)) {
@@ -306,8 +311,9 @@ invert_step.delta <- function(type, desc, handle) {
             recon[i, ] <- first_vals + cums[t - 1, ]
           }
         }
-        dims[axis] <- length(idx) 
+        dims[axis] <- length(idx)
     }
+    handle$subset_applied$time_idx <- TRUE
   } else {
     cums <- .col_cumsums(deltas)
     recon <- rbind(first_vals, sweep(cums, 2, first_vals, "+"))

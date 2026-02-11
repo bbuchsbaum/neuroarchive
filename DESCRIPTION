@@ -33,8 +33,12 @@ Suggests:
     sparsepca,
     irlba,
     testthat (>= 3.0.0),
-    multitaper
+    multitaper,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 RoxygenNote: 7.3.3
 LinkingTo: Rcpp, RcppEigen, openssl
 SystemRequirements: C++14
+Config/Needs/website: albersdown

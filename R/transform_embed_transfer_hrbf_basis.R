@@ -3,6 +3,8 @@
 #' Applies an empirical HRBF basis learned in a source LNA file to new
 #' target data. The basis is reconstructed on-the-fly from the
 #' compressed representation stored in the source file.
+#' @method forward_step embed.transfer_hrbf_basis
+#' @export
 #' @keywords internal
 forward_step.embed.transfer_hrbf_basis <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -61,6 +63,8 @@ forward_step.embed.transfer_hrbf_basis <- function(type, desc, handle) {
 #'
 #' Reconstructs dense data from coefficients using the HRBF basis
 #' stored in a source LNA file.
+#' @method invert_step embed.transfer_hrbf_basis
+#' @export
 #' @keywords internal
 invert_step.embed.transfer_hrbf_basis <- function(type, desc, handle) {
   p <- desc$params %||% list()

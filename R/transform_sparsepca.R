@@ -11,6 +11,8 @@
 #' @param storage_order Character string specifying the orientation of the
 #'   basis matrix. Either "component_x_voxel" (default) or
 #'   "voxel_x_component".
+#' @method forward_step sparsepca
+#' @export
 #' @keywords internal
 forward_step.sparsepca <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -210,6 +212,8 @@ forward_step.sparsepca <- function(type, desc, handle) {
 #' @param storage_order Character string specifying the orientation of the
 #'   basis matrix. Either "component_x_voxel" (default) or
 #'   "voxel_x_component".
+#' @method invert_step sparsepca
+#' @export
 #' @keywords internal
 invert_step.sparsepca <- function(type, desc, handle) {
   ds <- desc$datasets
@@ -290,9 +294,11 @@ invert_step.sparsepca <- function(type, desc, handle) {
   if (!is.null(subset$roi_mask)) {
     vox_idx <- which(as.logical(subset$roi_mask))
     Xhat <- Xhat[, vox_idx, drop = FALSE]
+    handle$subset_applied$roi_mask <- TRUE
   }
   if (!is.null(subset$time_idx)) {
     Xhat <- Xhat[subset$time_idx, , drop = FALSE]
+    handle$subset_applied$time_idx <- TRUE
   }
 
   output_key <- desc$inputs[[1]] %||% "input"

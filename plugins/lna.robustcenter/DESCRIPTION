@@ -1,0 +1,15 @@
+Package: lna.robustcenter
+Type: Package
+Title: Robust Centering Transform for neuroarchive
+Version: 0.0.1
+Authors@R: person("LNA", "Team", role = c("aut", "cre"), email = "team@example.com")
+Description: Example plugin package that ships a schema and S3 methods for a
+    simple 'robust_center' transform compatible with neuroarchive pipelines.
+License: MIT
+Encoding: UTF-8
+RoxygenNote: 7.3.2
+Imports:
+    neuroarchive,
+    jsonlite
+Suggests:
+    testthat (>= 3.0.0)

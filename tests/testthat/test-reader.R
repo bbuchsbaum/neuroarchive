@@ -6,6 +6,8 @@ library(neuroarchive)
 # Helper to create simple LNA file with no transforms
 create_empty_lna <- function(path) {
   h5 <- neuroarchive:::open_h5(path, mode = "w")
+  root <- h5[["/"]]
+  hdf5r::h5attr(root, "lna_spec") <- "LNA R v2.0"
   h5$create_group("transforms")
   scans_group <- h5$create_group("scans")
   scans_group$create_group("run-01") # Add a dummy run
@@ -19,6 +21,8 @@ create_empty_lna <- function(path) {
 # Helper to create lna with one dummy descriptor
 create_dummy_lna <- function(path) {
   h5 <- neuroarchive:::open_h5(path, mode = "w")
+  root <- h5[["/"]]
+  hdf5r::h5attr(root, "lna_spec") <- "LNA R v2.0"
   tf <- h5$create_group("transforms")
   scans_group <- h5$create_group("scans")
   scans_group$create_group("run-01") # Add a dummy run

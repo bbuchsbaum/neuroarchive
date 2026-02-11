@@ -30,12 +30,13 @@
 #'   is a list these override `names(x)`; otherwise a single identifier
 #'   is used for the lone run.
 #' @param checksum Character string specifying checksum mode. One of
-#'   `"none"` (default) or `"sha256"`. When `"sha256"` a checksum of the
+#'   `"sha256"` (default) or `"none"`. When `"sha256"` a checksum of the
 #'   final file is computed and stored in the `/lna_checksum` attribute.
 #'   This requires closing and reopening the file once writing has
 #'   finished.
-#' @return Invisibly returns a list with elements `file`, `plan`, and
-#'   `header` and class `"lna_write_result"`.
+#' @return Invisibly returns a list with elements `file`, `plan`, `header`,
+#'   `input_bytes`, `output_bytes`, `ratio`, `transforms_applied`, and
+#'   `checksum` with class `"lna_write_result"`.
 #' @details For parallel workflows create a unique temporary file and
 #'   rename it into place once writing succeeds. The underlying HDF5 file
 #'   is opened with mode `"w"`, truncating any existing file at `file`.
@@ -43,7 +44,7 @@
 #' @examples
 #' tmp <- tempfile(fileext = ".h5")
 #' arr <- array(rnorm(64), dim = c(4, 4, 4, 1))
-#' write_lna(arr, tmp, transforms = "quant")
+#' result <- write_lna(arr, tmp, transforms = "quant")
 #' read_lna(tmp)
 #' @importFrom hdf5r H5File
 #' @export
@@ -55,9 +56,12 @@ write_lna <- function(x, ...) {
 write_lna.default <- function(x, file = NULL, transforms = character(),
                       transform_params = list(), mask = NULL,
                       header = NULL, plugins = NULL, block_table = NULL,
-                      run_id = NULL, checksum = c("none", "sha256")) {
+                      run_id = NULL, checksum = c("sha256", "none")) {
 
   checksum <- match.arg(checksum)
+
+  # Compute input size for compression summary
+  input_bytes <- as.numeric(object.size(x))
 
   info <- open_output_h5(file)
   h5 <- info$h5
@@ -91,8 +95,29 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     result$plan,
     checksum = checksum,
     header = header_from_handle,
-    plugins = plugins_from_handle
+    plugins = plugins_from_handle,
+    run_ids = result$handle$run_ids
   )
+
+  # Close the HDF5 file before atomic rename (but don't cleanup temp file yet)
+  close_output_h5(info, cleanup_temp = FALSE)
+
+  # Atomic rename: move temp file to target path
+  info <- finalise_output_h5(info)
+
+  # Compute output size and compression ratio
+  output_file <- info$file
+  output_bytes <- if (!is.null(output_file) && file.exists(output_file)) {
+    file.size(output_file)
+  } else {
+    NA_real_
+  }
+
+  ratio <- if (!is.na(output_bytes) && output_bytes > 0) {
+    input_bytes / output_bytes
+  } else {
+    NA_real_
+  }
 
   handle_out <- result$handle
   if (!is.null(handle_out) && "h5" %in% names(handle_out)) {
@@ -100,14 +125,19 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   }
 
   lnaobj <- list(
-    file = if (info$in_memory) NULL else info$file,
+    file = if (info$in_memory) NULL else output_file,
     plan = result$plan,
     handle = handle_out,
     transform_params = header_from_handle$transform_params,
-    header = header_from_handle
+    header = header_from_handle,
+    input_bytes = input_bytes,
+    output_bytes = output_bytes,
+    ratio = ratio,
+    transforms_applied = transforms,
+    checksum = checksum
   )
   class(lnaobj) <- c("lna_write_result", "list")
-  lnaobj
+  invisible(lnaobj)
 }
 
 #' Read data from an LNA file
@@ -127,7 +157,10 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 #'   missing, \code{"installed"} emits a warning and skips that
 #'   transform. Interactive use of \code{"prompt"} will ask whether to
 #'   continue; declining aborts reading.
-#' @param validate Logical flag for validation; forwarded to `core_read`.
+#' @param validate Validation mode. One of `"quick"` (default), `TRUE`, or `FALSE`.
+#'   `"quick"` performs fast structural checks (file exists, valid HDF5, has /lna group,
+#'   has transform descriptors). `TRUE` performs full validation including SHA256 checksums
+#'   via `validate_lna()`. `FALSE` skips all validation checks.
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.
 #' @param roi_mask Optional ROI mask used to subset voxels before
@@ -148,7 +181,7 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 #' @export
 read_lna <- function(file, run_id = NULL,
                      allow_plugins = c("installed", "none", "prompt"),
-                     validate = FALSE,
+                     validate = "quick",
                      output_dtype = c("float32", "float64", "float16"),
                      roi_mask = NULL, time_idx = NULL,
                      lazy = FALSE) {
@@ -162,11 +195,31 @@ read_lna <- function(file, run_id = NULL,
   output_dtype <- match.arg(output_dtype)
   allow_plugins <- match.arg(allow_plugins)
 
+  # Handle validation parameter - can be "quick", TRUE, FALSE, or logical
+  if (is.character(validate)) {
+    validate <- match.arg(validate, choices = "quick")
+  } else if (!is.logical(validate) || length(validate) != 1) {
+    abort_lna(
+      "validate must be one of 'quick', TRUE, or FALSE",
+      .subclass = "lna_error_validation",
+      location = "read_lna:validate"
+    )
+  }
+
+  # Perform quick validation if requested
+  if (identical(validate, "quick")) {
+    quick_validate_lna(file)
+    # Convert to FALSE for core_read since we've already validated
+    validate_for_core <- FALSE
+  } else {
+    validate_for_core <- validate
+  }
+
   args <- list(
     file = file,
     run_id = run_id,
     allow_plugins = allow_plugins,
-    validate = validate,
+    validate = validate_for_core,
     output_dtype = output_dtype,
     roi_mask = roi_mask,
     time_idx = time_idx
@@ -215,17 +268,24 @@ open_output_h5 <- function(path) {
       stop("Failed to create temporary HDF5 file")
     }
     # Keep explicit cleanup flag separate from in_memory semantics.
-    list(h5 = h5, file = tmp, in_memory = TRUE, cleanup_file = TRUE)
+    list(h5 = h5, file = tmp, target_path = NULL, in_memory = TRUE, cleanup_file = TRUE)
   } else {
-    h5 <- open_h5(path, mode = "w")
-    if (is.null(h5) || !h5$is_valid) {
-      stop(sprintf("Failed to open HDF5 file '%s'", path))
+    # Write to temp file in same directory for atomic rename
+    target_dir <- dirname(path)
+    if (!dir.exists(target_dir)) {
+      dir.create(target_dir, recursive = TRUE)
     }
-    list(h5 = h5, file = path, in_memory = FALSE, cleanup_file = FALSE)
+    tmp <- tempfile(tmpdir = target_dir, fileext = ".lna.tmp")
+    h5 <- open_h5(tmp, mode = "w")
+    if (is.null(h5) || !h5$is_valid) {
+      unlink(tmp, force = TRUE)
+      stop(sprintf("Failed to open HDF5 file for writing (target: '%s')", path))
+    }
+    list(h5 = h5, file = tmp, target_path = path, in_memory = FALSE, cleanup_file = FALSE)
   }
 }
 
-close_output_h5 <- function(info) {
+close_output_h5 <- function(info, cleanup_temp = TRUE) {
   if (!is.null(info$h5) && info$h5$is_valid) {
     # Best-effort flush/close to avoid transient read-after-write lock races
     tryCatch(info$h5$flush(), error = function(e) invisible(NULL))
@@ -236,7 +296,27 @@ close_output_h5 <- function(info) {
   if (isTRUE(info$cleanup_file) && file.exists(info$file)) {
     unlink(info$file, force = TRUE)
   }
+  # Clean up temp file if atomic rename hasn't happened yet (error path)
+  # Only cleanup if requested (to allow explicit close before finalise)
+  if (cleanup_temp && !is.null(info$target_path) && file.exists(info$file)) {
+    unlink(info$file, force = TRUE)
+  }
   invisible(NULL)
+}
+
+finalise_output_h5 <- function(info) {
+  if (!is.null(info$target_path)) {
+    ok <- file.rename(info$file, info$target_path)
+    if (!ok) {
+      # file.rename can fail across filesystems; fall back to copy+delete
+      file.copy(info$file, info$target_path, overwrite = TRUE)
+      unlink(info$file, force = TRUE)
+    }
+    # Update file path in info so downstream code (like output_bytes) uses the right path
+    info$file <- info$target_path
+    info$target_path <- NULL
+  }
+  info
 }
 
 derive_header_from_input <- function(x) {
@@ -299,4 +379,47 @@ write_block_table_dataset <- function(h5, block_table) {
   bt_matrix <- as.matrix(block_table)
   h5_write_dataset(h5[["/"]], "spatial/block_table", bt_matrix)
   invisible(NULL)
+}
+
+#' Print method for lna_write_result
+#'
+#' @param x An object of class lna_write_result
+#' @param ... Additional arguments (ignored)
+#' @return Invisibly returns x
+#' @method print lna_write_result
+#' @export
+print.lna_write_result <- function(x, ...) {
+  fmt_bytes <- function(b) {
+    if (is.na(b)) return("NA")
+    if (b >= 1e9) sprintf("%.1f GB", b / 1e9)
+    else if (b >= 1e6) sprintf("%.1f MB", b / 1e6)
+    else if (b >= 1e3) sprintf("%.1f KB", b / 1e3)
+    else sprintf("%d B", as.integer(b))
+  }
+
+  transforms_str <- if (length(x$transforms_applied) > 0) {
+    paste0("[", paste(x$transforms_applied, collapse = "+"), "]")
+  } else {
+    "[none]"
+  }
+
+  checksum_str <- if (!is.null(x$checksum) && nchar(x$checksum) > 0 && x$checksum != "none") {
+    "sha256:ok"
+  } else {
+    "no checksum"
+  }
+
+  ratio_str <- if (!is.na(x$ratio)) {
+    sprintf("(%.1fx)", x$ratio)
+  } else {
+    "(NA)"
+  }
+
+  cat(sprintf("LNA written: %s -> %s %s %s %s\n",
+    fmt_bytes(x$input_bytes),
+    fmt_bytes(x$output_bytes),
+    ratio_str,
+    transforms_str,
+    checksum_str))
+  invisible(x)
 }

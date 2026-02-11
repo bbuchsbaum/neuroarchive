@@ -163,7 +163,22 @@ required_params <- function(type) {
   } else {
     schema <- jsonlite::read_json(schema_path, simplifyVector = FALSE)
     assign(type, schema, envir = .schema_cache)
-    req <- schema$required %||% character()
+    req_top <- schema$required %||% character()
+    req_params <- character()
+    params_node <- schema$properties$params
+    if (is.list(params_node)) {
+      if (is.list(params_node$oneOf) && length(params_node$oneOf) > 0) {
+        for (opt in params_node$oneOf) {
+          if (is.list(opt) && identical(opt$type, "object") && !is.null(opt$required)) {
+            req_params <- opt$required
+            break
+          }
+        }
+      } else if (!is.null(params_node$required)) {
+        req_params <- params_node$required
+      }
+    }
+    req <- unique(c(req_params, req_top))
   }
 
   assign(type, req, envir = cache)
@@ -229,7 +244,7 @@ resolve_transform_params <- function(transforms, transform_params = list()) {
     if (is.list(user_step)) {
       params <- utils::modifyList(params, user_step, keep.null = TRUE)
     }
-    merged[[type]] <- params
+    if (is.null(merged[[type]])) merged[[type]] <- params
     merged[[sprintf("step_%02d", i)]] <- params
   }
 

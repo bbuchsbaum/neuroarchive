@@ -27,6 +27,9 @@ Represents the state during LNA read/write operations, holding
 \item{\code{current_run_id}}{The run identifier currently being processed.}
 
 \item{\code{mask_info}}{List with mask array and active voxel count}
+
+\item{\code{subset_applied}}{List tracking which subset dimensions have already
+been applied to stash data during inverse pipeline execution.}
 }
 \if{html}{\out{</div>}}
 }

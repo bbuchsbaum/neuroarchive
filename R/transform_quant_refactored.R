@@ -6,6 +6,8 @@
 #'
 #' @param type,desc,handle Internal arguments used by the transform dispatcher.
 #' @return Updated handle with quantized data.
+#' @method forward_step quant_refactored
+#' @export
 #' @keywords internal
 forward_step.quant_refactored <- function(type, desc, handle) {
   # Use with_transform_error_handling for consistent error context
@@ -222,6 +224,8 @@ forward_step.quant_refactored <- function(type, desc, handle) {
 #'
 #' @param type,desc,handle Internal arguments used by the transform dispatcher.
 #' @return Updated handle with reconstructed data in stash.
+#' @method invert_step quant_refactored
+#' @export
 #' @keywords internal
 invert_step.quant_refactored <- function(type, desc, handle) {
   with_transform_error_handling({

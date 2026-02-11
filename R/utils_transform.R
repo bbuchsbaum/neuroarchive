@@ -30,6 +30,38 @@ check_transform_implementation <- function(type) {
   invisible(TRUE)
 }
 
+# Runtime transform method registry ---------------------------------------
+
+# Stores runtime-registered transform step implementations created by the
+# simple transform API (or other ad-hoc tooling) without requiring writes to
+# the locked package namespace.
+.runtime_transform_methods <- new.env(parent = emptyenv())
+
+.register_runtime_transform_method <- function(fun_name, type, fun) {
+  stopifnot(is.character(fun_name), length(fun_name) == 1)
+  stopifnot(is.character(type), length(type) == 1)
+  stopifnot(is.function(fun))
+  key <- paste(fun_name, type, sep = ".")
+  assign(key, fun, envir = .runtime_transform_methods)
+  invisible(NULL)
+}
+
+.resolve_transform_method <- function(fun_name, type) {
+  stopifnot(is.character(fun_name), length(fun_name) == 1)
+  stopifnot(is.character(type), length(type) == 1)
+  key <- paste(fun_name, type, sep = ".")
+
+  if (exists(key, envir = .runtime_transform_methods, inherits = FALSE)) {
+    candidate <- get(key, envir = .runtime_transform_methods, inherits = FALSE)
+    if (is.function(candidate)) return(candidate)
+  }
+  if (exists(key, envir = .GlobalEnv, inherits = FALSE)) {
+    candidate <- get(key, envir = .GlobalEnv, inherits = FALSE)
+    if (is.function(candidate)) return(candidate)
+  }
+  utils::getS3method(fun_name, type, optional = TRUE)
+}
+
 #' Handle missing transform implementations
 #'
 #' Internal helper used by `core_read` and `lna_reader` to process cases
@@ -83,23 +115,7 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
 
   fun_name <- if (identical(direction, "forward")) "forward_step" else "invert_step"
 
-  # Resolve the S3 method with a preference for `.GlobalEnv` overrides.
-  #
-  # Rationale: `getS3method()` defaults to searching the caller frame, which
-  # inside package code strongly prefers namespace-registered methods. Tests
-  # and ad-hoc plugin workflows often define `forward_step.<type>` or
-  # `invert_step.<type>` in `.GlobalEnv` to override a built-in transform. We
-  # explicitly check `.GlobalEnv` first so those overrides are honored.
-  resolve_step_method <- function(fun_name, type) {
-    direct_name <- paste(fun_name, type, sep = ".")
-    if (exists(direct_name, envir = .GlobalEnv, inherits = FALSE)) {
-      candidate <- get(direct_name, envir = .GlobalEnv, inherits = FALSE)
-      if (is.function(candidate)) return(candidate)
-    }
-    getS3method(fun_name, type, optional = TRUE)
-  }
-
-  method_specific_fun <- resolve_step_method(fun_name, type)
+  method_specific_fun <- .resolve_transform_method(fun_name, type)
   
   if (is.null(method_specific_fun)) {
     msg <- sprintf(
@@ -107,7 +123,7 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
       fun_name, type, type, direction
     )
     opposite_fun_name <- if (identical(direction, "forward")) "invert_step" else "forward_step"
-    opposite_method <- getS3method(opposite_fun_name, type, optional = TRUE)
+    opposite_method <- .resolve_transform_method(opposite_fun_name, type)
     if (!is.null(opposite_method)) {
       msg <- paste0(msg, sprintf(" However, an '%s' method does exist.", opposite_fun_name))
     }

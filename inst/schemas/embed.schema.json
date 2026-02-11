@@ -1,13 +1,29 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Descriptor for 'embed' transform",
+  "$id": "https://neuroarchive.org/schemas/lna/2.0/embed.schema.json",
+  "title": "Parameters for 'embed' transform",
   "type": "object",
   "properties": {
     "type": { "const": "embed" },
-    "basis_path": {"type": "string", "default": ""},
-    "center_data_with": {"type": ["string", "null"], "default": null},
-    "scale_data_with": {"type": ["string", "null"], "default": null}
+    "version": { "type": "string" },
+    "inputs": { "oneOf": [ { "type": "array" }, { "type": "string" } ] },
+    "outputs": { "oneOf": [ { "type": "array" }, { "type": "string" } ] },
+    "datasets": { "type": "array" },
+    "params": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "basis_path": { "type": "string", "default": "" },
+            "center_data_with": { "type": ["string", "null"], "default": null },
+            "scale_data_with": { "type": ["string", "null"], "default": null }
+          },
+          "required": ["basis_path"],
+          "additionalProperties": false
+        },
+        { "type": "array", "maxItems": 0 }
+      ]
+    }
   },
-  "required": ["type", "basis_path"],
-  "additionalProperties": false
+  "additionalProperties": true
 }

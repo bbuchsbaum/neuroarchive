@@ -66,7 +66,7 @@ as_vol4d.default <- function(obj) {
 #' Convert data to a MaskedVoxels x Time matrix
 #'
 #' Helper used by spatial transforms. Accepts common representations
-#' such as 4-D arrays (X\times Y\times Z\times Time), matrices in either
+#' such as 4-D arrays (X x Y x Z x Time), matrices in either
 #' voxel-by-time or time-by-voxel orientation, and `neuroim2::NeuroVec`
 #' objects when the \code{neuroim2} package is available. The result is
 #' always a numeric matrix with rows corresponding to voxels inside the

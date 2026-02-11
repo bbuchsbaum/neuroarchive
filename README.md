@@ -120,3 +120,8 @@ Set `num_extra_fine_levels` in the parameter list to add additional fine-scale l
 Unit tests require an R installation. Use the `run-tests.sh` helper script to
 execute them from the project root. If `R` is unavailable, the script will
 gracefully skip the tests.
+
+<!-- albersdown:theme-note:start -->
+## Albers theme
+This package uses the albersdown theme. Existing vignette theme hooks are replaced so `albers.css` and local `albers.js` render consistently on CRAN and GitHub Pages. The palette family is provided via `params$family` (default 'red'). The pkgdown site uses `template: { package: albersdown }`.
+<!-- albersdown:theme-note:end -->

@@ -431,9 +431,13 @@ lna_pipeline <- R6::R6Class(
           next
         }
 
-        json <- jsonlite::toJSON(params, auto_unbox = TRUE)
+        # Schemas validate full descriptors with parameters nested under `params`.
+        # Wrap the step parameters accordingly so constraints (e.g. bit ranges)
+        # are actually applied.
+        desc_for_validation <- list(type = type, params = params)
+        json <- jsonlite::toJSON(desc_for_validation, auto_unbox = TRUE)
         valid <- tryCatch(
-          jsonvalidate::json_validate(json, schema_path, verbose = TRUE),
+          jsonvalidate::json_validate(json, schema_path, verbose = TRUE, engine = "ajv"),
           error = function(e) e
         )
 
@@ -595,4 +599,3 @@ validate_step_spec <- function(step_spec, location) {
   if (is.null(step_spec$params)) step_spec$params <- list()
   step_spec
 }
-

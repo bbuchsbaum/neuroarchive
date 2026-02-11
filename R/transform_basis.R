@@ -9,6 +9,8 @@
 #' @param desc the transform descriptor
 #' @param handle the LNA data handle
 #' @return the updated LNA data handle
+#' @method invert_step basis
+#' @export
 #' @keywords internal
 invert_step.basis <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -63,30 +65,64 @@ invert_step.basis <- function(type, desc, handle) {
   # Determine K (components) and V (voxels) from stored basis matrix.
   k_components <- if (identical(storage_order, "component_x_voxel")) nrow(basis) else ncol(basis)
   v_voxels <- if (identical(storage_order, "component_x_voxel")) ncol(basis) else nrow(basis)
+  v_voxels_effective <- v_voxels
+  roi_vec <- NULL
+  if (!is.null(roi_mask)) {
+    roi_vec <- as.logical(roi_mask)
+    if (length(roi_vec) != v_voxels && !is.null(handle$mask_info) && !is.null(handle$mask_info$mask)) {
+      file_mask <- as.logical(handle$mask_info$mask)
+      if (length(roi_vec) == length(file_mask) && v_voxels == sum(file_mask)) {
+        roi_vec <- roi_vec[file_mask]
+      }
+    }
+    if (length(roi_vec) != v_voxels) {
+      abort_lna(
+        "roi_mask length does not match basis voxel dimension",
+        .subclass = "lna_error_validation",
+        location = "invert_step.basis:roi_mask"
+      )
+    }
+    v_voxels_effective <- sum(roi_vec)
+  }
 
   dense <- NULL
 
-  if (is.matrix(incoming) && ncol(incoming) == v_voxels) {
+  applied <- handle$subset_applied %||% list(roi_mask = FALSE, time_idx = FALSE)
+  if (is.matrix(incoming) && ncol(incoming) == v_voxels_effective) {
     # Already reconstructed dense matrix (time x voxel); just pass through.
     dense <- incoming
+    if (!isTRUE(applied$time_idx)) {
+      time_idx <- subset$time_idx %||% subset$time
+      if (!is.null(time_idx)) {
+        time_idx <- as.integer(time_idx)
+        if (length(time_idx) > 0 && max(time_idx) <= nrow(dense) && min(time_idx) > 0) {
+          dense <- dense[time_idx, , drop = FALSE]
+        }
+        handle$subset_applied$time_idx <- TRUE
+      }
+    }
   } else {
     # Treat incoming as coefficients (time x component).
     coeff <- as.matrix(incoming)
 
-    if (!is.null(roi_mask)) {
-      vox_idx <- which(as.logical(roi_mask))
+    if (!is.null(roi_vec)) {
+      vox_idx <- which(roi_vec)
       if (identical(storage_order, "component_x_voxel")) {
         basis <- basis[, vox_idx, drop = FALSE]
       } else {
         basis <- basis[vox_idx, , drop = FALSE]
       }
-      v_voxels <- ncol(basis)
+      v_voxels_effective <- if (identical(storage_order, "component_x_voxel")) ncol(basis) else nrow(basis)
+      handle$subset_applied$roi_mask <- TRUE
     }
-    time_idx <- subset$time_idx %||% subset$time
-    if (!is.null(time_idx)) {
-      time_idx <- as.integer(time_idx)
-      if (length(time_idx) > 0 && max(time_idx) <= nrow(coeff) && min(time_idx) > 0) {
-        coeff <- coeff[time_idx, , drop = FALSE]
+    if (!isTRUE(applied$time_idx)) {
+      time_idx <- subset$time_idx %||% subset$time
+      if (!is.null(time_idx)) {
+        time_idx <- as.integer(time_idx)
+        if (length(time_idx) > 0 && max(time_idx) <= nrow(coeff) && min(time_idx) > 0) {
+          coeff <- coeff[time_idx, , drop = FALSE]
+        }
+        handle$subset_applied$time_idx <- TRUE
       }
     }
 
@@ -117,6 +153,8 @@ invert_step.basis <- function(type, desc, handle) {
 #' Computes a PCA basis matrix from the input data and registers the
 #' datasets in the write plan. Only the "pca" method is currently
 #' implemented; specifying any other `method` results in an error.
+#' @method forward_step basis
+#' @export
 #' @keywords internal
 forward_step.basis <- function(type, desc, handle) {
   p <- desc$params %||% list()

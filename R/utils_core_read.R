@@ -84,7 +84,7 @@ prepare_transforms_for_read <- function(tf_group, allow_plugins, file) {
   missing <- transforms$type[
     vapply(
       transforms$type,
-      function(t) is.null(getS3method("invert_step", t, optional = TRUE)),
+      function(t) is.null(.resolve_transform_method("invert_step", t)),
       logical(1)
     )
   ]

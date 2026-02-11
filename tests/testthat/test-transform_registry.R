@@ -89,11 +89,17 @@ test_that("register_transform checks for schema files", {
 })
 
 test_that("register_transform detects additional methods", {
-  skip("Skipping test that requires non-existent generic functions")
-  
-  # This test would work if validate_params, prepare_transform, and 
-  # cleanup_transform were generic functions, but they're not currently
-  # defined in the package
+  clear_transform_registry()
+
+  .S3method("validate_params", "mock_transform", function(type, desc, handle, ...) TRUE)
+  .S3method("prepare_transform", "mock_transform", function(type, desc, handle, ...) handle)
+  .S3method("cleanup_transform", "mock_transform", function(type, desc, handle, ...) invisible(TRUE))
+
+  register_transform("mock_transform", validate = FALSE)
+  info <- get_transform_info("mock_transform")
+  expect_true(info$has_validate_params)
+  expect_true(info$has_prepare)
+  expect_true(info$has_cleanup)
 })
 
 test_that("register_transform sets capabilities correctly", {

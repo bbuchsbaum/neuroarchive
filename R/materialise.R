@@ -17,7 +17,7 @@
 #' @import hdf5r
 #' @keywords internal
 materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
-                             header = NULL, plugins = NULL) {
+                             header = NULL, plugins = NULL, run_ids = NULL) {
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
   if (!h5$is_valid) {
@@ -39,6 +39,14 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   )
   get_or_create_group(h5, "basis", "materialise_plan:basis", return_handle = FALSE)
   get_or_create_group(h5, "scans", "materialise_plan:scans", return_handle = FALSE)
+
+  # Ensure run groups exist under /scans for each run_id
+  if (!is.null(run_ids) && length(run_ids) > 0) {
+    for (rid in run_ids) {
+      get_or_create_group(h5, file.path("scans", rid),
+                          "materialise_plan:run_group", return_handle = FALSE)
+    }
+  }
 
   root <- h5[["/"]]
   h5_attr_write(root, "lna_spec", "LNA R v2.0")
@@ -288,13 +296,17 @@ write_sha256_checksum <- function(h5, root) {
   neuroarchive:::close_h5_safely(h5)
 
   if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
-    hash_val <- digest::digest(file = file_path, algo = "sha256")
+    # Read file bytes once and hash exactly those bytes. Reading twice
+    # (digest(file=...) then readBin(...)) can produce mismatches on some
+    # platforms/filesystems due to close/flush timing.
+    raw_bytes <- readBin(file_path, "raw", file.info(file_path)$size)
+    hash_val <- digest::digest(raw_bytes, algo = "sha256", serialize = FALSE)
+
     # Use raw binary replacement to preserve file layout. HDF5 attribute
     # delete/recreate via h5attr<- changes internal structure, making the
     # stored hash unverifiable. Since placeholder and hash are both 64-byte
     # ASCII strings, a direct byte swap is safe and preserves the layout
     # that was hashed.
-    raw_bytes <- readBin(file_path, "raw", file.info(file_path)$size)
     placeholder_raw <- charToRaw(placeholder)
     hash_raw <- charToRaw(hash_val)
     pos <- grepRaw(placeholder_raw, raw_bytes, fixed = TRUE)
@@ -302,17 +314,9 @@ write_sha256_checksum <- function(h5, root) {
       raw_bytes[pos:(pos + 63L)] <- hash_raw
       writeBin(raw_bytes, file_path)
     } else {
-      warning("Could not locate placeholder checksum in file; falling back to HDF5 attribute write")
-      h5_tmp <- NULL
-      tryCatch({
-        h5_tmp <- open_h5(file_path, mode = "r+")
-        root_tmp <- h5_tmp[["/"]]
-        h5_attr_write(root_tmp, "lna_checksum", hash_val)
-      }, finally = {
-        if (!is.null(h5_tmp) && inherits(h5_tmp, "H5File") && h5_tmp$is_valid) {
-          neuroarchive:::close_h5_safely(h5_tmp)
-        }
-      })
+      warning("Could not locate unique placeholder checksum in file; ",
+              "checksum attribute will not be written. ",
+              "The file is valid but has no integrity checksum.")
     }
   } else {
     warning(

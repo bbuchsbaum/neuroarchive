@@ -333,7 +333,7 @@ Plan <- R6::R6Class("Plan",
           location = "Plan$mark_payload_written"
         )
       } else {
-        self$payloads[[key]] <- NULL
+        self$payloads[key] <- list(NULL)
       }
       invisible(self)
     }

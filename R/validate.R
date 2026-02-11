@@ -1,3 +1,64 @@
+#' Quick validation of an LNA file
+#'
+#' @description Performs fast structural validation checks without computing
+#' checksums. Verifies that the file exists, is a valid HDF5 file, contains
+#' the required /lna group, and has at least one transform descriptor.
+#'
+#' @param file Path to the `.h5` file to validate.
+#'
+#' @return Invisibly returns `TRUE` if validation succeeds. Throws an error
+#' with class `lna_error_validation` if any check fails.
+#' @seealso validate_lna, read_lna
+#' @keywords internal
+quick_validate_lna <- function(file) {
+  # Check 1: File exists
+  if (!file.exists(file)) {
+    abort_lna(
+      sprintf("File does not exist: '%s'", file),
+      .subclass = "lna_error_validation",
+      location = sprintf("quick_validate_lna:%s", file)
+    )
+  }
+
+  # Check 2: Valid HDF5 file (can be opened)
+  h5 <- tryCatch(
+    open_h5(file, mode = "r"),
+    error = function(e) {
+      abort_lna(
+        sprintf("Not a valid HDF5 file: '%s'", file),
+        .subclass = "lna_error_validation",
+        location = sprintf("quick_validate_lna:%s", file)
+      )
+    }
+  )
+
+  on.exit(neuroarchive:::close_h5_safely(h5), add = TRUE)
+
+  # Check 3: Has /lna group (legacy) or root-level lna_spec attribute
+  root <- h5[["/"]]
+  has_lna_group <- h5$exists("lna")
+  has_lna_spec <- h5_attr_exists(root, "lna_spec")
+
+  if (!has_lna_group && !has_lna_spec) {
+    abort_lna(
+      sprintf("File is missing LNA structure (no /lna group or lna_spec attribute): '%s'", file),
+      .subclass = "lna_error_validation",
+      location = sprintf("quick_validate_lna:%s", file)
+    )
+  }
+
+  # Check 4: Has /transforms group (descriptors may be empty for edge cases)
+  if (!h5$exists("transforms")) {
+    abort_lna(
+      sprintf("File is missing /transforms group: '%s'", file),
+      .subclass = "lna_error_validation",
+      location = sprintf("quick_validate_lna:%s", file)
+    )
+  }
+
+  invisible(TRUE)
+}
+
 #' Validate an LNA file
 #'
 #' @description Basic validator that checks the LNA specification version,
@@ -129,8 +190,17 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE) {
   if (h5$exists("transforms")) {
     tf_group <- h5[["transforms"]]
     tf_names <- tf_group$ls()$name
+    tf_names <- tf_names[grepl("\\.json$", tf_names)]
+    tf_names <- tf_names[!grepl("_report\\.json$", tf_names)]
     for (nm in tf_names) {
-      desc <- read_json_descriptor(tf_group, nm)
+      desc <- tryCatch(
+        read_json_descriptor(tf_group, nm),
+        error = function(e) e
+      )
+      if (inherits(desc, "error")) {
+        fail(conditionMessage(desc))
+        next
+      }
       if (is.list(desc) && !is.null(desc$type)) {
         pkgs <- unique(c("neuroarchive", loadedNamespaces()))
         schema_path <- ""

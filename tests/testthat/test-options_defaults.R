@@ -21,7 +21,8 @@ test_that("lna_options set and get work", {
   lna_options(write.chunk_target_mib = 2)
   expect_equal(lna_options("write.chunk_target_mib")[[1]], 2)
 
-  lna_options(foo = "bar", baz = 1)
+  # Use .strict=FALSE to allow unknown options without warnings
+  lna_options(foo = "bar", baz = 1, .strict = FALSE)
   res <- lna_options("foo", "baz")
   expect_identical(res$foo, "bar")
   expect_identical(res$baz, 1)

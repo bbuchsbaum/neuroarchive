@@ -11,6 +11,8 @@
 #'
 #' @return Invisibly returns the updated `DataHandle` with the computed
 #'   coefficients registered in the plan and stash.
+#' @method forward_step embed
+#' @export
 #' @keywords internal
 forward_step.embed <- function(type, desc, handle) {
   # Capture the designated output key for stashing before desc is modified
@@ -128,6 +130,8 @@ forward_step.embed <- function(type, desc, handle) {
 #'
 #' @return The updated `DataHandle` with the reconstructed dense matrix placed in
 #'   the stash under `desc$inputs[[1]]`.
+#' @method invert_step embed
+#' @export
 #' @keywords internal
 invert_step.embed <- function(type, desc, handle) {
   # message("[[DEBUG]] ENTERING invert_step.embed")
@@ -163,13 +167,53 @@ invert_step.embed <- function(type, desc, handle) {
   mean_vec <- if (!is.null(center_path)) h5_read(root, center_path) else NULL
   scale_vec <- if (!is.null(scale_path)) h5_read(root, scale_path) else NULL
   
-  # Subsetting logic (simplified, assumes full data for now in this context)
   subset <- handle$subset
+  applied <- handle$subset_applied %||% list(roi_mask = FALSE, time_idx = FALSE)
+  roi_mask <- subset$roi_mask %||% subset$roi
   time_idx <- subset$time_idx %||% subset$time
-  if (!is.null(time_idx) && (is.matrix(coeff) || is.array(coeff))) {
-    coeff <- coeff[time_idx, , drop = FALSE]
+  if (!isTRUE(applied$time_idx) && !is.null(time_idx) && (is.matrix(coeff) || is.array(coeff))) {
+    idx <- as.integer(time_idx)
+    idx <- idx[!is.na(idx) & idx >= 1L & idx <= nrow(coeff)]
+    coeff <- coeff[idx, , drop = FALSE]
+    handle$subset_applied$time_idx <- TRUE
   }
-  # ROI subsetting would apply to basis or reconstructed data, assume not active or handled by basis itself
+
+  if (!is.null(roi_mask)) {
+    roi_vec <- as.logical(roi_mask)
+
+    vox_n <- if (identical(storage_order, "component_x_voxel")) {
+      ncol(basis)
+    } else {
+      nrow(basis)
+    }
+
+    # If the file stores only masked voxels, allow mapping a full-volume ROI
+    # mask through the persisted mask.
+    if (length(roi_vec) != vox_n && !is.null(handle$mask_info) && !is.null(handle$mask_info$mask)) {
+      file_mask <- as.logical(handle$mask_info$mask)
+      if (length(roi_vec) == length(file_mask) && vox_n == sum(file_mask)) {
+        roi_vec <- roi_vec[file_mask]
+      }
+    }
+
+    if (length(roi_vec) != vox_n) {
+      abort_lna(
+        "roi_mask length does not match basis voxel dimension",
+        .subclass = "lna_error_validation",
+        location = "invert_step.embed:roi_mask"
+      )
+    }
+
+    vox_idx <- which(roi_vec)
+    if (identical(storage_order, "component_x_voxel")) {
+      basis <- basis[, vox_idx, drop = FALSE]
+    } else {
+      basis <- basis[vox_idx, , drop = FALSE]
+    }
+    if (!is.null(scale_vec)) scale_vec <- as.numeric(scale_vec)[vox_idx]
+    if (!is.null(mean_vec)) mean_vec <- as.numeric(mean_vec)[vox_idx]
+    handle$subset_applied$roi_mask <- TRUE
+  }
 
   # Actual reconstruction
   if (identical(storage_order, "component_x_voxel")) {
@@ -200,5 +244,4 @@ invert_step.embed <- function(type, desc, handle) {
   # message(sprintf("[[DEBUG invert_step.embed]] Stashed dense under key '%s'. Returning handle.", input_key))
   return(handle)
 }
-
 

@@ -4,6 +4,8 @@
 #' dictionary codes and the stored SVD \eqn{V^T} matrix. The HRBF
 #' dictionary is regenerated from the descriptor referenced by
 #' `hrbf_dictionary_descriptor_path`.
+#' @method invert_step basis.empirical_hrbf_compressed
+#' @export
 #' @keywords internal
 invert_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -137,6 +139,8 @@ lna_default.basis.empirical_hrbf_compressed <- function() {
 #' HRBF re-expansion. This is a minimal implementation following the
 #' HRBF proposal. The dictionary regeneration and OMP coding are
 #' simplified and may be extended.
+#' @method forward_step basis.empirical_hrbf_compressed
+#' @export
 #' @keywords internal
 forward_step.basis.empirical_hrbf_compressed <- function(type, desc, handle) {
   p <- desc$params %||% list()

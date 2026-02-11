@@ -180,8 +180,8 @@ morton_indices_to_hash <- function(ordered_indices_vector) {
 #'
 #' Returns a list with one element per decomposition level. Each element
 #' contains numeric vectors `sqrt_nvalid` and `sqrt_nvalid_div_8`
-#' representing the $\sqrt{n_{valid}}$ and $\sqrt{n_{valid}/8}$ factors
-#' for all conceptual $2 \times 2 \times 2$ blocks in Morton order.
+#' representing the \eqn{\sqrt{n_{valid}}} and \eqn{\sqrt{n_{valid}/8}} factors
+#' for all conceptual \eqn{2 \times 2 \times 2} blocks in Morton order.
 #' @keywords internal
 precompute_haar_scalings <- function(mask_3d_array, levels) {
   if (!is.array(mask_3d_array) || length(dim(mask_3d_array)) != 3L) {

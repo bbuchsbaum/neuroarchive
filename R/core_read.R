@@ -32,16 +32,20 @@ core_read <- function(file, run_id = NULL,
   allow_plugins <- normalize_allow_plugins(allow_plugins)
   output_dtype <- match.arg(output_dtype)
 
+  # Perform full validation before opening the file for reading.
+  # `validate_lna()` opens/closes the file internally (e.g. for checksum
+  # verification) and can invalidate an already-open handle on some
+  # platforms/drivers.
+  if (validate) {
+    validate_lna(file)
+  }
+
   h5 <- open_h5(file, mode = "r")
   if (!lazy) {
     on.exit(neuroarchive:::close_h5_safely(h5))
   }
 
   runs <- resolve_runs_for_read(h5, run_id, lazy)
-
-  if (validate) {
-    validate_lna(file)
-  }
 
   subset_params <- collect_subset_params(roi_mask, time_idx)
   tf_group <- h5[["transforms"]]

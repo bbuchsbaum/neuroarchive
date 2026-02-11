@@ -165,7 +165,7 @@ lna_reader <- R6::R6Class("lna_reader",
         missing_methods <- transforms$type[
           vapply(
             transforms$type,
-            function(t) is.null(getS3method("invert_step", t, optional = TRUE)),
+            function(t) is.null(.resolve_transform_method("invert_step", t)),
             logical(1)
           )
         ]
