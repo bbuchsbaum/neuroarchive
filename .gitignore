@@ -2,3 +2,25 @@
 .Rhistory
 .RData
 .Ruserdata
+/doc/
+/Meta/
+
+# Native build artifacts
+src/*.o
+src/*.so
+src/*.dll
+src/*.dylib
+src/symbols.rds
+
+# Local editor/agent state
+.vscode/
+.claude/
+.omc/
+
+# Local backup and generated docs
+.albersdown.bak/
+docs/
+
+# testthat diagnostics
+tests/testthat/_problems/
+tests/testthat/testthat-problems.rds

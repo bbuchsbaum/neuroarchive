@@ -1,2 +1,15 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^doc$
+^Meta$
+^src/.*\.(o|so|dll|dylib)$
+^src/symbols\.rds$
+^docs$
+^plugins$
+^scripts$
+^\.vscode$
+^\.claude$
+^\.omc$
+^\.albersdown\.bak$
+^tests/testthat/_problems$
+^tests/testthat/testthat-problems\.rds$
