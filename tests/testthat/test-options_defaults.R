@@ -61,6 +61,14 @@ test_that("default_params loads defaults from schema and caches", {
   expect_identical(d1, d2)
 })
 
+test_that("engine.math option defaults to internal and can be switched", {
+  expect_equal(lna_options("engine.math")[[1]], "internal")
+  lna_options(engine.math = "fmrilatent")
+  expect_equal(lna_options("engine.math")[[1]], "fmrilatent")
+  lna_options(engine.math = "internal")
+  expect_equal(lna_options("engine.math")[[1]], "internal")
+})
+
 test_that("defaults are extracted from array items", {
   cache_env <- get(".default_param_cache", envir = asNamespace("neuroarchive"))
   schema_env <- get(".schema_cache", envir = asNamespace("neuroarchive"))

@@ -153,7 +153,10 @@ default_opts <- list(
   # Default Identifiers
   defaults.run_id = "run-01",
   defaults.input_key = "input",
-  defaults.origin_label = "global"
+  defaults.origin_label = "global",
+
+  # Math backend
+  engine.math = "internal"
 )
 assign(".lna_opts", list2env(default_opts, parent = emptyenv()),
        envir = lna_options_env)

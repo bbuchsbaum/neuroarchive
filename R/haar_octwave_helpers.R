@@ -42,6 +42,18 @@ perform_haar_lift_synthesis <- function(coeff_list, mask_3d_array, levels,
   n_vox <- length(morton_idx)
   reco_morton <- matrix(0, nrow = n_time, ncol = n_vox)
 
+  backend_reco <- na_haar_inverse_matrix(
+    root_coeff = coeff_list$root,
+    detail_coeffs_by_level = coeff_list$detail,
+    mask_flat_morton = mask_flat_morton,
+    mask_dims = dim(mask_3d_array),
+    levels = levels,
+    scalings = scalings
+  )
+  if (!is.null(backend_reco)) {
+    return(backend_reco[, inv_perm, drop = FALSE])
+  }
+
   has_call <- function(sym) {
     dll <- getLoadedDLLs()[["neuroarchive"]]
     if (is.null(dll)) return(FALSE)
@@ -435,6 +447,20 @@ perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
   scalings <- precompute_haar_scalings(mask_3d_array, levels)
 
   n_time <- nrow(data_morton)
+
+  backend_res <- na_haar_forward_matrix(
+    data_morton = data_morton,
+    mask_flat_morton = mask_flat_morton,
+    mask_dims = dim(mask_3d_array),
+    levels = levels,
+    scalings = scalings
+  )
+  if (!is.null(backend_res)) {
+    return(list(
+      root = backend_res$root_coeff,
+      detail = backend_res$detail_coeffs_by_level
+    ))
+  }
 
   has_call <- function(sym) {
     dll <- getLoadedDLLs()[["neuroarchive"]]
