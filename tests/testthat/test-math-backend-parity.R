@@ -19,8 +19,9 @@ test_that("HRBF backend parity: seed path across mask types", {
     fmrilatent.hrbf.use_rcpp = FALSE
   )
   on.exit(options(old_opts), add = TRUE)
+  old_engine <- lna_options("engine.math")[[1]]
+  on.exit(lna_options(engine.math = old_engine), add = TRUE)
   lna_options(engine.math = "internal")
-  on.exit(lna_options(engine.math = "internal"), add = TRUE)
 
   set.seed(11)
   mask_full <- array(TRUE, dim = c(4, 4, 4))
@@ -65,8 +66,9 @@ test_that("HRBF centre generation parity through backend boundary", {
     fmrilatent.hrbf.use_rcpp = FALSE
   )
   on.exit(options(old_opts), add = TRUE)
+  old_engine <- lna_options("engine.math")[[1]]
+  on.exit(lna_options(engine.math = old_engine), add = TRUE)
   lna_options(engine.math = "internal")
-  on.exit(lna_options(engine.math = "internal"), add = TRUE)
 
   set.seed(41)
   mask_sparse <- array(FALSE, dim = c(5, 4, 3))
@@ -99,8 +101,9 @@ test_that("HRBF backend parity: stored centers path", {
     fmrilatent.hrbf.use_rcpp = FALSE
   )
   on.exit(options(old_opts), add = TRUE)
+  old_engine <- lna_options("engine.math")[[1]]
+  on.exit(lna_options(engine.math = old_engine), add = TRUE)
   lna_options(engine.math = "internal")
-  on.exit(lna_options(engine.math = "internal"), add = TRUE)
 
   mask_arr <- array(TRUE, dim = c(4, 4, 4))
   mask_obj <- make_mask(mask_arr, spacing_v = c(1, 2, 1.5))
@@ -147,8 +150,9 @@ test_that("Haar backend parity: coefficients and roundtrip across masks", {
     fmrilatent.haar.use_rcpp_batch = FALSE
   )
   on.exit(options(old_opts), add = TRUE)
+  old_engine <- lna_options("engine.math")[[1]]
+  on.exit(lna_options(engine.math = old_engine), add = TRUE)
   lna_options(engine.math = "internal")
-  on.exit(lna_options(engine.math = "internal"), add = TRUE)
 
   set.seed(101)
   mask_full <- array(TRUE, dim = c(4, 4, 4))

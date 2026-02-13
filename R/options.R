@@ -156,7 +156,7 @@ default_opts <- list(
   defaults.origin_label = "global",
 
   # Math backend
-  engine.math = "internal"
+  engine.math = "fmrilatent"
 )
 assign(".lna_opts", list2env(default_opts, parent = emptyenv()),
        envir = lna_options_env)

@@ -3,7 +3,7 @@
 #' @return Character scalar, one of `"internal"` or `"fmrilatent"`.
 #' @keywords internal
 na_math_engine <- function() {
-  eng <- lna_options("engine.math")[[1]] %||% "internal"
+  eng <- lna_options("engine.math")[[1]] %||% "fmrilatent"
   eng <- as.character(eng[[1]])
   if (!(eng %in% c("internal", "fmrilatent"))) {
     abort_lna(
