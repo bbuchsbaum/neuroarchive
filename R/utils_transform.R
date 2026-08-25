@@ -143,10 +143,15 @@ run_transform_step <- function(direction, type, desc, handle, step_idx) {
   }, error = function(e) {
     detailed_msg <- sprintf("Error in %s for transform '%s' (step %d): %s", 
                             fun_name, type, step_idx, conditionMessage(e))
+    typed <- class(e)[grepl("^lna_error_", class(e))]
     abort_lna(detailed_msg, 
-              .subclass = "lna_error_transform_step", 
-              parent_error = e, 
-              location = sprintf("%s:%s[%d]", fun_name, type, step_idx))
+              .subclass = unique(c(typed, "lna_error_transform_step")),
+              parent_error = e,
+              code = e$code %||% NULL,
+              path = e$path %||% NULL,
+              layer = e$layer %||% NULL,
+              location = e$location %||%
+                sprintf("%s:%s[%d]", fun_name, type, step_idx))
   })
   
   if (!inherits(res_handle, "DataHandle")) {

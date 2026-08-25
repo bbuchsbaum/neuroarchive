@@ -8,7 +8,7 @@ cleanup_fake <- function() {
                      "space", "space.DenseNeuroVec", "trans")
   
   for (obj in objects_to_rm) {
-    if (exists(obj, envir = .GlobalEnv)) {
+    if (exists(obj, envir = .GlobalEnv, inherits = FALSE)) {
       rm(list = obj, envir = .GlobalEnv)
     }
   }
@@ -98,8 +98,11 @@ test_that("write_lna auto-populates header from NeuroObj", {
 
   mock_core_write <- function(x, transforms, transform_params, mask = NULL,
                         header = NULL, plugins = NULL, run_id = NULL,
-                        h5 = NULL) {
+                        h5 = NULL, run_geometry = NULL,
+                        geometry_policy = "optional") {
     captured$header <<- header
+    captured$run_geometry <<- run_geometry
+    captured$geometry_policy <<- geometry_policy
     captured$x <<- x
     list(handle = DataHandle$new(), plan = Plan$new())
   }
@@ -132,5 +135,4 @@ test_that("write_lna auto-populates header from NeuroObj", {
   expect_equal(captured$header$origin, c(0,0,0))
   expect_equal(captured$header$transform, diag(4))
 })
-
 

@@ -7,6 +7,8 @@
 #' @param plan A `Plan` R6 object produced by `core_write`.
 #' @param checksum Character string indicating checksum mode.
 #' @param header Optional named list of header attributes.
+#' @param run_geometry Optional named list of normalized run-scoped geometry.
+#' @param geometry_policy Geometry profile recorded with the header section.
 #' @param plugins Optional named list of plugin metadata.
 
 #' @return Invisibly returns the `H5File` handle. When `checksum = "sha256"`
@@ -17,7 +19,9 @@
 #' @import hdf5r
 #' @keywords internal
 materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
-                             header = NULL, plugins = NULL, run_ids = NULL) {
+                             header = NULL, plugins = NULL, run_ids = NULL,
+                             run_geometry = NULL,
+                             geometry_policy = c("optional", "fmri")) {
   checksum <- match.arg(checksum)
   stopifnot(inherits(h5, "H5File"))
   if (!h5$is_valid) {
@@ -31,6 +35,8 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   stopifnot(inherits(plan, "Plan"))
 
   header <- validate_named_list(header, "header")
+  run_geometry <- run_geometry %||% list()
+  geometry_policy <- match.arg(geometry_policy)
   plugins <- validate_named_list(plugins, "plugins")
 
   # Create core groups
@@ -51,7 +57,7 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
   root <- h5[["/"]]
   h5_attr_write(root, "lna_spec", "LNA R v2.0")
   h5_attr_write(root, "creator", "lna R package v0.0.1")
-  h5_attr_write(root, "required_transforms", character(0))
+  h5_attr_write(root, "required_transforms", .required_transform_ids(plan))
 
   expand_dataset_path <- function(path, origin) {
     if (!is.character(path) || length(path) != 1L || !nzchar(path)) return(path)
@@ -203,7 +209,11 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
         if (!is.null(p)) p(message = row$path)
 
         write_path <- expand_dataset_path(row$path, row$origin)
-        write_payload(write_path, payload, row$step_index, row$dtype)
+        if (identical(row$role, "qpp_tile_index")) {
+          write_qpp_index_dataset(root, write_path, payload)
+        } else {
+          write_payload(write_path, payload, row$step_index, row$dtype)
+        }
         if (row$producer == "quant" && row$role == "quantized") {
           bits_val <- tryCatch(jsonlite::fromJSON(row$params_json)$bits,
                                error = function(e) NULL)
@@ -220,7 +230,13 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
     with_progress_loop(steps, loop)
   }
 
-  write_header_section(h5, header)
+  write_header_section(
+    h5,
+    header,
+    run_geometry = run_geometry,
+    geometry_policy = geometry_policy,
+    run_ids = run_ids
+  )
   write_plugins_section(h5, plugins)
 
   if (checksum == "sha256") {
@@ -231,6 +247,84 @@ materialise_plan <- function(h5, plan, checksum = c("none", "sha256"),
 }
 
 # Helper utilities -------------------------------------------------------
+
+.required_transform_ids <- function(plan) {
+  ids <- character()
+  qpp_required <- any(vapply(plan$descriptors, function(descriptor) {
+    isTRUE(descriptor$required_decoder) && identical(descriptor$type, "qpp")
+  }, logical(1)))
+  for (descriptor in plan$descriptors) {
+    required <- isTRUE(descriptor$required_decoder) ||
+      (qpp_required && identical(descriptor$type, "parcel.mean"))
+    if (!required) next
+    type <- descriptor$type %||% ""
+    version <- descriptor$version %||% ""
+    if (!is.character(type) || length(type) != 1L || !nzchar(type) ||
+        !is.character(version) || length(version) != 1L || !nzchar(version)) {
+      abort_lna("required decoder descriptors need exact type and version",
+                .subclass = "lna_error_validation",
+                location = "materialise_plan:required_transforms")
+    }
+    ids <- c(ids, paste0(type, "@", version))
+  }
+  unique(ids)
+}
+
+write_qpp_index_dataset <- function(root, path, index) {
+  labels <- c(
+    "tile_id", "run_ordinal", "unit_ordinal", "time_start", "time_count",
+    "parcel_start", "parcel_count", "byte_offset", "byte_length",
+    "uncompressed_length", "inner_header_offset", "predictor_table_offset",
+    "outer_codec", "flags", "digest_row"
+  )
+  if (!is.data.frame(index) || !identical(names(index), labels) || !nrow(index)) {
+    abort_lna("qpp tile index has invalid columns or no rows",
+              .subclass = "lna_error_validation",
+              location = "write_qpp_index_dataset:index")
+  }
+  for (name in labels) {
+    value <- as.numeric(index[[name]])
+    if (any(!is.finite(value)) || any(value != trunc(value)) || any(value < 0)) {
+      abort_lna(paste0("qpp index field ", name, " is not an unsigned integer"),
+                .subclass = "lna_error_validation",
+                location = "write_qpp_index_dataset:index")
+    }
+  }
+  widths <- c(32, 32, 32, 32, 32, 32, 32, 64, 64, 64, 32, 32, 8, 16, 32)
+  maxima <- 2^widths - 1
+  if (any(vapply(seq_along(labels), function(i) {
+    any(as.numeric(index[[i]]) > maxima[[i]])
+  }, logical(1)))) {
+    abort_lna("qpp index field exceeds its wire width",
+              .subclass = "lna_error_validation",
+              location = "write_qpp_index_dataset:width")
+  }
+  dtypes <- list(
+    hdf5r::h5types$H5T_STD_U32LE, hdf5r::h5types$H5T_STD_U32LE,
+    hdf5r::h5types$H5T_STD_U32LE, hdf5r::h5types$H5T_STD_U32LE,
+    hdf5r::h5types$H5T_STD_U32LE, hdf5r::h5types$H5T_STD_U32LE,
+    hdf5r::h5types$H5T_STD_U32LE, hdf5r::h5types$H5T_STD_U64LE,
+    hdf5r::h5types$H5T_STD_U64LE, hdf5r::h5types$H5T_STD_U64LE,
+    hdf5r::h5types$H5T_STD_U32LE, hdf5r::h5types$H5T_STD_U32LE,
+    hdf5r::h5types$H5T_STD_U8LE, hdf5r::h5types$H5T_STD_U16LE,
+    hdf5r::h5types$H5T_STD_U32LE
+  )
+  compound <- hdf5r::H5T_COMPOUND$new(labels = labels, dtypes = dtypes)
+  on.exit(safe_h5_close(compound), add = TRUE)
+  parts <- strsplit(path, "/", fixed = TRUE)[[1L]]
+  parts <- parts[nzchar(parts)]
+  group <- root
+  if (length(parts) > 1L) {
+    for (name in parts[-length(parts)]) {
+      group <- if (group$exists(name)) group[[name]] else group$create_group(name)
+    }
+  }
+  dataset <- group$create_dataset(tail(parts, 1L), dtype = compound,
+                                  dims = nrow(index))
+  on.exit(safe_h5_close(dataset), add = TRUE)
+  dataset$write(args = list(seq_len(nrow(index))), value = index)
+  invisible(TRUE)
+}
 
 get_or_create_group <- function(h5, name, location, return_handle = TRUE) {
   if (h5$exists(name)) {
@@ -255,17 +349,70 @@ get_or_create_group <- function(h5, name, location, return_handle = TRUE) {
   }
 }
 
-write_header_section <- function(h5, header) {
-  if (is.null(header) || length(header) == 0) {
+write_header_section <- function(
+    h5,
+    header,
+    run_geometry = list(),
+    geometry_policy = "optional",
+    run_ids = NULL) {
+  if ((is.null(header) || length(header) == 0) && !length(run_geometry)) {
     return(invisible(NULL))
   }
   hdr_grp <- if (!h5$exists("header")) h5$create_group("header") else h5[["header"]]
-  g <- if (hdr_grp$exists("global")) hdr_grp[["global"]] else hdr_grp$create_group("global")
-  for (nm in names(header)) {
-    h5_attr_write(g, nm, header[[nm]])
+  on.exit(safe_h5_close(hdr_grp), add = TRUE)
+  h5_attr_write(hdr_grp, "geometry_policy", geometry_policy)
+
+  if (length(header)) {
+    g <- if (hdr_grp$exists("global")) {
+      hdr_grp[["global"]]
+    } else {
+      hdr_grp$create_group("global")
+    }
+    on.exit(safe_h5_close(g), add = TRUE)
+    for (nm in names(header)) {
+      if (!is.null(header[[nm]])) h5_attr_write(g, nm, header[[nm]])
+    }
+    safe_h5_close(g)
   }
-  g$close()
-  hdr_grp$close()
+
+  if (length(run_geometry)) {
+    if (is.null(names(run_geometry)) || any(!nzchar(names(run_geometry))) ||
+        anyDuplicated(names(run_geometry))) {
+      abort_lna(
+        "run_geometry must be uniquely named by run_id",
+        .subclass = "lna_error_run_geometry",
+        location = "write_header_section:run_geometry"
+      )
+    }
+    if (!is.null(run_ids) && !setequal(names(run_geometry), run_ids)) {
+      abort_lna(
+        "run_geometry names must match materialised run_ids",
+        .subclass = "lna_error_run_geometry",
+        location = "write_header_section:run_ids"
+      )
+    }
+    runs_group <- if (hdr_grp$exists("runs")) {
+      hdr_grp[["runs"]]
+    } else {
+      hdr_grp$create_group("runs")
+    }
+    on.exit(safe_h5_close(runs_group), add = TRUE)
+    for (run_id in names(run_geometry)) {
+      geometry <- run_geometry[[run_id]]
+      run_group <- if (runs_group$exists(run_id)) {
+        runs_group[[run_id]]
+      } else {
+        runs_group$create_group(run_id)
+      }
+      for (nm in names(geometry)) {
+        if (!is.null(geometry[[nm]])) {
+          h5_attr_write(run_group, nm, geometry[[nm]])
+        }
+      }
+      safe_h5_close(run_group)
+    }
+    safe_h5_close(runs_group)
+  }
   invisible(NULL)
 }
 
@@ -293,7 +440,7 @@ write_sha256_checksum <- function(h5, root) {
   h5_attr_write(root, "lna_checksum", placeholder)
 
   file_path <- h5$filename
-  neuroarchive:::close_h5_safely(h5)
+  close_h5_safely(h5)
 
   if (is.character(file_path) && nzchar(file_path) && file.exists(file_path)) {
     # Read file bytes once and hash exactly those bytes. Reading twice

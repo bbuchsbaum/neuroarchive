@@ -12,7 +12,9 @@ core_write(
   header = NULL,
   plugins = NULL,
   run_id = NULL,
-  h5 = NULL
+  h5 = NULL,
+  run_geometry = NULL,
+  geometry_policy = c("optional", "fmri")
 )
 }
 \arguments{
@@ -30,6 +32,12 @@ core_write(
 `/plugins`.}
 
 \item{run_id}{Optional run_id parameter to override names(x) logic.}
+
+\item{run_geometry}{Optional named list of spatial geometry descriptors keyed
+by run ID.}
+
+\item{geometry_policy}{Either `"optional"` for generic low-level archives or
+`"fmri"` to require explicit geometry for every run.}
 }
 \value{
 A list with `handle` and `plan` objects.

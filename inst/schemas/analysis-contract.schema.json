@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "analysis-contract.schema.json",
+  "title": "Neuroarchive machine-checkable analysis contract",
+  "definitions": {
+    "fit_scope": {
+      "enum": [
+        "not-applicable", "unknown", "fixed", "external-calibration",
+        "fold", "pointwise", "causal-prefix", "chunk", "trial-epoch",
+        "run", "session", "subject"
+      ]
+    },
+    "unit_scope": {
+      "enum": [
+        "pointwise", "causal-prefix", "chunk", "trial-epoch", "run",
+        "session", "subject", "fold"
+      ]
+    },
+    "calibration_identity": {
+      "type": ["object", "null"],
+      "required": ["id", "checksum", "relationship"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "relationship": {"const": "external-disjoint"}
+      },
+      "additionalProperties": false
+    },
+    "normalization_provenance": {
+      "type": "object",
+      "required": ["method", "fit_scope", "source_id", "calibration_identity", "fit_id"],
+      "properties": {
+        "method": {"type": "string", "minLength": 1},
+        "fit_scope": {"$ref": "#/definitions/fit_scope"},
+        "source_id": {"type": "string", "minLength": 1},
+        "calibration_identity": {"$ref": "#/definitions/calibration_identity"},
+        "fit_id": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"fit_scope": {"const": "external-calibration"}}},
+          "then": {"properties": {"calibration_identity": {"$ref": "#/definitions/calibration_identity", "type": "object"}}},
+          "else": {"properties": {"calibration_identity": {"type": "null"}}}
+        }
+      ]
+    },
+    "transformed_unit": {
+      "type": "object",
+      "required": ["scope", "ids"],
+      "properties": {
+        "scope": {"$ref": "#/definitions/unit_scope"},
+        "ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "additionalProperties": false
+    },
+    "fitted_operation": {
+      "type": "object",
+      "required": ["operation_id", "fit_scope", "calibration_identity", "fit_id"],
+      "properties": {
+        "operation_id": {"type": "string", "minLength": 1},
+        "fit_scope": {"$ref": "#/definitions/fit_scope"},
+        "calibration_identity": {"$ref": "#/definitions/calibration_identity"},
+        "fit_id": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "transform_contract": {
+      "type": "object",
+      "required": [
+        "schema_version", "parcellation_fit_scope", "quantizer_fit_scope",
+        "lossy_support", "coding_dependency", "independence_unit",
+        "calibration_identity", "normalization_provenance", "loss_profile",
+        "transformed_units", "fitted_operations"
+      ],
+      "properties": {
+        "schema_version": {"const": "1.0.0"},
+        "parcellation_fit_scope": {"$ref": "#/definitions/fit_scope"},
+        "quantizer_fit_scope": {"$ref": "#/definitions/fit_scope"},
+        "lossy_support": {
+          "enum": [
+            "pointwise", "parcel-at-same-TR", "causal-prefix", "chunk",
+            "trial-epoch", "run", "session", "subject", "fold"
+          ]
+        },
+        "coding_dependency": {
+          "enum": [
+            "none", "pointwise", "causal-prefix", "chunk", "trial-epoch",
+            "run", "session", "subject", "fold"
+          ]
+        },
+        "independence_unit": {"$ref": "#/definitions/unit_scope"},
+        "calibration_identity": {"$ref": "#/definitions/calibration_identity"},
+        "normalization_provenance": {"$ref": "#/definitions/normalization_provenance"},
+        "loss_profile": {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {"kind": {"type": "string", "minLength": 1}},
+          "additionalProperties": true
+        },
+        "transformed_units": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/transformed_unit"}
+        },
+        "fitted_operations": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/fitted_operation"}
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/definitions/transform_contract"
+}

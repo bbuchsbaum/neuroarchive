@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fixed parcel-mean spatial transform",
+  "type": "object",
+  "required": ["type", "version", "run_id", "inputs", "outputs", "params", "datasets", "analysis_contract"],
+  "properties": {
+    "type": {"const": "parcel.mean"},
+    "version": {"const": "1.1.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "inputs": {"oneOf": [{"type": "string"}, {"type": "array", "minItems": 1, "maxItems": 1, "items": {"type": "string"}}]},
+    "outputs": {"oneOf": [{"type": "string"}, {"type": "array", "minItems": 1, "maxItems": 1, "items": {"type": "string"}}]},
+    "datasets": {"type": "array", "minItems": 3},
+    "analysis_contract": {"$ref": "analysis-contract.schema.json#/definitions/transform_contract"},
+    "params": {
+      "type": "object",
+      "required": ["fit_scope", "source_id", "signal_units", "spatial_units", "map_grid_id", "grid_id", "asset_id", "asset_path", "step_index", "map_checksum", "mask_checksum", "affine_checksum"],
+      "properties": {
+        "labels": {"type": ["array", "null"]},
+        "weights": {"type": ["array", "null"], "default": null},
+        "source_labels": {"type": ["array", "null"], "default": null},
+        "fit_scope": {"enum": ["fixed", "external-calibration", "fold", "run", "session", "subject"]},
+        "source_id": {"type": "string", "minLength": 1},
+        "calibration_id": {"type": ["string", "null"], "default": null},
+        "calibration_checksum": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$", "default": null},
+        "fit_provenance": {"type": ["object", "null"], "default": null},
+        "normalization_provenance": {"$ref": "analysis-contract.schema.json#/definitions/normalization_provenance"},
+        "signal_units": {"type": "string", "minLength": 1},
+        "spatial_units": {"type": "string", "minLength": 1},
+        "voxel_ordering": {"type": "string", "minLength": 1},
+        "map_mask_checksum": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$", "default": null},
+        "map_grid_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "map_affine_checksum": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$", "default": null},
+        "matrix_order": {"const": "time-by-parcel"},
+        "parcel_count": {"type": "integer", "minimum": 1},
+        "label_dtype": {"enum": ["uint16", "uint32"]},
+        "weight_policy": {"enum": ["uniform", "fixed-voxel-weights"]},
+        "mask_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "affine_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "grid_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "map_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "weight_checksum": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$", "default": null},
+        "asset_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "asset_path": {"type": "string", "pattern": "^/spatial/qpp_assets/[0-9a-f]{64}$"},
+        "step_index": {"type": "integer", "minimum": 0},
+        "lossy_support": {"const": "parcel-at-same-TR"},
+        "coding_dependency": {"const": "none"}
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"fit_scope": {"const": "external-calibration"}}},
+          "then": {"required": ["calibration_id", "calibration_checksum"], "properties": {"calibration_id": {"type": "string", "minLength": 1}, "calibration_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+          "else": {"properties": {"calibration_id": {"type": "null"}, "calibration_checksum": {"type": "null"}}}
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

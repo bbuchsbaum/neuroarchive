@@ -9,7 +9,9 @@
 #' @param x Numeric array or `DenseNeuroVec` (or list of those). Each
 #'   array must have at least three dimensions (`x`, `y`, `z`, and
 #'   optionally `time`). 3D inputs (`DenseNeuroVol` or 3D array) are
-#'   expanded to 4D. Lists denote multiple runs.
+#'   expanded to 4D. Lists denote multiple runs. The transform pipeline is
+#'   restarted and fitted independently for each list element unless the first
+#'   transform is the explicit cross-run `aggregate_runs` operation.
 #' @param file Path to the output `.h5` file. If `NULL`, writing occurs
 #'   in memory using the HDF5 core driver and no file is created. The
 #'   returned result then contains `file = NULL`.
@@ -22,24 +24,39 @@
 #' @param header Optional named list of header attributes to store under
 #'   `/header`. When `NULL` and `x` inherits from `NeuroObj` the header is
 #'   created from its `NeuroSpace`.
+#' @param run_geometry Optional run-scoped spatial descriptors. For multiple
+#'   runs, this must be a named list keyed by the resolved `run_id` values.
+#'   Each descriptor requires `dims` and a full `transform` (or `affine`).
+#' @param geometry_policy `"optional"` preserves the generic low-level API;
+#'   `"fmri"` requires geometry for every run and never fabricates identity
+#'   geometry.
 #' @param plugins Optional named list saved under the `/plugins` group.
 #' @param block_table Optional data frame specifying spatial block
 #'   coordinates stored at `/spatial/block_table`. Columns must contain
 #'   1-based voxel indices in masked space when a mask is provided.
 #' @param run_id Optional character vector of run identifiers. When `x`
 #'   is a list these override `names(x)`; otherwise a single identifier
-#'   is used for the lone run.
+#'   is used for the lone run. Values must be unique and the vector length must
+#'   match the number of runs.
 #' @param checksum Character string specifying checksum mode. One of
 #'   `"sha256"` (default) or `"none"`. When `"sha256"` a checksum of the
 #'   final file is computed and stored in the `/lna_checksum` attribute.
 #'   This requires closing and reopening the file once writing has
 #'   finished.
+#' @param ... Reserved for method-specific extensions.
 #' @return Invisibly returns a list with elements `file`, `plan`, `header`,
 #'   `input_bytes`, `output_bytes`, `ratio`, `transforms_applied`, and
 #'   `checksum` with class `"lna_write_result"`.
+#' @section Lifecycle:
+#' Stable. This is the primary LNA archive writer and part of the core
+#' compatibility contract.
 #' @details For parallel workflows create a unique temporary file and
 #'   rename it into place once writing succeeds. The underlying HDF5 file
 #'   is opened with mode `"w"`, truncating any existing file at `file`.
+#'   Run-local transform descriptors and payloads are stored separately below
+#'   `/scans/<run_id>`. A shared mask, when supplied, must match every run.
+#'   Explicit geometry is stored under `/header/runs/<run_id>`; a compatible
+#'   global spatial header is retained only for a single or identical grid.
 #' @seealso read_lna, validate_lna
 #' @examples
 #' tmp <- tempfile(fileext = ".h5")
@@ -48,17 +65,25 @@
 #' read_lna(tmp)
 #' @importFrom hdf5r H5File
 #' @export
-write_lna <- function(x, ...) {
+write_lna <- function(x, file = NULL, transforms = character(),
+                      transform_params = list(), mask = NULL,
+                      header = NULL, plugins = NULL, block_table = NULL,
+                      run_id = NULL, checksum = c("sha256", "none"),
+                      run_geometry = NULL,
+                      geometry_policy = c("optional", "fmri"), ...) {
   UseMethod("write_lna")
 }
 
 #' @export
 write_lna.default <- function(x, file = NULL, transforms = character(),
-                      transform_params = list(), mask = NULL,
-                      header = NULL, plugins = NULL, block_table = NULL,
-                      run_id = NULL, checksum = c("sha256", "none")) {
+                              transform_params = list(), mask = NULL,
+                              header = NULL, plugins = NULL, block_table = NULL,
+                              run_id = NULL, checksum = c("sha256", "none"),
+                              run_geometry = NULL,
+                              geometry_policy = c("optional", "fmri"), ...) {
 
   checksum <- match.arg(checksum)
+  geometry_policy <- match.arg(geometry_policy)
 
   # Compute input size for compression summary
   input_bytes <- as.numeric(object.size(x))
@@ -67,7 +92,8 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   h5 <- info$h5
   on.exit(close_output_h5(info), add = TRUE)
 
-  if (is.null(header)) {
+  is_multi_input <- is.list(x) && !methods::is(x, "NeuroObj") && length(x) > 1L
+  if (is.null(header) && is.null(run_geometry) && !is_multi_input) {
     header <- derive_header_from_input(x)
   }
 
@@ -77,6 +103,8 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     transform_params = transform_params,
     mask = mask,
     header = header,
+    run_geometry = run_geometry,
+    geometry_policy = geometry_policy,
     plugins = plugins,
     run_id = run_id,
     h5 = h5
@@ -86,7 +114,9 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
   
   plugins_from_handle <- result$handle$meta$plugins
   if (length(plugins_from_handle) == 0) plugins_from_handle <- NULL
-  header_from_handle <- result$handle$meta$header %||% list()
+  header_from_handle <- result$global_header %||%
+    result$handle$meta$header %||% list()
+  run_geometry_from_handle <- result$run_geometry %||% list()
 
   write_block_table_dataset(h5, block_table)
 
@@ -95,6 +125,8 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     result$plan,
     checksum = checksum,
     header = header_from_handle,
+    run_geometry = run_geometry_from_handle,
+    geometry_policy = geometry_policy,
     plugins = plugins_from_handle,
     run_ids = result$handle$run_ids
   )
@@ -130,6 +162,8 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     handle = handle_out,
     transform_params = header_from_handle$transform_params,
     header = header_from_handle,
+    run_geometry = run_geometry_from_handle,
+    geometry_policy = geometry_policy,
     input_bytes = input_bytes,
     output_bytes = output_bytes,
     ratio = ratio,
@@ -144,7 +178,9 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 #'
 #' Loads data from an `.lna.h5` file using `core_read`.  When
 #' `lazy = TRUE` the function returns an `lna_reader` object that keeps
-#' the HDF5 handle open for on-demand reconstruction of the data.
+#' the HDF5 handle open for on-demand reconstruction of the data. If the
+#' selection matches multiple runs, both eager and lazy reads return a named
+#' list with one independent result per run.
 #'
 #' @param file Path to an LNA file on disk.
 #' @param run_id Character vector of run identifiers or glob patterns. Passed to
@@ -157,10 +193,13 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 #'   missing, \code{"installed"} emits a warning and skips that
 #'   transform. Interactive use of \code{"prompt"} will ask whether to
 #'   continue; declining aborts reading.
-#' @param validate Validation mode. One of `"quick"` (default), `TRUE`, or `FALSE`.
-#'   `"quick"` performs fast structural checks (file exists, valid HDF5, has /lna group,
-#'   has transform descriptors). `TRUE` performs full validation including SHA256 checksums
-#'   via `validate_lna()`. `FALSE` skips all validation checks.
+#' @param validate Validation mode. One of `"quick"` (default), `TRUE`, or
+#'   `FALSE`. `"quick"` performs bounded structural, required-version, QPP
+#'   relationship, extent, and index checks. `TRUE` first runs full
+#'   [validate_lna()] validation, including checksums and every QPP tile.
+#'   `FALSE` skips that preflight. For current QPP archives, the decoder still
+#'   verifies selected tile bytes and parcel steps before returning or caching
+#'   values in every mode.
 #' @param output_dtype Desired output data type. One of
 #'   `"float32"`, `"float64"`, or `"float16"`.
 #' @param roi_mask Optional ROI mask used to subset voxels before
@@ -169,9 +208,12 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 #'   volumes prior to transformation.
 #' @param lazy Logical. If `TRUE`, the HDF5 file remains open and the
 #'   returned `lna_reader` can load data lazily.
-#' @return When `lazy = TRUE`, an `lna_reader` object.  Otherwise the result of
-#'   `core_read`: a `DataHandle` for a single run or a list of `DataHandle`
-#'   objects when multiple runs are loaded.
+#' @return For one selected run, an `lna_reader` when `lazy = TRUE` or a
+#'   `DataHandle` otherwise. For multiple selected runs, a named list of
+#'   independent `lna_reader` or `DataHandle` objects, respectively.
+#' @section Lifecycle:
+#' Stable. This is the primary LNA archive reader and part of the core
+#' compatibility contract.
 #' @seealso write_lna, validate_lna
 #' @examples
 #' tmp <- tempfile(fileext = ".h5")
@@ -226,10 +268,33 @@ read_lna <- function(file, run_id = NULL,
   )
 
   if (lazy) {
-    lna_reader$new(
-      file = file,
-      core_read_args = args
-    )
+    h5 <- open_h5(file, mode = "r")
+    on.exit(close_h5_safely(h5), add = TRUE)
+    runs <- resolve_run_ids(run_id, discover_run_ids(h5))
+    if (length(runs) == 0L) {
+      abort_lna(
+        "run_id did not match any runs",
+        .subclass = "lna_error_run_id",
+        location = "read_lna:run_id"
+      )
+    }
+    close_h5_safely(h5)
+    h5 <- NULL
+
+    readers <- list()
+    on.exit({
+      lapply(readers, function(reader) try(reader$close(), silent = TRUE))
+    }, add = TRUE)
+    for (rid in runs) {
+      run_args <- args
+      run_args$run_id <- rid
+      readers[[rid]] <- lna_reader$new(
+        file = file,
+        core_read_args = run_args
+      )
+    }
+    on.exit(NULL, add = FALSE)
+    if (length(readers) == 1L) readers[[1L]] else readers
   } else {
     args$lazy <- FALSE
     do.call(core_read, args)
@@ -241,7 +306,7 @@ read_lna <- function(file, run_id = NULL,
 #' `compress_fmri()` simply forwards its arguments to `write_lna()` without
 #' altering the dimensions of the input.
 #'
-#' @inheritParams write_lna
+#' @param ... Arguments forwarded to `write_lna()`.
 #' @seealso write_lna
 #' @export
 compress_fmri <- function(...) write_lna(...)

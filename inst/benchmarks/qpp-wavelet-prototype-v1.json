@@ -1,0 +1,714 @@
+{
+  "receipt_version": "1.0.0",
+  "profile_status": "prototype",
+  "selected_candidate_index": 6,
+  "selected_candidate": {
+    "id": "haar-gentle",
+    "wavelet": "haar",
+    "levels": 3,
+    "detail_steps": [2, 1, 1],
+    "dead_zone": 0.5,
+    "drop_finest": 0
+  },
+  "selection_rule": "select the smallest calibration-pass wavelet payload; freeze before evaluation; admit only if evaluation passes and bytes <= 90% of QPP",
+  "gate_definition": {
+    "version": "1.0.0",
+    "estimand": "Worst-run scientific agreement after run-partitioned integer lifting, declared detail quantization/band dropping, and exact inverse",
+    "tolerances": {
+      "maximum_absolute_error": 0.04,
+      "RMSE": 0.01,
+      "spectrum_relative_RMSE": 0.03,
+      "autocorrelation_max_absolute_error": 0.012,
+      "glm_beta_relative_RMSE": 0.025,
+      "glm_contrast_max_absolute_error": 0.008,
+      "glm_t_max_absolute_error": 0.25,
+      "connectivity_edge_RMSE": 0.005,
+      "connectivity_edge_max_absolute_error": 0.02,
+      "single_trial_beta_RMSE": 0.01,
+      "mvpa_prediction_agreement": 1,
+      "mvpa_decision_value_RMSE": 0.012
+    },
+    "admission_rate_fraction_of_qpp": 0.9,
+    "aggregation": "maximum per-run error; minimum prediction agreement",
+    "selection": "select the smallest calibration-pass wavelet payload; freeze before evaluation; admit only if evaluation passes and bytes <= 90% of QPP"
+  },
+  "calibration_candidates": [
+    {
+      "candidate": {
+        "id": "cdf53-lossless",
+        "wavelet": "cdf53",
+        "levels": 3,
+        "detail_steps": [1, 1, 1],
+        "dead_zone": 0,
+        "drop_finest": 0
+      },
+      "gate": {
+        "pass": true,
+        "checks": {
+          "maximum_absolute_error": true,
+          "RMSE": true,
+          "spectrum_relative_RMSE": true,
+          "autocorrelation_max_absolute_error": true,
+          "glm_beta_relative_RMSE": true,
+          "glm_contrast_max_absolute_error": true,
+          "glm_t_max_absolute_error": true,
+          "connectivity_edge_RMSE": true,
+          "connectivity_edge_max_absolute_error": true,
+          "single_trial_beta_RMSE": true,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": true
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 48658,
+        "effective_bits_per_parcel_TR": 7.91959635416667,
+        "nonzero_fraction": 0.966389973958333,
+        "progressive_stages_first_run": {
+          "coarse": 3024,
+          "detail-3": 6455,
+          "detail-2": 12472,
+          "detail-1": 24343
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.00646404868890625,
+        "RMSE": 0.00320594854013295,
+        "spectrum_relative_RMSE": 0.0045875968185677,
+        "autocorrelation_max_absolute_error": 0.000250748403653078,
+        "glm_beta_relative_RMSE": 0.00323943536563251,
+        "glm_contrast_max_absolute_error": 0.000612864748748929,
+        "glm_t_max_absolute_error": 0.0863302600815956,
+        "connectivity_edge_RMSE": 0.00163096809682287,
+        "connectivity_edge_max_absolute_error": 0.0076106787748545,
+        "single_trial_beta_RMSE": 0.00173392051993807,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00221697546306307
+      },
+      "full_coefficient_q_roundtrip_exact": true
+    },
+    {
+      "candidate": {
+        "id": "cdf53-gentle",
+        "wavelet": "cdf53",
+        "levels": 3,
+        "detail_steps": [2, 1, 1],
+        "dead_zone": 0.5,
+        "drop_finest": 0
+      },
+      "gate": {
+        "pass": false,
+        "checks": {
+          "maximum_absolute_error": true,
+          "RMSE": true,
+          "spectrum_relative_RMSE": true,
+          "autocorrelation_max_absolute_error": true,
+          "glm_beta_relative_RMSE": true,
+          "glm_contrast_max_absolute_error": true,
+          "glm_t_max_absolute_error": false,
+          "connectivity_edge_RMSE": true,
+          "connectivity_edge_max_absolute_error": true,
+          "single_trial_beta_RMSE": true,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": true
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 44210,
+        "effective_bits_per_parcel_TR": 7.19563802083333,
+        "nonzero_fraction": 0.925537109375,
+        "progressive_stages_first_run": {
+          "coarse": 3024,
+          "detail-3": 6455,
+          "detail-2": 12472,
+          "detail-1": 22111
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.019400458360825,
+        "RMSE": 0.00698717859344986,
+        "spectrum_relative_RMSE": 0.00981537110049757,
+        "autocorrelation_max_absolute_error": 0.00139986210602761,
+        "glm_beta_relative_RMSE": 0.00874355258933139,
+        "glm_contrast_max_absolute_error": 0.00138638114781667,
+        "glm_t_max_absolute_error": 0.251394140960901,
+        "connectivity_edge_RMSE": 0.00341398534888711,
+        "connectivity_edge_max_absolute_error": 0.0170954707481,
+        "single_trial_beta_RMSE": 0.00376848127258665,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00572093115789624
+      },
+      "full_coefficient_q_roundtrip_exact": false
+    },
+    {
+      "candidate": {
+        "id": "cdf53-drop-finest",
+        "wavelet": "cdf53",
+        "levels": 3,
+        "detail_steps": [1, 1, 1],
+        "dead_zone": 0,
+        "drop_finest": 1
+      },
+      "gate": {
+        "pass": false,
+        "checks": {
+          "maximum_absolute_error": false,
+          "RMSE": false,
+          "spectrum_relative_RMSE": false,
+          "autocorrelation_max_absolute_error": false,
+          "glm_beta_relative_RMSE": true,
+          "glm_contrast_max_absolute_error": true,
+          "glm_t_max_absolute_error": false,
+          "connectivity_edge_RMSE": false,
+          "connectivity_edge_max_absolute_error": false,
+          "single_trial_beta_RMSE": true,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": false
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 28061,
+        "effective_bits_per_parcel_TR": 4.56722005208333,
+        "nonzero_fraction": 0.487508138020833,
+        "progressive_stages_first_run": {
+          "coarse": 3024,
+          "detail-3": 6455,
+          "detail-2": 12472,
+          "detail-1": 14032
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.344795930849502,
+        "RMSE": 0.0633665771686304,
+        "spectrum_relative_RMSE": 0.0531601594861611,
+        "autocorrelation_max_absolute_error": 0.145119691656842,
+        "glm_beta_relative_RMSE": 0.0221015813654039,
+        "glm_contrast_max_absolute_error": 0.00525563197113169,
+        "glm_t_max_absolute_error": 4.8375460491872,
+        "connectivity_edge_RMSE": 0.0673543013973328,
+        "connectivity_edge_max_absolute_error": 0.156556094380673,
+        "single_trial_beta_RMSE": 0.00752643373362167,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.0202477025104847
+      },
+      "full_coefficient_q_roundtrip_exact": false
+    },
+    {
+      "candidate": {
+        "id": "cdf53-compact",
+        "wavelet": "cdf53",
+        "levels": 3,
+        "detail_steps": [4, 2, 1],
+        "dead_zone": 0.5,
+        "drop_finest": 1
+      },
+      "gate": {
+        "pass": false,
+        "checks": {
+          "maximum_absolute_error": false,
+          "RMSE": false,
+          "spectrum_relative_RMSE": false,
+          "autocorrelation_max_absolute_error": false,
+          "glm_beta_relative_RMSE": true,
+          "glm_contrast_max_absolute_error": true,
+          "glm_t_max_absolute_error": false,
+          "connectivity_edge_RMSE": false,
+          "connectivity_edge_max_absolute_error": false,
+          "single_trial_beta_RMSE": true,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": false
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 26058,
+        "effective_bits_per_parcel_TR": 4.2412109375,
+        "nonzero_fraction": 0.473673502604167,
+        "progressive_stages_first_run": {
+          "coarse": 3024,
+          "detail-3": 6455,
+          "detail-2": 11474,
+          "detail-1": 13034
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.344795930849502,
+        "RMSE": 0.063591849505679,
+        "spectrum_relative_RMSE": 0.0543154072190495,
+        "autocorrelation_max_absolute_error": 0.144856452926463,
+        "glm_beta_relative_RMSE": 0.0215538508724289,
+        "glm_contrast_max_absolute_error": 0.00581168269001653,
+        "glm_t_max_absolute_error": 4.79880333130755,
+        "connectivity_edge_RMSE": 0.0669968157969684,
+        "connectivity_edge_max_absolute_error": 0.155824913638047,
+        "single_trial_beta_RMSE": 0.00875947270491175,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.0205622393791031
+      },
+      "full_coefficient_q_roundtrip_exact": false
+    },
+    {
+      "candidate": {
+        "id": "haar-lossless",
+        "wavelet": "haar",
+        "levels": 3,
+        "detail_steps": [1, 1, 1],
+        "dead_zone": 0,
+        "drop_finest": 0
+      },
+      "gate": {
+        "pass": true,
+        "checks": {
+          "maximum_absolute_error": true,
+          "RMSE": true,
+          "spectrum_relative_RMSE": true,
+          "autocorrelation_max_absolute_error": true,
+          "glm_beta_relative_RMSE": true,
+          "glm_contrast_max_absolute_error": true,
+          "glm_t_max_absolute_error": true,
+          "connectivity_edge_RMSE": true,
+          "connectivity_edge_max_absolute_error": true,
+          "single_trial_beta_RMSE": true,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": true
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 48847,
+        "effective_bits_per_parcel_TR": 7.95035807291667,
+        "nonzero_fraction": 0.9708251953125,
+        "progressive_stages_first_run": {
+          "coarse": 2983,
+          "detail-3": 6414,
+          "detail-2": 12427,
+          "detail-1": 24429
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.00646404868890625,
+        "RMSE": 0.00320594854013295,
+        "spectrum_relative_RMSE": 0.0045875968185677,
+        "autocorrelation_max_absolute_error": 0.000250748403653078,
+        "glm_beta_relative_RMSE": 0.00323943536563251,
+        "glm_contrast_max_absolute_error": 0.000612864748748929,
+        "glm_t_max_absolute_error": 0.0863302600815956,
+        "connectivity_edge_RMSE": 0.00163096809682287,
+        "connectivity_edge_max_absolute_error": 0.0076106787748545,
+        "single_trial_beta_RMSE": 0.00173392051993807,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00221697546306307
+      },
+      "full_coefficient_q_roundtrip_exact": true
+    },
+    {
+      "candidate": {
+        "id": "haar-gentle",
+        "wavelet": "haar",
+        "levels": 3,
+        "detail_steps": [2, 1, 1],
+        "dead_zone": 0.5,
+        "drop_finest": 0
+      },
+      "gate": {
+        "pass": true,
+        "checks": {
+          "maximum_absolute_error": true,
+          "RMSE": true,
+          "spectrum_relative_RMSE": true,
+          "autocorrelation_max_absolute_error": true,
+          "glm_beta_relative_RMSE": true,
+          "glm_contrast_max_absolute_error": true,
+          "glm_t_max_absolute_error": true,
+          "connectivity_edge_RMSE": true,
+          "connectivity_edge_max_absolute_error": true,
+          "single_trial_beta_RMSE": true,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": true
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 44773,
+        "effective_bits_per_parcel_TR": 7.28727213541667,
+        "nonzero_fraction": 0.941202799479167,
+        "progressive_stages_first_run": {
+          "coarse": 2983,
+          "detail-3": 6414,
+          "detail-2": 12427,
+          "detail-1": 22408
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.0194245976781623,
+        "RMSE": 0.00643865906548053,
+        "spectrum_relative_RMSE": 0.00770718796708733,
+        "autocorrelation_max_absolute_error": 0.000989512659502201,
+        "glm_beta_relative_RMSE": 0.0221309609837193,
+        "glm_contrast_max_absolute_error": 0.00134342445677511,
+        "glm_t_max_absolute_error": 0.155983320062084,
+        "connectivity_edge_RMSE": 0.00272153315918238,
+        "connectivity_edge_max_absolute_error": 0.0120762046647823,
+        "single_trial_beta_RMSE": 0.00276735750304438,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00351379251919189
+      },
+      "full_coefficient_q_roundtrip_exact": false
+    },
+    {
+      "candidate": {
+        "id": "haar-drop-finest",
+        "wavelet": "haar",
+        "levels": 3,
+        "detail_steps": [1, 1, 1],
+        "dead_zone": 0,
+        "drop_finest": 1
+      },
+      "gate": {
+        "pass": false,
+        "checks": {
+          "maximum_absolute_error": false,
+          "RMSE": false,
+          "spectrum_relative_RMSE": false,
+          "autocorrelation_max_absolute_error": false,
+          "glm_beta_relative_RMSE": false,
+          "glm_contrast_max_absolute_error": false,
+          "glm_t_max_absolute_error": false,
+          "connectivity_edge_RMSE": false,
+          "connectivity_edge_max_absolute_error": false,
+          "single_trial_beta_RMSE": false,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": false
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 27974,
+        "effective_bits_per_parcel_TR": 4.55305989583333,
+        "nonzero_fraction": 0.485514322916667,
+        "progressive_stages_first_run": {
+          "coarse": 2983,
+          "detail-3": 6414,
+          "detail-2": 12427,
+          "detail-1": 13987
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.313062497586092,
+        "RMSE": 0.0745101049094356,
+        "spectrum_relative_RMSE": 0.143332176388026,
+        "autocorrelation_max_absolute_error": 0.077429117837728,
+        "glm_beta_relative_RMSE": 0.0780177335011552,
+        "glm_contrast_max_absolute_error": 0.0187977624721962,
+        "glm_t_max_absolute_error": 2.17351110069539,
+        "connectivity_edge_RMSE": 0.0645529410150983,
+        "connectivity_edge_max_absolute_error": 0.148170658293135,
+        "single_trial_beta_RMSE": 0.0109307445099863,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.0510440217966829
+      },
+      "full_coefficient_q_roundtrip_exact": false
+    },
+    {
+      "candidate": {
+        "id": "haar-compact",
+        "wavelet": "haar",
+        "levels": 3,
+        "detail_steps": [4, 2, 1],
+        "dead_zone": 0.5,
+        "drop_finest": 1
+      },
+      "gate": {
+        "pass": false,
+        "checks": {
+          "maximum_absolute_error": false,
+          "RMSE": false,
+          "spectrum_relative_RMSE": false,
+          "autocorrelation_max_absolute_error": false,
+          "glm_beta_relative_RMSE": false,
+          "glm_contrast_max_absolute_error": false,
+          "glm_t_max_absolute_error": false,
+          "connectivity_edge_RMSE": false,
+          "connectivity_edge_max_absolute_error": false,
+          "single_trial_beta_RMSE": false,
+          "mvpa_prediction_agreement": true,
+          "mvpa_decision_value_RMSE": false
+        }
+      },
+      "rate": {
+        "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+        "logical_values": 49152,
+        "total_bytes": 26020,
+        "effective_bits_per_parcel_TR": 4.23502604166667,
+        "nonzero_fraction": 0.472981770833333,
+        "progressive_stages_first_run": {
+          "coarse": 2983,
+          "detail-3": 6414,
+          "detail-2": 11458,
+          "detail-1": 13018
+        }
+      },
+      "fidelity": {
+        "maximum_absolute_error": 0.316193662943805,
+        "RMSE": 0.0748149625340365,
+        "spectrum_relative_RMSE": 0.143538192287291,
+        "autocorrelation_max_absolute_error": 0.0769706896971866,
+        "glm_beta_relative_RMSE": 0.086542636526893,
+        "glm_contrast_max_absolute_error": 0.0185029128751227,
+        "glm_t_max_absolute_error": 2.08276353553126,
+        "connectivity_edge_RMSE": 0.0645798173226205,
+        "connectivity_edge_max_absolute_error": 0.15199487149684,
+        "single_trial_beta_RMSE": 0.0112358520829204,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.051465627628999
+      },
+      "full_coefficient_q_roundtrip_exact": false
+    }
+  ],
+  "selected_calibration": {
+    "candidate": {
+      "id": "haar-gentle",
+      "wavelet": "haar",
+      "levels": 3,
+      "detail_steps": [2, 1, 1],
+      "dead_zone": 0.5,
+      "drop_finest": 0
+    },
+    "partition_contract": {
+      "independence_unit": "run",
+      "cross_unit_operations": false,
+      "lossy_support": "complete-run"
+    },
+    "full_coefficient_q_roundtrip_exact": false,
+    "rate": {
+      "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+      "logical_values": 49152,
+      "total_bytes": 44773,
+      "effective_bits_per_parcel_TR": 7.28727213541667,
+      "nonzero_fraction": 0.941202799479167,
+      "progressive_stages_first_run": {
+        "coarse": 2983,
+        "detail-3": 6414,
+        "detail-2": 12427,
+        "detail-1": 22408
+      }
+    },
+    "runtime": {
+      "forward": {
+        "median_seconds": 0.0080000000000009,
+        "min_seconds": 0.00799999999999912,
+        "max_seconds": 0.00900000000000034,
+        "repetitions": 5
+      },
+      "inverse": {
+        "median_seconds": 0.0080000000000009,
+        "min_seconds": 0.00799999999999912,
+        "max_seconds": 0.0080000000000009,
+        "repetitions": 5
+      }
+    },
+    "fidelity": {
+      "maximum_absolute_error": 0.0194245976781623,
+      "RMSE": 0.00643865906548053,
+      "spectrum_relative_RMSE": 0.00770718796708733,
+      "autocorrelation_max_absolute_error": 0.000989512659502201,
+      "glm_beta_relative_RMSE": 0.0221309609837193,
+      "glm_contrast_max_absolute_error": 0.00134342445677511,
+      "glm_t_max_absolute_error": 0.155983320062084,
+      "connectivity_edge_RMSE": 0.00272153315918238,
+      "connectivity_edge_max_absolute_error": 0.0120762046647823,
+      "single_trial_beta_RMSE": 0.00276735750304438,
+      "mvpa_prediction_agreement": 1,
+      "mvpa_decision_value_RMSE": 0.00351379251919189
+    },
+    "per_run_fidelity": {
+      "synthetic-calibration-run-01": {
+        "maximum_absolute_error": 0.0191836755660255,
+        "RMSE": 0.00643450473755991,
+        "spectrum_relative_RMSE": 0.00765761332021832,
+        "autocorrelation_max_absolute_error": 0.000989512659502201,
+        "glm_beta_relative_RMSE": 0.021858110461387,
+        "glm_contrast_max_absolute_error": 0.00134342445677511,
+        "glm_t_max_absolute_error": 0.119789487216401,
+        "connectivity_edge_RMSE": 0.00263025435201486,
+        "connectivity_edge_max_absolute_error": 0.0108347286073891,
+        "single_trial_beta_RMSE": 0.00274281701069025,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00351379251919189
+      },
+      "synthetic-calibration-run-02": {
+        "maximum_absolute_error": 0.0194245976781623,
+        "RMSE": 0.00643865906548053,
+        "spectrum_relative_RMSE": 0.00770718796708733,
+        "autocorrelation_max_absolute_error": 0.000928966524791686,
+        "glm_beta_relative_RMSE": 0.0221309609837193,
+        "glm_contrast_max_absolute_error": 0.00121811533258218,
+        "glm_t_max_absolute_error": 0.155983320062084,
+        "connectivity_edge_RMSE": 0.00272153315918238,
+        "connectivity_edge_max_absolute_error": 0.0120762046647823,
+        "single_trial_beta_RMSE": 0.00276735750304438,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00309796645187828
+      }
+    }
+  },
+  "untouched_evaluation": {
+    "candidate": {
+      "id": "haar-gentle",
+      "wavelet": "haar",
+      "levels": 3,
+      "detail_steps": [2, 1, 1],
+      "dead_zone": 0.5,
+      "drop_finest": 0
+    },
+    "partition_contract": {
+      "independence_unit": "run",
+      "cross_unit_operations": false,
+      "lossy_support": "complete-run"
+    },
+    "full_coefficient_q_roundtrip_exact": false,
+    "rate": {
+      "byte_boundary": "measured sparse bitmap plus packed zig-zag band streams and fixed band headers; excludes future LNA container/index overhead",
+      "logical_values": 49152,
+      "total_bytes": 44821,
+      "effective_bits_per_parcel_TR": 7.29508463541667,
+      "nonzero_fraction": 0.942301432291667,
+      "progressive_stages_first_run": {
+        "coarse": 2983,
+        "detail-3": 6410,
+        "detail-2": 12456,
+        "detail-1": 22440
+      }
+    },
+    "runtime": {
+      "forward": {
+        "median_seconds": 0.00899999999999679,
+        "min_seconds": 0.00799999999999912,
+        "max_seconds": 0.00900000000000034,
+        "repetitions": 5
+      },
+      "inverse": {
+        "median_seconds": 0.00799999999999912,
+        "min_seconds": 0.00799999999999912,
+        "max_seconds": 0.00900000000000034,
+        "repetitions": 5
+      }
+    },
+    "fidelity": {
+      "maximum_absolute_error": 0.0193340573775198,
+      "RMSE": 0.00649899624563783,
+      "spectrum_relative_RMSE": 0.00756410676129486,
+      "autocorrelation_max_absolute_error": 0.000844933787271462,
+      "glm_beta_relative_RMSE": 0.0216437607261462,
+      "glm_contrast_max_absolute_error": 0.00128780292488542,
+      "glm_t_max_absolute_error": 0.291933692070156,
+      "connectivity_edge_RMSE": 0.00278606077650709,
+      "connectivity_edge_max_absolute_error": 0.0131634150268016,
+      "single_trial_beta_RMSE": 0.00281184508520407,
+      "mvpa_prediction_agreement": 1,
+      "mvpa_decision_value_RMSE": 0.00308665156477717
+    },
+    "per_run_fidelity": {
+      "synthetic-evaluation-run-01": {
+        "maximum_absolute_error": 0.0191996124508437,
+        "RMSE": 0.00641144451672614,
+        "spectrum_relative_RMSE": 0.0074284891479763,
+        "autocorrelation_max_absolute_error": 0.000826190621035616,
+        "glm_beta_relative_RMSE": 0.0212396801209296,
+        "glm_contrast_max_absolute_error": 0.00118549252088057,
+        "glm_t_max_absolute_error": 0.238036558552448,
+        "connectivity_edge_RMSE": 0.00278606077650709,
+        "connectivity_edge_max_absolute_error": 0.0118972100518843,
+        "single_trial_beta_RMSE": 0.00266678584680228,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00308665156477717
+      },
+      "synthetic-evaluation-run-02": {
+        "maximum_absolute_error": 0.0193340573775198,
+        "RMSE": 0.00649899624563783,
+        "spectrum_relative_RMSE": 0.00756410676129486,
+        "autocorrelation_max_absolute_error": 0.000844933787271462,
+        "glm_beta_relative_RMSE": 0.0216437607261462,
+        "glm_contrast_max_absolute_error": 0.00128780292488542,
+        "glm_t_max_absolute_error": 0.291933692070156,
+        "connectivity_edge_RMSE": 0.00278183100174693,
+        "connectivity_edge_max_absolute_error": 0.0131634150268016,
+        "single_trial_beta_RMSE": 0.00281184508520407,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00256735996640439
+      }
+    }
+  },
+  "evaluation_gate": {
+    "pass": false,
+    "checks": {
+      "maximum_absolute_error": true,
+      "RMSE": true,
+      "spectrum_relative_RMSE": true,
+      "autocorrelation_max_absolute_error": true,
+      "glm_beta_relative_RMSE": true,
+      "glm_contrast_max_absolute_error": true,
+      "glm_t_max_absolute_error": false,
+      "connectivity_edge_RMSE": true,
+      "connectivity_edge_max_absolute_error": true,
+      "single_trial_beta_RMSE": true,
+      "mvpa_prediction_agreement": true,
+      "mvpa_decision_value_RMSE": true
+    }
+  },
+  "qpp_comparator": {
+    "settings": {
+      "alpha": 0.001,
+      "time_chunk": 128,
+      "parcel_chunk": 128,
+      "outer_codec": "raw",
+      "predictor_cost": "anchors32-plus-residual-width-v1",
+      "predictor_tie_order": ["P0", "P1", "P2"]
+    },
+    "byte_boundary": "measured QPP tile payload only; excludes index, steps, and container",
+    "calibration_payload_bytes": 47088,
+    "evaluation_payload_bytes": 47023,
+    "evaluation_effective_payload_bits_per_parcel_TR": 7.65348307291667
+  },
+  "wavelet_rate_fraction_of_qpp": 0.95317185207239,
+  "lossless_exact_for_both_wavelets": true,
+  "admit_to_qpp12": false,
+  "admission_reason": "do not integrate: requires both untouched scientific pass and <=90% of QPP bytes at the declared measured boundaries",
+  "package_boundary": {
+    "production_decoder_owner": "neuroarchive-core",
+    "fmrilatent_role": "fitting, calibration, and experimental transforms",
+    "fmrilatent_companion_mote": "bd-01M0WJX0QVS0ZE07EF3VCN3AG4",
+    "fmrilatent_source_edited": false
+  },
+  "corpus_manifest": {
+    "calibration_ids": ["synthetic-calibration-run-01", "synthetic-calibration-run-02"],
+    "evaluation_ids": ["synthetic-evaluation-run-01", "synthetic-evaluation-run-02"],
+    "disjoint": true,
+    "delta_fit_scope": "external-calibration"
+  },
+  "execution": {
+    "repetitions": 5,
+    "R": "R version 4.5.1 (2025-06-13)",
+    "neuroarchive": "0.1.1",
+    "platform": "aarch64-apple-darwin20",
+    "system": {
+      "sysname": "Darwin",
+      "release": "23.3.0",
+      "version": "Darwin Kernel Version 23.3.0: Wed Dec 20 21:31:10 PST 2023; root:xnu-10002.81.5~7/RELEASE_ARM64_T6031",
+      "nodename": "BUC-GW02.local",
+      "machine": "arm64",
+      "login": "bbuchsbaum",
+      "user": "bbuchsbaum",
+      "effective_user": "bbuchsbaum"
+    }
+  }
+}

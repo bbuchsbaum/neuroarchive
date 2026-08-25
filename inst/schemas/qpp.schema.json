@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QPP pointwise quantize-predict-pack transform",
+  "type": "object",
+  "required": ["type", "version", "codec_version", "required_decoder", "profile_id", "decoder_version", "inputs", "outputs", "params", "datasets", "analysis_contract"],
+  "properties": {
+    "type": {"const": "qpp"},
+    "version": {"const": "1.1.0"},
+    "codec_version": {"const": "1.0.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "required_decoder": {"const": true},
+    "profile_id": {"enum": ["analysis-safe", "parcel-series-qpp", "fitted-run"]},
+    "decoder_version": {"const": "neuroarchive-qpp-cpp-1"},
+    "inputs": {"oneOf": [{"type": "string"}, {"type": "array", "minItems": 1, "maxItems": 1, "items": {"type": "string"}}]},
+    "outputs": {"oneOf": [{"type": "string"}, {"type": "array", "minItems": 1, "maxItems": 1, "items": {"type": "string"}}]},
+    "datasets": {"type": "array", "minItems": 6, "maxItems": 6},
+    "analysis_contract": {"$ref": "analysis-contract.schema.json#/definitions/transform_contract"},
+    "params": {
+      "type": "object",
+      "required": ["quantizer_policy", "units", "profile_id", "fit_scope", "lossy_support", "coding_dependency", "rounding_mode", "integer_domain", "predictor_set", "predictor_cost", "predictor_tie_order", "byte_order", "bit_order", "outer_codecs", "time_count", "parcel_count", "time_chunk", "parcel_chunk", "parcel_steps_checksum", "matrix_order", "integrity_policy", "tile_digest_algorithm", "step_digest_algorithm"],
+      "properties": {
+        "delta": {"type": ["number", "array", "null"], "default": null},
+        "quantizer_policy": {"enum": ["fixed", "external-calibration", "fitted-run-maxabs"], "default": "fixed"},
+        "units": {"type": ["string", "null"], "default": null},
+        "calibration_id": {"type": ["string", "null"], "default": null},
+        "calibration_checksum": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$", "default": null},
+        "normalization_provenance": {"$ref": "analysis-contract.schema.json#/definitions/normalization_provenance"},
+        "fit_id": {"type": ["string", "null"], "default": null},
+        "target_q": {"type": "integer", "minimum": 1, "maximum": 2147483647, "default": 32767},
+        "zero_step": {"type": "number", "exclusiveMinimum": 0, "default": 1},
+        "allow_clip": {"const": false, "default": false},
+        "time_chunk": {"type": "integer", "minimum": 1, "maximum": 65535, "default": 128},
+        "parcel_chunk": {"type": "integer", "minimum": 1, "maximum": 65535, "default": 128},
+        "max_tile_values": {"type": "number", "minimum": 1, "default": 16777216},
+        "max_tile_bytes": {"type": "number", "minimum": 1, "default": 536870912},
+        "profile_id": {"enum": ["analysis-safe", "parcel-series-qpp", "fitted-run"]},
+        "fit_scope": {"enum": ["fixed", "external-calibration", "run"]},
+        "lossy_support": {"const": "pointwise"},
+        "coding_dependency": {"const": "chunk"},
+        "rounding_mode": {"const": "nearest-ties-to-even"},
+        "integer_domain": {"const": "signed-int32-q"},
+        "predictor_set": {"type": "array", "items": {"enum": ["P0", "P1", "P2"]}},
+        "predictor_cost": {"const": "anchors32-plus-residual-width-v1"},
+        "predictor_tie_order": {"type": "array", "items": {"enum": ["P0", "P1", "P2"]}},
+        "byte_order": {"const": "little-endian"},
+        "bit_order": {"const": "lsb-first"},
+        "outer_codecs": {"oneOf": [{"const": "raw"}, {"type": "array", "items": {"const": "raw"}}]},
+        "time_count": {"type": "integer", "minimum": 1},
+        "parcel_count": {"type": "integer", "minimum": 1},
+        "parcel_steps_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "integrity_policy": {"const": "selected-v1"},
+        "tile_digest_algorithm": {"const": "sha256-stored-bytes-v1"},
+        "step_digest_algorithm": {"const": "sha256-binary64-le-v1"},
+        "parcel_binding": {
+          "type": ["object", "null"],
+          "required": ["descriptor", "transform", "run_id", "step_index", "asset_id", "map_checksum", "mask_checksum", "labels_path"],
+          "properties": {
+            "descriptor": {"type": "string", "pattern": "^[0-9]{2,}_parcel[.]mean[.]json$"},
+            "transform": {"const": "parcel.mean@1.1.0"},
+            "run_id": {"type": "string", "minLength": 1},
+            "step_index": {"type": "integer", "minimum": 0},
+            "asset_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "map_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "mask_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "labels_path": {"type": "string", "pattern": "^/spatial/qpp_assets/[0-9a-f]{64}/parcel_labels$"}
+          },
+          "additionalProperties": false,
+          "default": null
+        },
+        "matrix_order": {"const": "time-by-parcel"}
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"profile_id": {"const": "analysis-safe"}}},
+          "then": {"required": ["parcel_binding"], "properties": {"parcel_binding": {"type": "object"}}}
+        },
+        {
+          "if": {"properties": {"quantizer_policy": {"const": "external-calibration"}}},
+          "then": {"required": ["calibration_id", "calibration_checksum"], "properties": {"calibration_id": {"type": "string", "minLength": 1}, "calibration_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+          "else": {"properties": {"calibration_id": {"type": "null"}, "calibration_checksum": {"type": "null"}}}
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,341 @@
+---
+title: "Analysis-safe parcel time-series compression"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analysis-safe parcel time-series compression}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+library(neuroarchive)
+```
+
+You have a four-dimensional fMRI image and a parcel map, and you want an
+archive that can return the parcel mean at every original TR without silently
+mixing information across a later train/test split. The `analysis-safe` QPP
+profile writes that estimand with a fixed pointwise error bound and supports
+bounded time and ROI reads. It returns an ordinary LNA archive, which you can
+validate, inspect for split compatibility, and reconstruct eagerly or lazily.
+
+The profile is deliberately narrow. Parcel labels, optional voxel weights,
+quantizer steps, and normalization must be fixed independently of the encoded
+run or calibrated on disjoint external data. Subject-, session-, run-, and
+fold-fitted inputs are not accepted by `lna_profile_analysis_safe()`.
+
+## What goes in, and what comes back?
+
+This workflow accepts an fMRI array with shape `x * y * z * time`, a fixed
+parcel label for every voxel in a three-dimensional mask, and a fixed
+quantization step. Its reconstructed estimand is the mean of each parcel at
+every original TR. Reading an ROI gathers the relevant parcel series back to
+the requested voxels; it does not reconstruct the original within-parcel
+voxel variation.
+
+With no `weights`, the estimand is the ordinary mean over active voxels in each
+parcel. With fixed non-negative `weights`, it is the corresponding weighted
+mean. Either way, weights are part of the immutable parcel-asset identity.
+
+For parcel value \(Y_{tk}\) and fixed step \(\Delta_k\), the stored integer is
+
+\[
+q_{tk}=\operatorname{round}(Y_{tk}/\Delta_k), \qquad
+\widehat Y_{tk}=\Delta_kq_{tk}.
+\]
+
+Under exact arithmetic, the quantizer contribution is bounded by
+\(\Delta_k/2\). Binary64 division and multiplication add their actual rounding
+error, so the full validation receipt reports the empirical maximum and RMSE
+rather than promising an unconditional floating-point bound. Clipping is
+rejected. P0/P1/P2 temporal prediction changes only the byte representation:
+decoding recovers every `q` exactly.
+
+The current public profile is named `analysis-safe`, but its package lifecycle
+is **experimental**. Its implementation gates passed, while the frozen
+untouched-data court missed the predeclared maximum connectivity-edge ceiling.
+The name describes a leakage contract, not numerical perfection, archive
+integrity by itself, or a stable scientific endorsement.
+
+## Write and validate a small archive
+
+The example has 8 voxels, 12 TRs, and 4 parcels. The normalization record is
+required. Here `method = "none"` is truthful because this synthetic input is
+not normalized from statistics estimated on the encoded run.
+
+```{r write}
+mask <- array(TRUE, dim = c(8, 1, 1))
+labels <- array(rep(1:4, each = 2), dim = dim(mask))
+affine <- diag(c(2, 2, 2, 1))
+map_grid_id <- lna_grid_identity(dim(mask), affine)
+x <- array(
+  outer(seq_len(8), seq_len(12), function(v, t) v + sin(t / 3)),
+  dim = c(8, 1, 1, 12)
+)
+
+normalization <- list(
+  method = "none",
+  fit_scope = "fixed",
+  source_id = "synthetic-values-v1",
+  calibration_identity = NULL,
+  fit_id = NULL
+)
+
+profile <- lna_profile_analysis_safe(
+  labels = labels,
+  delta = 0.01,
+  signal_units = "percent-signal-change",
+  source_id = "example-atlas-v1",
+  normalization_provenance = normalization,
+  map_grid_id = map_grid_id,
+  time_chunk = 4L,
+  parcel_chunk = 2L
+)
+profile
+
+file <- tempfile(fileext = ".lna.h5")
+write_lna(
+  x,
+  file,
+  transforms = profile$transforms,
+  transform_params = profile$transform_params,
+  mask = mask,
+  header = list(
+    dims = c(8L, 1L, 1L),
+    spacing = c(2, 2, 2),
+    origin = c(0, 0, 0),
+    transform = affine
+  ),
+  run_id = "run-01",
+  checksum = "none"
+)
+
+receipt <- validate_lna(
+  file, checksum = FALSE, qpp = "all", receipt = TRUE
+)
+receipt$qpp[[1L]][c("tile_count", "tiles_checked", "q_roundtrip_verified")]
+```
+
+```{r write-checks, include=FALSE}
+stopifnot(
+  identical(profile$allowed_split_unit, "pointwise"),
+  identical(receipt$qpp[[1L]]$tiles_checked, receipt$qpp[[1L]]$tile_count),
+  isTRUE(receipt$qpp[[1L]]$q_roundtrip_verified),
+  all(is.finite(receipt$qpp[[1L]]$parcelwise_RMSE)),
+  all(receipt$qpp[[1L]]$parcelwise_RMSE >= 0)
+)
+```
+
+The write returns an `lna_write_result`; a later eager read returns a
+`DataHandle`, and a lazy read returns an `lna_reader`. The reconstructed values
+are available at `handle$stash$input` as time by active voxel. From there you
+can continue with ordinary matrix operations, call `as_neurovec()` when you
+need a spatial `neuroim2` object, or keep the archive lazy for repeated ranges.
+
+## Which validation mode answers which question?
+
+There are four separate claims to keep apart:
+
+- **Leakage safety:** `analysis_contract()` derives whether a proposed split
+  respects fitted and lossy support.
+- **Numerical error:** a full QPP receipt reports maximum error and parcelwise
+  RMSE against the original parcel series.
+- **Archive integrity:** validation and the decoder verify descriptor
+  relationships, selected bytes, and selected parcel steps.
+- **Scientific admission:** the frozen benchmark court decides whether the
+  experimental profile is promoted. It currently says no.
+
+`validate_lna()` defaults to `qpp = "all"`: it checks the complete index and
+parcel-step evidence, decodes every tile, verifies every stored-byte digest and
+integer round trip, and produces the evidence needed for archive admission.
+`qpp = "sample"` decodes a deterministic subset of tiles; `qpp = "structural"`
+checks the complete index, exact parcel binding, digest extents, all parcel
+steps, and receipt metadata without decoding payload tiles.
+
+`read_lna()` has a different default: `validate = "quick"` performs a bounded
+preflight over required versions, descriptor relationships, extents, and
+selected index rows. During reconstruction, the current QPP decoder always
+verifies every selected tile's stored bytes and every selected parcel step
+before returning or caching values—even with `validate = FALSE`. Use
+`validate = TRUE` when you want the full `validate_lna()` court before reading;
+use `FALSE` only to skip preflight, not as a way to disable selected-read
+integrity.
+
+## Can individual TRs be assigned to different folds?
+
+Coding chunks are reversible and therefore do not constrain statistical
+folds. With fixed or disjoint-external parcel, quantizer, and normalization
+assets, arbitrary TR assignments are compatible. The machine vocabulary calls
+this split unit `"pointwise"`; for this profile, one point is one TR
+observation. The profile constructor and `analysis_contract()` use the same
+term.
+
+```{r split-read}
+contract <- analysis_contract(file)
+contract$allowed_split_unit
+
+folds <- data.frame(
+  observation_id = seq_len(12),
+  fold = rep(c("train", "test"), 6)
+)
+assert_split_compatible(file, folds)
+
+roi <- array(FALSE, dim = dim(mask))
+roi[c(1, 8)] <- TRUE
+decoded <- read_lna(
+  file,
+  roi_mask = roi,
+  time_idx = c(3L, 2L, 4L),
+  validate = FALSE
+)
+dim(decoded$stash$input)
+decoded$meta$qpp_io_receipt[c(
+  "physical_time_partial", "physical_parcel_partial", "payload_bytes_read",
+  "tile_digest_rows_read", "step_digest_rows_read"
+)]
+```
+
+The requested subset touches two parcels and three TRs. The reader resolves
+the labels through the exact run-matched parcel descriptor, then reads only
+intersecting QPP index rows, digest rows, step values, and payload byte ranges.
+
+```{r split-read-checks, include=FALSE}
+io <- decoded$meta$qpp_io_receipt
+stopifnot(
+  identical(contract$allowed_split_unit, "pointwise"),
+  isTRUE(io$physical_time_partial),
+  isTRUE(io$physical_parcel_partial),
+  isTRUE(io$selected_tile_digests_verified),
+  isTRUE(io$selected_step_digests_verified),
+  io$payload_bytes_read < io$payload_total_bytes,
+  all(is.finite(decoded$stash$input))
+)
+```
+
+## What changes for multiple runs?
+
+Pass a named list to write ordinary runs. Each run gets its own parcel and QPP
+descriptors, payload, index ordinals, and decoder state. The public profile has
+one immutable parcel specification for the call, so equal assets are reused by
+canonical identity; a different identity must use a distinct asset path or the
+write fails closed. Ordinary runs are never pooled unless you explicitly choose
+an aggregate transform.
+
+Both eager and lazy `run-*` reads return a named list. Each lazy list element
+owns one run and can be subset or closed without changing its siblings:
+
+```{r multi-run}
+multi_file <- tempfile(fileext = ".lna.h5")
+runs <- list("run-01" = x, "run-02" = x + 0.25)
+geometry <- list(
+  dims = c(8L, 1L, 1L), spacing = c(2, 2, 2), origin = c(0, 0, 0),
+  transform = affine
+)
+write_lna(
+  runs, multi_file,
+  transforms = profile$transforms,
+  transform_params = profile$transform_params,
+  mask = mask,
+  run_geometry = list("run-01" = geometry, "run-02" = geometry),
+  checksum = "none"
+)
+lazy_runs <- read_lna(
+  multi_file, run_id = "run-*", lazy = TRUE, validate = FALSE
+)
+names(lazy_runs)
+invisible(lapply(lazy_runs, function(reader) reader$close()))
+```
+
+```{r multi-run-checks, include=FALSE}
+stopifnot(identical(names(lazy_runs), c("run-01", "run-02")))
+unlink(multi_file)
+```
+
+## Which provenance is accepted?
+
+A fixed step can be specified directly. For externally calibrated parcel maps
+or steps, freeze them on disjoint subjects or a disjoint calibration run and
+record both an immutable identifier and a SHA-256 checksum:
+
+```{r external-profile, eval=FALSE}
+profile <- lna_profile_analysis_safe(
+  labels = frozen_labels,
+  delta = frozen_steps,
+  signal_units = "percent-signal-change",
+  source_id = "atlas-release-2026-08",
+  parcellation_fit_scope = "external-calibration",
+  parcellation_calibration_id = "calibration-cohort-v1",
+  parcellation_calibration_checksum = "sha256:<64 hex digits>",
+  quantizer_policy = "external-calibration",
+  quantizer_calibration_id = "qpp-steps-alpha-0.001-v1",
+  quantizer_calibration_checksum = "sha256:<64 hex digits>",
+  normalization_provenance = list(
+    method = "percent-signal-change",
+    fit_scope = "external-calibration",
+    source_id = "psc-calibration-v1",
+    calibration_identity = list(
+      id = "calibration-cohort-v1",
+      checksum = "sha256:<64 hex digits>",
+      relationship = "external-disjoint"
+    ),
+    fit_id = NULL
+  ),
+  map_grid_id = lna_grid_identity(dim(frozen_labels), frozen_affine)
+)
+```
+
+Do not compute a subject MAD, maximum, standard deviation, normalization mean,
+or parcellation from the complete evaluation run and label it fixed. Such an
+asset has run- or subject-level fit support even if the QPP quantization formula
+is pointwise.
+
+`fmrilatent` is not inherently unsafe. An artifact produced there can be passed
+to `lna_profile_analysis_safe()` only when it is fixed independently or fitted
+on disjoint external calibration data with a canonical identity. Fold-fitted
+maps may be valid under a generic fold-scoped analysis contract, and
+run/session-fitted maps may be valid when complete units remain intact, but
+those are alternative contracts or future named profiles—not inputs accepted
+by this constructor. The fit scope and lossy reconstruction support determine
+safety, not the package that produced the asset.
+
+Common fail-closed errors are intentional:
+
+- a missing normalization record or a run/subject fit scope is rejected by the
+  profile constructor;
+- malformed or non-canonical calibration identities are rejected before write;
+- a map whose grid, affine, mask/support, or voxel order differs from the input
+  is rejected;
+- an analysis-safe QPP descriptor with a missing, duplicate, wrong-run, or
+  substituted parcel binding fails validation;
+- a changed selected payload byte or parcel step fails before decode or cache;
+- legacy `qpp@1.0.0` is decode-only with validation disabled and an explicit
+  warning; it cannot validate as the named profile.
+
+## Why the wavelet profile is unavailable
+
+```{r wavelet-status}
+lna_profile_multiresolution_run()
+```
+
+The integer lifting reference is exact when all coefficients are retained and
+is partition-isolated when applied separately to complete runs. The calibrated
+lossy prototype was not admitted: it used 95.317% of the QPP payload bytes
+against a required maximum of 90%, and it missed the untouched GLM-t agreement
+gate. The constructor therefore returns an unavailable status object rather
+than write arguments. This preserves a reproducible no-go decision without
+creating a decoder compatibility promise.
+
+For your next archive, use `validate_lna(qpp = "all", receipt = TRUE)` to keep
+the numerical and integrity evidence, `analysis_contract()` plus
+`assert_split_compatible()` to check the intended folds, and `read_lna(...,
+lazy = TRUE)` for repeated bounded ranges. The exact format and promotion gates
+are installed under `system.file("spec", package = "neuroarchive")`.
+
+```{r cleanup, include=FALSE}
+unlink(file)
+```

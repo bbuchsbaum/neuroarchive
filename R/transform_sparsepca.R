@@ -151,7 +151,7 @@ forward_step.sparsepca <- function(type, desc, handle) {
   plan <- handle$plan
   fname <- plan$get_next_filename(type)
   
-  current_step_idx_for_path <- plan$next_index - 1 
+  current_step_idx_for_path <- plan$next_index
   run_id_for_path <- handle$current_run_id %||% "run-01"
   run_id_for_path <- sanitize_run_id(run_id_for_path) 
 
@@ -174,9 +174,14 @@ forward_step.sparsepca <- function(type, desc, handle) {
 
   desc$datasets <- list(
     list(path = basis_h5_path, role = "basis_matrix"),
-    list(path = embed_h5_path, role = "coefficients"), 
-    list(path = d_h5_path, role = "singular_values")
+    list(path = embed_h5_path, role = "coefficients")
   )
+  if (!is.null(d) && length(d) > 0L) {
+    desc$datasets <- c(
+      desc$datasets,
+      list(list(path = d_h5_path, role = "singular_values"))
+    )
+  }
   
   plan$add_descriptor(fname, desc) 
   
@@ -190,10 +195,12 @@ forward_step.sparsepca <- function(type, desc, handle) {
                        run_id_for_path, as.integer(current_step_idx_for_path),
                        params_json, embed_h5_path, "eager", dtype = NA_character_)
 
-  plan$add_payload(d_h5_path, d)
-  plan$add_dataset_def(d_h5_path, "singular_values", as.character(type),
-                       run_id_for_path, as.integer(current_step_idx_for_path),
-                       params_json, d_h5_path, "eager", dtype = NA_character_)
+  if (!is.null(d) && length(d) > 0L) {
+    plan$add_payload(d_h5_path, d)
+    plan$add_dataset_def(d_h5_path, "singular_values", as.character(type),
+                         run_id_for_path, as.integer(current_step_idx_for_path),
+                         params_json, d_h5_path, "eager", dtype = NA_character_)
+  }
 
   handle$plan <- plan
   

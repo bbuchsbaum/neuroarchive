@@ -13,3 +13,5 @@
 ^\.albersdown\.bak$
 ^tests/testthat/_problems$
 ^tests/testthat/testthat-problems\.rds$
+^\.git$
+^\.github$
