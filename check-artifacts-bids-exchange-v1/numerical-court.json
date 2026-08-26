@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "status": "pass",
+  "package_version": "0.1.1",
+  "records": [
+    {
+      "record_id": "raw-rest",
+      "status": "pass",
+      "dims": [
+        8,
+        8,
+        8,
+        6
+      ],
+      "n_values": 3072,
+      "max_abs_error": 0,
+      "rmse": 0
+    },
+    {
+      "record_id": "raw-nback",
+      "status": "pass",
+      "dims": [
+        8,
+        8,
+        8,
+        6
+      ],
+      "n_values": 3072,
+      "max_abs_error": 0,
+      "rmse": 0
+    },
+    {
+      "record_id": "derivative-rest",
+      "status": "pass",
+      "dims": [
+        8,
+        8,
+        8,
+        6
+      ],
+      "n_values": 3072,
+      "max_abs_error": 0,
+      "rmse": 0
+    },
+    {
+      "record_id": "raw-motor",
+      "status": "pass",
+      "dims": [
+        8,
+        8,
+        8,
+        6
+      ],
+      "n_values": 3072,
+      "max_abs_error": 0,
+      "rmse": 0
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "schema_version": "1.0.0",
+  "status": "pass",
+  "generated_at": "2026-08-26T02:23:08.655685Z",
+  "exact_candidate": {
+    "tarball_sha256": "sha256:7a46495394a14d056a3d420731e23a0368ec9ccbba18457199124945d4fd72a8",
+    "package_version": "0.1.1",
+    "consumer_script_sha256": "sha256:96090190544941d9dd1e02c03dedefc86185ab448565ef772c6e151b9449dc5c",
+    "package_versions": {
+      "neuroarchive": "0.1.1",
+      "hdf5r": "1.3.12",
+      "neuroim2": "0.19.0",
+      "jsonlite": "2.0.0",
+      "digest": "0.6.39",
+      "Rcpp": "1.1.2",
+      "bidser": "0.5.1",
+      "fmrilatent": "0.1.0"
+    },
+    "r_version": "R version 4.5.1 (2025-06-13)",
+    "platform": "aarch64-apple-darwin20"
+  },
+  "workflows": {
+    "pack": "pass",
+    "exact_query": "pass",
+    "append_update": "pass",
+    "source_deleted_before_transfer": true,
+    "transfer": "pass",
+    "changed_only_retransfer": "pass",
+    "authenticated_verify": "pass",
+    "source_independent_closed_restore": "pass",
+    "lossless_numerical_restore": "pass",
+    "association_byte_identity": "pass"
+  },
+  "archive": {
+    "plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+    "manifest_schema_version": "1.1.0",
+    "manifest_tsv_sha256": "sha256:38e4cf70368bf93e66ba4beda36fe94ab5e11701bfba6caff8dafe9c9cefca10",
+    "manifest_json_sha256": "sha256:de03418e1b1d588a5e4869cdc446065cc5456e582682171b94f275d1edf66e97",
+    "declaration_sha256": "sha256:c1f1b98761026821df778af5251a7d6768a3e5ca08d05d28f5cc2e0e1ecf5fb4",
+    "inventory_hash": "sha256:e71dc1cc2b452e406f748c77bcd7244e58f35a5fe8a1014981c34cae830a156b",
+    "verified_file_count": 18,
+    "record_ids": [
+      "derivative-rest",
+      "raw-motor",
+      "raw-nback",
+      "raw-rest"
+    ]
+  },
+  "update": {
+    "schema_version": "1.0.0",
+    "revision": 2,
+    "update_plan_hash": "sha256:5839ee922f40752753f93b9045d214b9353431d0ebf48b6c80dcc25fe4a06a80",
+    "base_plan_hash": "sha256:a74375ae552748efcd40144a5496a4ef7961ca270e6e4074c615b11c5529ee2b",
+    "archive_plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+    "mode": "append",
+    "prune": false,
+    "completed_at": "2026-08-26T02:23:05.724689Z",
+    "classifications": {
+      "added": 1,
+      "unchanged": 3
+    },
+    "previous_generation": ".archive.lna-previous-r2-5839ee922f407527"
+  },
+  "restoration": {
+    "schema_version": "1.0.0",
+    "status": "closed",
+    "bids_validity": "closed-structure-intended-for-validation",
+    "source_archive": {
+      "plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+      "profile": "NeuroarchiveBIDSExchange",
+      "profile_version": "1.0.0"
+    },
+    "selection": {
+      "match": "exact",
+      "filters": [],
+      "requested_record_ids": [
+        "derivative-rest",
+        "raw-rest",
+        "raw-nback",
+        "raw-motor"
+      ],
+      "restored_record_ids": [
+        "derivative-rest",
+        "raw-rest",
+        "raw-nback",
+        "raw-motor"
+      ]
+    },
+    "outputs": {
+      "nifti_paths": [
+        "derivatives/fmriprep/sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz",
+        "sub-01/ses-A/func/sub-01_ses-A_task-rest_acq-mb_run-01_bold.nii.gz",
+        "sub-02/func/sub-02_task-nback_run-01_bold.nii.gz",
+        "sub-03/func/sub-03_task-motor_run-01_bold.nii.gz"
+      ],
+      "metadata_sidecars": [
+        "derivatives/fmriprep/sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.json",
+        "sub-01/ses-A/func/sub-01_ses-A_task-rest_acq-mb_run-01_bold.json",
+        "sub-02/func/sub-02_task-nback_run-01_bold.json",
+        "sub-03/func/sub-03_task-motor_run-01_bold.json"
+      ],
+      "copied_associations": [
+        "sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_events.tsv",
+        "sub-02/func/sub-02_task-nback_run-01_events.tsv",
+        "sub-03/func/sub-03_task-motor_run-01_events.tsv"
+      ],
+      "participants": null
+    },
+    "transformation_rules": {
+      "imaging": "regenerated-from-lna-not-byte-identical-to-source",
+      "metadata": "effective-metadata-flattened-to-image-sidecar",
+      "events": "copied-byte-for-byte-when-present",
+      "entities": "preserved-exactly",
+      "original_file_byte_identity": "not-claimed"
+    },
+    "missing_dependencies": []
+  },
+  "numerical": {
+    "schema_version": "1.0.0",
+    "status": "pass",
+    "package_version": "0.1.1",
+    "records": [
+      {
+        "record_id": "raw-rest",
+        "status": "pass",
+        "dims": [
+          8,
+          8,
+          8,
+          6
+        ],
+        "n_values": 3072,
+        "max_abs_error": 0,
+        "rmse": 0
+      },
+      {
+        "record_id": "raw-nback",
+        "status": "pass",
+        "dims": [
+          8,
+          8,
+          8,
+          6
+        ],
+        "n_values": 3072,
+        "max_abs_error": 0,
+        "rmse": 0
+      },
+      {
+        "record_id": "derivative-rest",
+        "status": "pass",
+        "dims": [
+          8,
+          8,
+          8,
+          6
+        ],
+        "n_values": 3072,
+        "max_abs_error": 0,
+        "rmse": 0
+      },
+      {
+        "record_id": "raw-motor",
+        "status": "pass",
+        "dims": [
+          8,
+          8,
+          8,
+          6
+        ],
+        "n_values": 3072,
+        "max_abs_error": 0,
+        "rmse": 0
+      }
+    ]
+  }
+}

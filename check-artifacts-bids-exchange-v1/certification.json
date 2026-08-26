@@ -1,0 +1,606 @@
+{
+  "schema_version": "1.0.0",
+  "status": "pass",
+  "generated_at": "2026-08-26T02:26:57.421681Z",
+  "exact_candidate": {
+    "neuroarchive_tarball_sha256": "sha256:7a46495394a14d056a3d420731e23a0368ec9ccbba18457199124945d4fd72a8",
+    "bidser_0_5_1_tarball_sha256": "sha256:2cfd2fd6e82f2145f44e8817331d274dbc87bc1e6bd4fad013c076e3c652c0e4",
+    "installed_consumer_sha256": "sha256:96090190544941d9dd1e02c03dedefc86185ab448565ef772c6e151b9449dc5c",
+    "installed_package_version": "0.1.1",
+    "package_versions": {
+      "neuroarchive": "0.1.1",
+      "hdf5r": "1.3.12",
+      "neuroim2": "0.19.0",
+      "jsonlite": "2.0.0",
+      "digest": "0.6.39",
+      "Rcpp": "1.1.2",
+      "bidser": "0.5.1",
+      "fmrilatent": "0.1.0"
+    },
+    "r_version": "R version 4.5.1 (2025-06-13)",
+    "platform": "aarch64-apple-darwin20"
+  },
+  "gates": {
+    "installed_workflows": "pass",
+    "source_deleted_before_transfer": true,
+    "bids_validator_version": "1.15.0",
+    "bids_validator_errors": 0,
+    "bids_validator_warning_count": 3,
+    "r_cmd_check_status": "2 NOTEs"
+  },
+  "warning_dispositions": [
+    {
+      "key": "INCONSISTENT_SUBJECTS",
+      "disposition": "accepted-non-structural",
+      "rationale": "intentional heterogeneous task coverage in the multi-subject fixture; the warning is advisory and every represented file is structurally valid"
+    },
+    {
+      "key": "MISSING_SESSION",
+      "disposition": "accepted-non-structural",
+      "rationale": "intentional sparse-session fixture: sub-01 has ses-A while sub-02 and sub-03 exercise legal no-session layouts"
+    },
+    {
+      "key": "TOO_FEW_AUTHORS",
+      "disposition": "accepted-non-structural",
+      "rationale": "synthetic generated restoration has one declared generator author; this is bibliographic advice, not a structural defect"
+    }
+  ],
+  "archive": {
+    "plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+    "manifest_schema_version": "1.1.0",
+    "manifest_tsv_sha256": "sha256:38e4cf70368bf93e66ba4beda36fe94ab5e11701bfba6caff8dafe9c9cefca10",
+    "manifest_json_sha256": "sha256:de03418e1b1d588a5e4869cdc446065cc5456e582682171b94f275d1edf66e97",
+    "declaration_sha256": "sha256:c1f1b98761026821df778af5251a7d6768a3e5ca08d05d28f5cc2e0e1ecf5fb4",
+    "inventory_hash": "sha256:e71dc1cc2b452e406f748c77bcd7244e58f35a5fe8a1014981c34cae830a156b",
+    "verified_file_count": 18,
+    "record_ids": [
+      "derivative-rest",
+      "raw-motor",
+      "raw-nback",
+      "raw-rest"
+    ]
+  },
+  "update": {
+    "schema_version": "1.0.0",
+    "revision": 2,
+    "update_plan_hash": "sha256:5839ee922f40752753f93b9045d214b9353431d0ebf48b6c80dcc25fe4a06a80",
+    "base_plan_hash": "sha256:a74375ae552748efcd40144a5496a4ef7961ca270e6e4074c615b11c5529ee2b",
+    "archive_plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+    "mode": "append",
+    "prune": false,
+    "completed_at": "2026-08-26T02:23:05.724689Z",
+    "classifications": {
+      "added": 1,
+      "unchanged": 3
+    },
+    "previous_generation": ".archive.lna-previous-r2-5839ee922f407527"
+  },
+  "restoration": {
+    "schema_version": "1.0.0",
+    "status": "closed",
+    "bids_validity": "closed-structure-intended-for-validation",
+    "source_archive": {
+      "plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+      "profile": "NeuroarchiveBIDSExchange",
+      "profile_version": "1.0.0"
+    },
+    "selection": {
+      "match": "exact",
+      "filters": [],
+      "requested_record_ids": [
+        "derivative-rest",
+        "raw-rest",
+        "raw-nback",
+        "raw-motor"
+      ],
+      "restored_record_ids": [
+        "derivative-rest",
+        "raw-rest",
+        "raw-nback",
+        "raw-motor"
+      ]
+    },
+    "outputs": {
+      "nifti_paths": [
+        "derivatives/fmriprep/sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz",
+        "sub-01/ses-A/func/sub-01_ses-A_task-rest_acq-mb_run-01_bold.nii.gz",
+        "sub-02/func/sub-02_task-nback_run-01_bold.nii.gz",
+        "sub-03/func/sub-03_task-motor_run-01_bold.nii.gz"
+      ],
+      "metadata_sidecars": [
+        "derivatives/fmriprep/sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.json",
+        "sub-01/ses-A/func/sub-01_ses-A_task-rest_acq-mb_run-01_bold.json",
+        "sub-02/func/sub-02_task-nback_run-01_bold.json",
+        "sub-03/func/sub-03_task-motor_run-01_bold.json"
+      ],
+      "copied_associations": [
+        "sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_events.tsv",
+        "sub-02/func/sub-02_task-nback_run-01_events.tsv",
+        "sub-03/func/sub-03_task-motor_run-01_events.tsv"
+      ],
+      "participants": null
+    },
+    "transformation_rules": {
+      "imaging": "regenerated-from-lna-not-byte-identical-to-source",
+      "metadata": "effective-metadata-flattened-to-image-sidecar",
+      "events": "copied-byte-for-byte-when-present",
+      "entities": "preserved-exactly",
+      "original_file_byte_identity": "not-claimed"
+    },
+    "missing_dependencies": []
+  },
+  "installed_court": {
+    "schema_version": "1.0.0",
+    "status": "pass",
+    "generated_at": "2026-08-26T02:23:08.655685Z",
+    "exact_candidate": {
+      "tarball_sha256": "sha256:7a46495394a14d056a3d420731e23a0368ec9ccbba18457199124945d4fd72a8",
+      "package_version": "0.1.1",
+      "consumer_script_sha256": "sha256:96090190544941d9dd1e02c03dedefc86185ab448565ef772c6e151b9449dc5c",
+      "package_versions": {
+        "neuroarchive": "0.1.1",
+        "hdf5r": "1.3.12",
+        "neuroim2": "0.19.0",
+        "jsonlite": "2.0.0",
+        "digest": "0.6.39",
+        "Rcpp": "1.1.2",
+        "bidser": "0.5.1",
+        "fmrilatent": "0.1.0"
+      },
+      "r_version": "R version 4.5.1 (2025-06-13)",
+      "platform": "aarch64-apple-darwin20"
+    },
+    "workflows": {
+      "pack": "pass",
+      "exact_query": "pass",
+      "append_update": "pass",
+      "source_deleted_before_transfer": true,
+      "transfer": "pass",
+      "changed_only_retransfer": "pass",
+      "authenticated_verify": "pass",
+      "source_independent_closed_restore": "pass",
+      "lossless_numerical_restore": "pass",
+      "association_byte_identity": "pass"
+    },
+    "archive": {
+      "plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+      "manifest_schema_version": "1.1.0",
+      "manifest_tsv_sha256": "sha256:38e4cf70368bf93e66ba4beda36fe94ab5e11701bfba6caff8dafe9c9cefca10",
+      "manifest_json_sha256": "sha256:de03418e1b1d588a5e4869cdc446065cc5456e582682171b94f275d1edf66e97",
+      "declaration_sha256": "sha256:c1f1b98761026821df778af5251a7d6768a3e5ca08d05d28f5cc2e0e1ecf5fb4",
+      "inventory_hash": "sha256:e71dc1cc2b452e406f748c77bcd7244e58f35a5fe8a1014981c34cae830a156b",
+      "verified_file_count": 18,
+      "record_ids": [
+        "derivative-rest",
+        "raw-motor",
+        "raw-nback",
+        "raw-rest"
+      ]
+    },
+    "update": {
+      "schema_version": "1.0.0",
+      "revision": 2,
+      "update_plan_hash": "sha256:5839ee922f40752753f93b9045d214b9353431d0ebf48b6c80dcc25fe4a06a80",
+      "base_plan_hash": "sha256:a74375ae552748efcd40144a5496a4ef7961ca270e6e4074c615b11c5529ee2b",
+      "archive_plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+      "mode": "append",
+      "prune": false,
+      "completed_at": "2026-08-26T02:23:05.724689Z",
+      "classifications": {
+        "added": 1,
+        "unchanged": 3
+      },
+      "previous_generation": ".archive.lna-previous-r2-5839ee922f407527"
+    },
+    "restoration": {
+      "schema_version": "1.0.0",
+      "status": "closed",
+      "bids_validity": "closed-structure-intended-for-validation",
+      "source_archive": {
+        "plan_hash": "sha256:78c40d968b225945acf894579ebb754e7f426fbbf87c6631363faf5ffe2ef284",
+        "profile": "NeuroarchiveBIDSExchange",
+        "profile_version": "1.0.0"
+      },
+      "selection": {
+        "match": "exact",
+        "filters": [],
+        "requested_record_ids": [
+          "derivative-rest",
+          "raw-rest",
+          "raw-nback",
+          "raw-motor"
+        ],
+        "restored_record_ids": [
+          "derivative-rest",
+          "raw-rest",
+          "raw-nback",
+          "raw-motor"
+        ]
+      },
+      "outputs": {
+        "nifti_paths": [
+          "derivatives/fmriprep/sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz",
+          "sub-01/ses-A/func/sub-01_ses-A_task-rest_acq-mb_run-01_bold.nii.gz",
+          "sub-02/func/sub-02_task-nback_run-01_bold.nii.gz",
+          "sub-03/func/sub-03_task-motor_run-01_bold.nii.gz"
+        ],
+        "metadata_sidecars": [
+          "derivatives/fmriprep/sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.json",
+          "sub-01/ses-A/func/sub-01_ses-A_task-rest_acq-mb_run-01_bold.json",
+          "sub-02/func/sub-02_task-nback_run-01_bold.json",
+          "sub-03/func/sub-03_task-motor_run-01_bold.json"
+        ],
+        "copied_associations": [
+          "sub-01/ses-A/func/sub-01_ses-A_task-rest_run-01_events.tsv",
+          "sub-02/func/sub-02_task-nback_run-01_events.tsv",
+          "sub-03/func/sub-03_task-motor_run-01_events.tsv"
+        ],
+        "participants": null
+      },
+      "transformation_rules": {
+        "imaging": "regenerated-from-lna-not-byte-identical-to-source",
+        "metadata": "effective-metadata-flattened-to-image-sidecar",
+        "events": "copied-byte-for-byte-when-present",
+        "entities": "preserved-exactly",
+        "original_file_byte_identity": "not-claimed"
+      },
+      "missing_dependencies": []
+    },
+    "numerical": {
+      "schema_version": "1.0.0",
+      "status": "pass",
+      "package_version": "0.1.1",
+      "records": [
+        {
+          "record_id": "raw-rest",
+          "status": "pass",
+          "dims": [
+            8,
+            8,
+            8,
+            6
+          ],
+          "n_values": 3072,
+          "max_abs_error": 0,
+          "rmse": 0
+        },
+        {
+          "record_id": "raw-nback",
+          "status": "pass",
+          "dims": [
+            8,
+            8,
+            8,
+            6
+          ],
+          "n_values": 3072,
+          "max_abs_error": 0,
+          "rmse": 0
+        },
+        {
+          "record_id": "derivative-rest",
+          "status": "pass",
+          "dims": [
+            8,
+            8,
+            8,
+            6
+          ],
+          "n_values": 3072,
+          "max_abs_error": 0,
+          "rmse": 0
+        },
+        {
+          "record_id": "raw-motor",
+          "status": "pass",
+          "dims": [
+            8,
+            8,
+            8,
+            6
+          ],
+          "n_values": 3072,
+          "max_abs_error": 0,
+          "rmse": 0
+        }
+      ]
+    }
+  },
+  "bids_validator": {
+    "issues": {
+      "errors": [],
+      "warnings": [
+        {
+          "key": "INCONSISTENT_SUBJECTS",
+          "severity": "warning",
+          "reason": "Not all subjects contain the same files. Each subject should contain the same number of files with the same naming unless some files are known to be missing.",
+          "files": [
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-01/func/sub-01_task-motor_run-01_bold.json",
+                "webkitRelativePath": "/sub-01/func/sub-01_task-motor_run-01_bold.json",
+                "name": "sub-01_task-motor_run-01_bold.json",
+                "path": "/sub-01/func/sub-01_task-motor_run-01_bold.json"
+              },
+              "evidence": "Subject: sub-01; Missing file: sub-01_task-motor_run-01_bold.json",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-01, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-01/func/sub-01_task-motor_run-01_bold.nii.gz",
+                "webkitRelativePath": "/sub-01/func/sub-01_task-motor_run-01_bold.nii.gz",
+                "name": "sub-01_task-motor_run-01_bold.nii.gz",
+                "path": "/sub-01/func/sub-01_task-motor_run-01_bold.nii.gz"
+              },
+              "evidence": "Subject: sub-01; Missing file: sub-01_task-motor_run-01_bold.nii.gz",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-01, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-01/func/sub-01_task-motor_run-01_events.tsv",
+                "webkitRelativePath": "/sub-01/func/sub-01_task-motor_run-01_events.tsv",
+                "name": "sub-01_task-motor_run-01_events.tsv",
+                "path": "/sub-01/func/sub-01_task-motor_run-01_events.tsv"
+              },
+              "evidence": "Subject: sub-01; Missing file: sub-01_task-motor_run-01_events.tsv",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-01, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-01/func/sub-01_task-nback_run-01_bold.json",
+                "webkitRelativePath": "/sub-01/func/sub-01_task-nback_run-01_bold.json",
+                "name": "sub-01_task-nback_run-01_bold.json",
+                "path": "/sub-01/func/sub-01_task-nback_run-01_bold.json"
+              },
+              "evidence": "Subject: sub-01; Missing file: sub-01_task-nback_run-01_bold.json",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-01, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-01/func/sub-01_task-nback_run-01_bold.nii.gz",
+                "webkitRelativePath": "/sub-01/func/sub-01_task-nback_run-01_bold.nii.gz",
+                "name": "sub-01_task-nback_run-01_bold.nii.gz",
+                "path": "/sub-01/func/sub-01_task-nback_run-01_bold.nii.gz"
+              },
+              "evidence": "Subject: sub-01; Missing file: sub-01_task-nback_run-01_bold.nii.gz",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-01, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-01/func/sub-01_task-nback_run-01_events.tsv",
+                "webkitRelativePath": "/sub-01/func/sub-01_task-nback_run-01_events.tsv",
+                "name": "sub-01_task-nback_run-01_events.tsv",
+                "path": "/sub-01/func/sub-01_task-nback_run-01_events.tsv"
+              },
+              "evidence": "Subject: sub-01; Missing file: sub-01_task-nback_run-01_events.tsv",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-01, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-02/func/sub-02_task-motor_run-01_bold.json",
+                "webkitRelativePath": "/sub-02/func/sub-02_task-motor_run-01_bold.json",
+                "name": "sub-02_task-motor_run-01_bold.json",
+                "path": "/sub-02/func/sub-02_task-motor_run-01_bold.json"
+              },
+              "evidence": "Subject: sub-02; Missing file: sub-02_task-motor_run-01_bold.json",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-02, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-02/func/sub-02_task-motor_run-01_bold.nii.gz",
+                "webkitRelativePath": "/sub-02/func/sub-02_task-motor_run-01_bold.nii.gz",
+                "name": "sub-02_task-motor_run-01_bold.nii.gz",
+                "path": "/sub-02/func/sub-02_task-motor_run-01_bold.nii.gz"
+              },
+              "evidence": "Subject: sub-02; Missing file: sub-02_task-motor_run-01_bold.nii.gz",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-02, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-02/func/sub-02_task-motor_run-01_events.tsv",
+                "webkitRelativePath": "/sub-02/func/sub-02_task-motor_run-01_events.tsv",
+                "name": "sub-02_task-motor_run-01_events.tsv",
+                "path": "/sub-02/func/sub-02_task-motor_run-01_events.tsv"
+              },
+              "evidence": "Subject: sub-02; Missing file: sub-02_task-motor_run-01_events.tsv",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-02, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            },
+            {
+              "key": "INCONSISTENT_SUBJECTS",
+              "code": 38,
+              "file": {
+                "relativePath": "/sub-03/func/sub-03_task-nback_run-01_bold.json",
+                "webkitRelativePath": "/sub-03/func/sub-03_task-nback_run-01_bold.json",
+                "name": "sub-03_task-nback_run-01_bold.json",
+                "path": "/sub-03/func/sub-03_task-nback_run-01_bold.json"
+              },
+              "evidence": "Subject: sub-03; Missing file: sub-03_task-nback_run-01_bold.json",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "This file is missing for subject sub-03, but is present for at least one other subject.",
+              "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS"
+            }
+          ],
+          "additionalFileCount": 2,
+          "helpUrl": "https://neurostars.org/search?q=INCONSISTENT_SUBJECTS",
+          "code": 38
+        },
+        {
+          "key": "MISSING_SESSION",
+          "severity": "warning",
+          "reason": "Not all subjects contain the same sessions.",
+          "files": [
+            {
+              "key": "MISSING_SESSION",
+              "code": 97,
+              "file": {
+                "relativePath": "/sub-02/ses-A",
+                "webkitRelativePath": "/sub-02/ses-A",
+                "name": "ses-A",
+                "path": "/sub-02/ses-A"
+              },
+              "evidence": "Subject: sub-02; Missing session: ses-A",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "A session is missing from one subject that is present in at least one other subject",
+              "helpUrl": "https://neurostars.org/search?q=MISSING_SESSION"
+            },
+            {
+              "key": "MISSING_SESSION",
+              "code": 97,
+              "file": {
+                "relativePath": "/sub-03/ses-A",
+                "webkitRelativePath": "/sub-03/ses-A",
+                "name": "ses-A",
+                "path": "/sub-03/ses-A"
+              },
+              "evidence": "Subject: sub-03; Missing session: ses-A",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "A session is missing from one subject that is present in at least one other subject",
+              "helpUrl": "https://neurostars.org/search?q=MISSING_SESSION"
+            }
+          ],
+          "additionalFileCount": 0,
+          "helpUrl": "https://neurostars.org/search?q=MISSING_SESSION",
+          "code": 97
+        },
+        {
+          "key": "TOO_FEW_AUTHORS",
+          "severity": "warning",
+          "reason": "The Authors field of dataset_description.json should contain an array of fields - with one author per field. This was triggered based on the presence of only one author field. Please ignore if all contributors are already properly listed.",
+          "files": [
+            {
+              "key": "TOO_FEW_AUTHORS",
+              "code": 102,
+              "file": null,
+              "evidence": "Neuroarchive restoration",
+              "line": null,
+              "character": null,
+              "severity": "warning",
+              "reason": "The Authors field of dataset_description.json should contain an array of fields - with one author per field. This was triggered based on the presence of only one author field. Please ignore if all contributors are already properly listed.",
+              "helpUrl": "https://neurostars.org/search?q=TOO_FEW_AUTHORS"
+            }
+          ],
+          "additionalFileCount": 0,
+          "helpUrl": "https://neurostars.org/search?q=TOO_FEW_AUTHORS",
+          "code": 102
+        }
+      ],
+      "ignored": [
+        {
+          "key": "NO_T1W",
+          "severity": "ignore",
+          "reason": "Dataset does not contain any T1w scans.",
+          "files": [
+            {
+              "key": "NO_T1W",
+              "code": 53,
+              "file": null,
+              "evidence": null,
+              "line": null,
+              "character": null,
+              "severity": "ignore",
+              "reason": "Dataset does not contain any T1w scans.",
+              "helpUrl": "https://neurostars.org/search?q=NO_T1W"
+            }
+          ],
+          "additionalFileCount": 0,
+          "helpUrl": "https://neurostars.org/search?q=NO_T1W",
+          "code": 53
+        }
+      ]
+    },
+    "summary": {
+      "sessions": [
+        "A"
+      ],
+      "subjects": [
+        "01",
+        "02",
+        "03"
+      ],
+      "tasks": [
+        "nback",
+        "rest",
+        "motor"
+      ],
+      "modalities": [
+        "MRI"
+      ],
+      "secondaryModalities": [
+        "MRI_Functional"
+      ],
+      "totalFiles": 11,
+      "size": 25066,
+      "dataProcessed": true,
+      "pet": null,
+      "dataTypes": [
+        "bold",
+        "events"
+      ]
+    }
+  },
+  "evidence_hashes": {
+    "installed_court_json_sha256": "sha256:317fab7463932bb52c06652a8bd45d1ef1439d2b9637b957ab90e1552d283281",
+    "bids_validator_json_sha256": "sha256:069a63880146d1df9efb099375f869d640a31cf03d7f34de95ca88e7d0f3a179",
+    "r_cmd_check_log_sha256": "sha256:3fe06216c483cc6acd6349ba71eaaee72e2678bacde0fffc868fd1ce9619aab7"
+  }
+}
