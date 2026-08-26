@@ -1,4 +1,5 @@
 #include <Rcpp.h>
+#include <array>
 #include <deque>
 using namespace Rcpp;
 
@@ -193,4 +194,3 @@ IntegerMatrix poisson_disk_sample_component_rcpp(IntegerMatrix component_vox_coo
     }
     return out;
 }
-
