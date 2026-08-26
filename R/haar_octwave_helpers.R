@@ -183,8 +183,8 @@ morton_indices_to_hash <- function(ordered_indices_vector) {
     }
   }
 
-  hash_val <- digest::digest(ordered_indices_vector, algo = "sha1",
-                             serialize = TRUE)
+  raw_bytes <- writeBin(ordered_indices_vector, raw(), size = 4L)
+  hash_val <- digest::digest(raw_bytes, algo = "sha1", serialize = FALSE)
   paste0("sha1:", hash_val)
 }
 

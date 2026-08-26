@@ -53,7 +53,7 @@ dct_basis <- temporal_basis("dct", n_time = 200, n_basis = 50)
 poly_basis <- temporal_basis("polynomial", n_time = 200, n_basis = 3)
 
 # DPSS for preserving BOLD frequencies (0-0.08 Hz with TR=2s)
-dpss_basis <- temporal_basis("dpss", n_time = 300, n_basis = 12, 
+dpss_basis <- temporal_basis("dpss", n_time = 300, n_basis = 4,
                              time_bandwidth_product = 2.0)
 
 }

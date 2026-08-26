@@ -135,4 +135,3 @@ test_that("write_lna auto-populates header from NeuroObj", {
   expect_equal(captured$header$origin, c(0,0,0))
   expect_equal(captured$header$transform, diag(4))
 })
-

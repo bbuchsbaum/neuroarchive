@@ -14,3 +14,8 @@ This file has been split into focused modules for better organization:
 All exported functions remain available with identical signatures.
 This file is kept for backwards compatibility but contains no code.
 }
+\section{Lifecycle}{
+
+Experimental/deprecated. These functions are available for compatibility,
+but stable workflows should prefer the core LNA archive APIs.
+}

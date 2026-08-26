@@ -88,20 +88,47 @@ invert_step.basis <- function(type, desc, handle) {
   dense <- NULL
 
   applied <- handle$subset_applied %||% list(roi_mask = FALSE, time_idx = FALSE)
-  if (is.matrix(incoming) && ncol(incoming) == v_voxels_effective) {
-    # Already reconstructed dense matrix (time x voxel); just pass through.
-    dense <- incoming
-    if (!isTRUE(applied$time_idx)) {
-      time_idx <- subset$time_idx %||% subset$time
-      if (!is.null(time_idx)) {
-        time_idx <- as.integer(time_idx)
-        if (length(time_idx) > 0 && max(time_idx) <= nrow(dense) && min(time_idx) > 0) {
-          dense <- dense[time_idx, , drop = FALSE]
+  if (is.matrix(incoming) || is.array(incoming)) {
+    incoming_dense <- if (is.array(incoming) && length(dim(incoming)) >= 3) {
+      as_dense_mat(incoming)
+    } else {
+      as.matrix(incoming)
+    }
+
+    col_matches_voxels <- ncol(incoming_dense) == v_voxels_effective || ncol(incoming_dense) == v_voxels
+    row_matches_voxels <- nrow(incoming_dense) == v_voxels_effective || nrow(incoming_dense) == v_voxels
+
+    if (!col_matches_voxels && row_matches_voxels) {
+      incoming_dense <- t(incoming_dense)
+      col_matches_voxels <- TRUE
+    }
+
+    # Upstream inverse steps may already have produced dense time x voxel data,
+    # either for the full stored voxel set or for an ROI subset.
+    if (col_matches_voxels) {
+      dense <- incoming_dense
+
+      if (!isTRUE(applied$roi_mask) && !is.null(roi_vec) && ncol(dense) == v_voxels) {
+        dense <- dense[, which(roi_vec), drop = FALSE]
+        handle$subset_applied$roi_mask <- TRUE
+      } else if (!is.null(roi_vec) && ncol(dense) == v_voxels_effective) {
+        handle$subset_applied$roi_mask <- TRUE
+      }
+
+      if (!isTRUE(applied$time_idx)) {
+        time_idx <- subset$time_idx %||% subset$time
+        if (!is.null(time_idx)) {
+          time_idx <- as.integer(time_idx)
+          if (length(time_idx) > 0 && max(time_idx) <= nrow(dense) && min(time_idx) > 0) {
+            dense <- dense[time_idx, , drop = FALSE]
+          }
+          handle$subset_applied$time_idx <- TRUE
         }
-        handle$subset_applied$time_idx <- TRUE
       }
     }
-  } else {
+  }
+
+  if (is.null(dense)) {
     # Treat incoming as coefficients (time x component).
     coeff <- as.matrix(incoming)
 

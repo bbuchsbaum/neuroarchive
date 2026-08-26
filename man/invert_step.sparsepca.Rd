@@ -7,9 +7,11 @@
 \method{invert_step}{sparsepca}(type, desc, handle)
 }
 \arguments{
-\item{storage_order}{Character string specifying the orientation of the
-basis matrix. Either "component_x_voxel" (default) or
-"voxel_x_component".}
+\item{type}{(character) The type identifier of the transform (e.g., "mask", "pca").}
+
+\item{desc}{(list) The parsed JSON descriptor for this transform step.}
+
+\item{handle}{(DataHandle) The current data handle.}
 }
 \description{
 Reconstructs data from the sparse PCA coefficients and basis matrix.

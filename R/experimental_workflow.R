@@ -4,6 +4,10 @@
 #' High-level workflow functions and utilities for data preprocessing,
 #' quantization, dimensionality reduction, and Rcpp acceleration control.
 #'
+#' @section Lifecycle:
+#' Experimental. Prefer the stable archive APIs (`write_lna()`, `read_lna()`,
+#' and transform pipelines) for durable workflows.
+#'
 #' @useDynLib neuroarchive, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 #' @name experimental_workflow
@@ -815,7 +819,7 @@ fmri_workflow <- function(data,
 
   if (verbose) {
     cat("=== fMRI Workflow Configuration ===\n")
-    cat(sprintf("Data: %d timepoints × %d voxels\n", n_time, n_voxels))
+    cat(sprintf("Data: %d timepoints x %d voxels\n", n_time, n_voxels))
     cat(sprintf("TR: %.2f seconds\n", TR))
     cat(sprintf("Study type: %s\n", study_type))
     cat(sprintf("Workflow: %s\n", workflow))
@@ -961,9 +965,9 @@ fmri_workflow <- function(data,
     cat(sprintf("Target compression: %.1fx\n", compression_target))
 
     if (total_compression >= compression_target * 0.8) {
-      cat("✓ Compression target achieved\n")
+      cat("Compression target achieved\n")
     } else {
-      cat("⚠ Compression target not fully achieved\n")
+      cat("Compression target not fully achieved\n")
     }
   }
 

@@ -12,7 +12,7 @@ compare_sparse <- function(a, b, tol = 1e-8) {
   expect_equal(as.matrix(a), as.matrix(b), tolerance = tol)
 }
 
-test_that("HRBF backend parity: seed path across mask types", {
+test_that("HRBF basis generation ignores engine.math setting", {
   skip_if_not_installed("fmrilatent")
   old_opts <- options(
     lna.hrbf.use_rcpp_helpers = FALSE,
@@ -21,8 +21,6 @@ test_that("HRBF backend parity: seed path across mask types", {
   on.exit(options(old_opts), add = TRUE)
   old_engine <- lna_options("engine.math")[[1]]
   on.exit(lna_options(engine.math = old_engine), add = TRUE)
-  lna_options(engine.math = "internal")
-
   set.seed(11)
   mask_full <- array(TRUE, dim = c(4, 4, 4))
   mask_sparse <- array(FALSE, dim = c(4, 4, 4))
@@ -51,15 +49,15 @@ test_that("HRBF backend parity: seed path across mask types", {
 
   for (nm in names(masks)) {
     mask_obj <- masks[[nm]]
-    B_internal <- neuroarchive:::hrbf_basis_from_params_internal(params, mask_obj)
-    lna_options(engine.math = "fmrilatent")
-    B_fmrilatent <- neuroarchive:::hrbf_basis_from_params(params, mask_obj)
     lna_options(engine.math = "internal")
-    compare_sparse(B_internal, B_fmrilatent, tol = 1e-8)
+    B_internal_setting <- neuroarchive:::hrbf_basis_from_params(params, mask_obj)
+    lna_options(engine.math = "fmrilatent")
+    B_fmrilatent_setting <- neuroarchive:::hrbf_basis_from_params(params, mask_obj)
+    compare_sparse(B_internal_setting, B_fmrilatent_setting, tol = 1e-8)
   }
 })
 
-test_that("HRBF centre generation parity through backend boundary", {
+test_that("HRBF centre generation ignores engine.math setting", {
   skip_if_not_installed("fmrilatent")
   old_opts <- options(
     lna.hrbf.use_rcpp_helpers = FALSE,
@@ -68,8 +66,6 @@ test_that("HRBF centre generation parity through backend boundary", {
   on.exit(options(old_opts), add = TRUE)
   old_engine <- lna_options("engine.math")[[1]]
   on.exit(lna_options(engine.math = old_engine), add = TRUE)
-  lna_options(engine.math = "internal")
-
   set.seed(41)
   mask_sparse <- array(FALSE, dim = c(5, 4, 3))
   mask_sparse[sample(length(mask_sparse), 19)] <- TRUE
@@ -84,17 +80,17 @@ test_that("HRBF centre generation parity through backend boundary", {
   )
 
   lna_options(engine.math = "internal")
-  cs_internal <- neuroarchive:::na_hrbf_centres_from_params(params, mask_obj)
+  cs_internal_setting <- neuroarchive:::na_hrbf_centres_from_params(params, mask_obj)
   lna_options(engine.math = "fmrilatent")
-  cs_fmrilatent <- neuroarchive:::na_hrbf_centres_from_params(params, mask_obj)
+  cs_fmrilatent_setting <- neuroarchive:::na_hrbf_centres_from_params(params, mask_obj)
 
-  expect_equal(cs_fmrilatent$centres_stored, cs_internal$centres_stored)
-  expect_equal(cs_fmrilatent$centres, cs_internal$centres, tolerance = 1e-10)
-  expect_equal(cs_fmrilatent$sigmas, cs_internal$sigmas, tolerance = 1e-10)
-  expect_equal(cs_fmrilatent$level_vec, cs_internal$level_vec)
+  expect_equal(cs_fmrilatent_setting$centres_stored, cs_internal_setting$centres_stored)
+  expect_equal(cs_fmrilatent_setting$centres, cs_internal_setting$centres, tolerance = 1e-10)
+  expect_equal(cs_fmrilatent_setting$sigmas, cs_internal_setting$sigmas, tolerance = 1e-10)
+  expect_equal(cs_fmrilatent_setting$level_vec, cs_internal_setting$level_vec)
 })
 
-test_that("HRBF backend parity: stored centers path", {
+test_that("HRBF stored-centres path ignores engine.math setting", {
   skip_if_not_installed("fmrilatent")
   old_opts <- options(
     lna.hrbf.use_rcpp_helpers = FALSE,
@@ -103,8 +99,6 @@ test_that("HRBF backend parity: stored centers path", {
   on.exit(options(old_opts), add = TRUE)
   old_engine <- lna_options("engine.math")[[1]]
   on.exit(lna_options(engine.math = old_engine), add = TRUE)
-  lna_options(engine.math = "internal")
-
   mask_arr <- array(TRUE, dim = c(4, 4, 4))
   mask_obj <- make_mask(mask_arr, spacing_v = c(1, 2, 1.5))
 
@@ -135,10 +129,11 @@ test_that("HRBF backend parity: stored centers path", {
   )
 
   root <- h5[["/"]]
-  B_internal <- neuroarchive:::hrbf_basis_from_params_internal(params, mask_obj, h5_root = root)
+  lna_options(engine.math = "internal")
+  B_internal_setting <- neuroarchive:::hrbf_basis_from_params(params, mask_obj, h5_root = root)
   lna_options(engine.math = "fmrilatent")
-  B_fmrilatent <- neuroarchive:::hrbf_basis_from_params(params, mask_obj, h5_root = root)
-  compare_sparse(B_internal, B_fmrilatent, tol = 1e-8)
+  B_fmrilatent_setting <- neuroarchive:::hrbf_basis_from_params(params, mask_obj, h5_root = root)
+  compare_sparse(B_internal_setting, B_fmrilatent_setting, tol = 1e-8)
 })
 
 test_that("Haar backend parity: coefficients and roundtrip across masks", {

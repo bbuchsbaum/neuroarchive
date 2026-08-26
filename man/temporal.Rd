@@ -2,9 +2,12 @@
 % Please edit documentation in R/dsl_verbs.R
 \name{temporal}
 \alias{temporal}
+\alias{temporal.default}
 \title{Temporal Basis Projection DSL verb}
 \usage{
 temporal(data_or_pipe, kind = NULL, ...)
+
+\method{temporal}{default}(data_or_pipe, kind = NULL, ...)
 }
 \arguments{
 \item{data_or_pipe}{Data object or `lna_pipeline`.}

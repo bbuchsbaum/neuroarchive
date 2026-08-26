@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "lna-restoration.schema.json",
+  "title": "Neuroarchive BIDS restoration receipt",
+  "type": "object",
+  "required": [
+    "schema_version", "status", "bids_validity", "source_archive",
+    "selection", "outputs", "transformation_rules", "missing_dependencies"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "status": {"enum": ["closed", "partial"]},
+    "bids_validity": {"type": "string"},
+    "source_archive": {"type": "object"},
+    "selection": {"type": "object"},
+    "outputs": {"type": "object"},
+    "transformation_rules": {
+      "type": "object",
+      "required": ["original_file_byte_identity"],
+      "properties": {
+        "original_file_byte_identity": {"const": "not-claimed"}
+      }
+    },
+    "missing_dependencies": {"type": "array"}
+  },
+  "additionalProperties": false
+}

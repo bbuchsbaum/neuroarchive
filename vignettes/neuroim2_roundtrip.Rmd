@@ -1,12 +1,13 @@
 ---
 title: Round-Trip with neuroim2
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Round-Trip with neuroim2}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -19,7 +20,6 @@ includes:
 ---
 
 ```{r setup, include = FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -109,6 +109,16 @@ cat(sprintf("NMSE:        %.6f\n", nmse))
 
 With 8-bit quantization, the correlation should be very close to 1.
 
+```{r slice_comparison, echo = FALSE, fig.width = 5, fig.height = 4, fig.cap = "Original vs reconstructed values (subsampled)."}
+set.seed(1)
+idx <- sample(length(orig), min(2000, length(orig)))
+plot(orig[idx], rec[idx],
+     pch = ".", cex = 2, col = rgb(0, 0, 0, 0.3),
+     xlab = "Original", ylab = "Reconstructed",
+     main = "Original vs Reconstructed")
+abline(0, 1, col = "red", lwd = 1.5)
+```
+
 # Header Preservation
 
 The LNA file stores the spatial metadata from the `DenseNeuroVec`
@@ -138,13 +148,13 @@ h5$close()
 You can use any transform pipeline with `DenseNeuroVec` data, just as
 you would with a plain array.
 
-## PCA + Quantization
+## PCA Basis + Embedding + Quantization
 
 ```{r pipeline_basis}
 tmp2 <- tempfile(fileext = ".h5")
 
 write_lna(vec, tmp2,
-          transforms = c("basis", "quant"),
+          transforms = c("basis", "embed", "quant"),
           transform_params = list(
             basis = list(k = 10),
             quant = list(bits = 8)
@@ -153,7 +163,7 @@ write_lna(vec, tmp2,
 handle2 <- read_lna(tmp2)
 recon2 <- handle2$stash$input
 
-cat(sprintf("Basis+Quant correlation: %.4f\n",
+cat(sprintf("Basis+Embed+Quant correlation: %.4f\n",
             cor(as.vector(as.array(vec)), as.vector(recon2))))
 cat(sprintf("File size: %.1f KB\n", file.info(tmp2)$size / 1024))
 ```

@@ -155,6 +155,13 @@ default_opts <- list(
   defaults.input_key = "input",
   defaults.origin_label = "global",
 
+  # Shared Basis Resolution
+  basis_search_paths = character(0),
+
+  # Pipeline semantics
+  basis_without_embed = "error",
+  warn.basis_without_embed = TRUE,
+
   # Math backend
   engine.math = "fmrilatent"
 )

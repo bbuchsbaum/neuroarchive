@@ -88,6 +88,69 @@ test_that("write_lna forwards arguments to core_write and materialise_plan", {
   neuroarchive:::close_h5_safely(h5)
 })
 
+test_that("write_lna errors when basis is used without embed", {
+  tmp <- local_tempfile(fileext = ".h5")
+  arr <- array(rnorm(2 * 2 * 1 * 6), dim = c(2, 2, 1, 6))
+
+  expect_error(
+    write_lna(
+      x = arr,
+      file = tmp,
+      transforms = c("basis", "quant"),
+      transform_params = list(
+        basis = list(k = 1),
+        quant = list(bits = 12)
+      )
+    ),
+    regexp = "basis.*without a following 'embed'|allow this dense pass-through pipeline explicitly",
+    class = "lna_error_validation"
+  )
+})
+
+test_that("write_lna allows basis dense pass-through with explicit opt-in", {
+  tmp <- local_tempfile(fileext = ".h5")
+  arr <- array(rnorm(2 * 2 * 1 * 6), dim = c(2, 2, 1, 6))
+
+  res <- write_lna(
+    x = arr,
+    file = tmp,
+    transforms = c("basis", "quant"),
+    transform_params = list(
+      basis = list(k = 1, allow_dense_passthrough = TRUE),
+      quant = list(bits = 12)
+    )
+  )
+
+  expect_s3_class(res, "lna_write_result")
+  expect_true(file.exists(tmp))
+})
+
+test_that("write_lna infers embed params after basis without manual wiring", {
+  tmp <- local_tempfile(fileext = ".h5")
+  arr <- array(rnorm(3 * 3 * 1 * 10), dim = c(3, 3, 1, 10))
+
+  res <- write_lna(
+    x = arr,
+    file = tmp,
+    transforms = c("basis", "embed", "quant"),
+    transform_params = list(
+      basis = list(k = 2),
+      quant = list(bits = 12)
+    )
+  )
+
+  desc <- res$plan$descriptors[[2]]
+  expect_equal(desc$params$basis_path, "/basis/00_basis/matrix")
+  expect_equal(desc$params$center_data_with, "/basis/00_basis/center")
+
+  roi <- array(c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE), dim = c(3, 3, 1))
+  idx <- c(2, 5)
+  full <- as_dense_mat(read_lna(tmp)$stash$input)
+  expected <- full[idx, which(as.logical(roi)), drop = FALSE]
+  out <- as_dense_mat(read_lna(tmp, roi_mask = roi, time_idx = idx)$stash$input)
+  expect_equal(out, expected)
+})
+
 # Parameter forwarding for read_lna
 
 test_that("read_lna forwards arguments to core_read", {

@@ -99,10 +99,10 @@ test_that("read_json_descriptor error handling works", {
 
   # Manually create a dataset with bad JSON
   bad_json_string <- "{ bad json : "
-  root_group_w[["bad_desc"]] <- bad_json_string
+  neuroarchive:::h5_write_dataset(root_group_w, "bad_desc", bad_json_string)
   
   # Manually create a dataset that isn't a string
-  root_group_w[["numeric_desc"]] <- 123L
+  neuroarchive:::h5_write_dataset(root_group_w, "numeric_desc", 123L)
   
   h5_file$close_all()
 

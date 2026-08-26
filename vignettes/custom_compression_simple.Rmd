@@ -1,12 +1,13 @@
 ---
-title: 'Custom Compression: Simple API'
+title: "Writing a Custom Transform"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Custom Compression: Simple API}
+vignette: |
+  %\VignetteIndexEntry{Writing a Custom Transform}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -19,6 +20,7 @@ includes:
 ---
 
 ```{r, include = FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(family = params$family, preset = params$preset)) # nolint
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -28,551 +30,228 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Why Custom Compression?
-
-neuroarchive provides built-in transforms (PCA, quantization, delta encoding), but you may want to add:
-- Novel compression algorithms from your research
-- Domain-specific methods (e.g., sparse coding, NMF)
-- Robust or adaptive variants of standard methods
-
-**Good news**: With the simple API, adding custom compression takes only **5-10 minutes**!
-
-## The Simple API: Three Helpers
-
-### 1. `simple_matrix_transform()` - Most Flexible
-
-For any matrix compression algorithm, just provide compress/decompress functions:
+You have a compression algorithm and want to plug it into
+neuroarchive's pipeline. The simple API lets you do this by writing
+two functions — one to compress, one to decompress — and registering
+them with a single call. Everything else (HDF5 storage, schema
+validation, subsetting, pipeline chaining) is handled for you.
 
 ```{r}
 library(neuroarchive)
+```
 
+## The pattern
+
+Every custom transform follows the same shape:
+
+1. **Write a compress function** that takes a matrix and returns
+   compressed data + metadata
+2. **Write a decompress function** that takes compressed data +
+   metadata and returns the original matrix
+3. **Register** them with `simple_matrix_transform()`
+4. **Use** them in `write_lna()` / `read_lna()` like any built-in
+   transform
+
+There are three registration helpers, depending on your algorithm's
+structure:
+
+| Helper | Use when... | You provide |
+|--------|-------------|-------------|
+| `simple_matrix_transform()` | General-purpose compression | compress + decompress functions |
+| `simple_basis_transform()` | Dimensionality reduction (PCA variants, NMF, ICA) | A function that computes the basis |
+| `simple_function_transform()` | Element-wise operations (scaling, clipping) | forward + inverse functions |
+
+## Example: Top-K sparsification
+
+Keep only the K largest coefficients per voxel, zero out the rest.
+This is lossy but produces very sparse data.
+
+### Step 1: The compress function
+
+Your compress function receives `X` (a time-by-voxels matrix) and
+`params` (a named list from the user). It must return a list with two
+elements: `compressed` (the data to store) and `metadata` (anything
+needed to decompress).
+
+```{r}
+topk_compress <- function(X, params) {
+  k <- params$k
+
+  indices <- matrix(0L, nrow = k, ncol = ncol(X))
+  values  <- matrix(0,  nrow = k, ncol = ncol(X))
+
+  for (j in seq_len(ncol(X))) {
+    ord <- order(abs(X[, j]), decreasing = TRUE)[seq_len(k)]
+    indices[, j] <- ord
+    values[, j]  <- X[ord, j]
+  }
+
+  list(
+    compressed = list(indices = indices, values = values),
+    metadata   = list(nrow = nrow(X), ncol = ncol(X))
+  )
+}
+```
+
+### Step 2: The decompress function
+
+Your decompress function receives the same `compressed` and `metadata`
+objects you returned above, plus `params`. It must return the
+reconstructed matrix.
+
+```{r}
+topk_decompress <- function(compressed, metadata, params) {
+  X <- matrix(0, nrow = metadata$nrow, ncol = metadata$ncol)
+  for (j in seq_len(metadata$ncol)) {
+    X[compressed$indices[, j], j] <- compressed$values[, j]
+  }
+  X
+}
+```
+
+### Step 3: Register
+
+```{r}
 simple_matrix_transform(
   name = "topk",
-
-  compress_fn = function(X, params) {
-    # Your compression logic here
-    # Return: list(compressed = data, metadata = info)
-  },
-
-  decompress_fn = function(compressed, metadata, params) {
-    # Your decompression logic here
-    # Return: reconstructed matrix
-  },
-
+  compress_fn = topk_compress,
+  decompress_fn = topk_decompress,
   schema = list(
-    k = list(type = "integer", default = 100, minimum = 1)
+    k = list(type = "integer", default = 100, minimum = 1,
+             description = "Number of coefficients to keep per voxel")
   )
 )
 ```
 
-### 2. `simple_basis_transform()` - For PCA-Like Methods
-
-For dimensionality reduction, just define how to compute the basis:
+### Step 4: Use it
 
 ```{r}
-simple_basis_transform(
-  name = "robustpca",
+data <- array(rnorm(8 * 8 * 4 * 50), dim = c(8, 8, 4, 50))
 
-  basis_fn = function(X, params) {
-    # Compute basis (e.g., PCA, ICA, NMF)
-    # Return: list(basis = B, centers = c, ...)
-  },
-
-  params = list(k = 50)
-)
-```
-
-Projection, reconstruction, and re-centering are automatic!
-
-### 3. `simple_function_transform()` - For Simple Operations
-
-For transforms that don't need metadata:
-
-```{r}
-simple_function_transform(
-  name = "robust_scale",
-
-  forward_fn = function(X, params) { ... },
-  inverse_fn = function(X, params) { ... },
-
-  params = list(method = "mad")
-)
-```
-
-## Example 1: Top-K Compression (5 minutes)
-
-Keep only the K largest values per column:
-
-```{r}
-simple_matrix_transform(
-  name = "topk",
-
-  compress_fn = function(X, params) {
-    k <- params$k %||% 100
-
-    # For each column, keep top-k values
-    compressed_data <- lapply(1:ncol(X), function(i) {
-      col <- X[, i]
-      top_idx <- order(abs(col), decreasing = TRUE)[1:min(k, length(col))]
-      list(indices = top_idx, values = col[top_idx])
-    })
-
-    list(
-      compressed = list(
-        indices = do.call(cbind, lapply(compressed_data, `[[`, "indices")),
-        values = do.call(cbind, lapply(compressed_data, `[[`, "values"))
-      ),
-      metadata = list(
-        dims = dim(X),
-        k = k
-      )
-    )
-  },
-
-  decompress_fn = function(compressed, metadata, params) {
-    dims <- metadata$dims
-    X_recon <- matrix(0, nrow = dims[1], ncol = dims[2])
-
-    for (i in 1:ncol(X_recon)) {
-      X_recon[compressed$indices[,i], i] <- compressed$values[,i]
-    }
-
-    X_recon
-  },
-
-  schema = list(
-    k = list(
-      type = "integer",
-      default = 100,
-      minimum = 1,
-      description = "Keep top-k values per column"
-    )
-  ),
-
-  description = "Sparse compression keeping only largest values"
-)
-
-# Done! Now use it:
-data <- array(rnorm(64*64*20*200), dim = c(64, 64, 20, 200))
-
-write_lna(data, "topk.h5", transforms = "topk",
-          transform_params = list(topk = list(k = 50)))
+write_lna(data, "topk.h5",
+          transforms = "topk",
+          transform_params = list(topk = list(k = 20)))
 
 result <- read_lna("topk.h5")
-
-# validate_lna() also works because the simple API keeps a runtime schema cache
-validate_lna("topk.h5")
 ```
 
-## Example 2: Robust PCA (10 minutes)
+You can chain it with built-in transforms too:
 
-Using the basis helper, robust PCA is even simpler:
+```{r}
+write_lna(data, "topk_quant.h5",
+          transforms = c("topk", "quant"),
+          transform_params = list(
+            topk = list(k = 20),
+            quant = list(bits = 8)
+          ))
+```
+
+## Example: Robust PCA via `simple_basis_transform()`
+
+For dimensionality reduction, you only need to write one function
+that computes the basis matrix. Projection, reconstruction, centering,
+and storage are all automatic.
+
+Your basis function must return a list with at least `basis` (the
+loadings matrix, voxels-by-components). Optionally include `centers`
+for automatic centering/re-centering.
 
 ```{r}
 simple_basis_transform(
   name = "robustpca",
 
   basis_fn = function(X, params) {
-    k <- params$k %||% 50
+    k <- min(params$k, min(dim(X)) - 1)
 
-    # Robust centering with median
-    centers <- apply(X, 2, median, na.rm = TRUE)
-    X_centered <- sweep(X, 2, centers, "-")
+    # Robust centering
+    centers <- apply(X, 2, median)
+    Xc <- sweep(X, 2, centers, "-")
 
-    # Downweight outliers using MAD
-    mads <- apply(X_centered, 2, mad, na.rm = TRUE)
-    z_scores <- sweep(abs(X_centered), 2, mads, "/")
-    weights <- pmin(1, 3 / pmax(z_scores, 1e-10))
+    # Downweight outliers
+    mads <- apply(Xc, 2, mad)
+    z <- sweep(abs(Xc), 2, pmax(mads, 1e-10), "/")
+    w <- pmin(1, 3 / z)
+    Xw <- sqrt(w) * Xc
 
-    X_weighted <- sqrt(weights) * X_centered
+    # Truncated SVD
+    fit <- svd(Xw, nu = 0, nv = k)
 
-    # Compute basis (use irlba if available)
-    if (requireNamespace("irlba", quietly = TRUE)) {
-      irlba_fun <- getFromNamespace("irlba", "irlba")
-      svd_res <- irlba_fun(X_weighted, nv = k, nu = 0)
-    } else {
-      svd_res <- svd(X_weighted, nv = k, nu = 0)
-    }
-
-    # Return basis and metadata
     list(
-      basis = svd_res$v,      # Automatic projection
-      centers = centers,      # Automatic re-centering
-      mads = mads,            # For diagnostics
-      explained_var = svd_res$d^2 / sum(X_centered^2)
+      basis = fit$v,
+      centers = centers
     )
   },
 
   params = list(k = 50),
-  description = "Robust PCA with outlier downweighting"
+  description = "Robust PCA with median centering and MAD outlier downweighting"
 )
 
-# Use it:
-write_lna(data, "robust.h5", transforms = "robustpca",
-          transform_params = list(robustpca = list(k = 30)))
+write_lna(data, "robust.h5",
+          transforms = "robustpca",
+          transform_params = list(robustpca = list(k = 10)))
 ```
 
 The helper automatically:
-- Projects X onto basis -> coefficients
-- Stores basis, centers, and metadata
-- Reconstructs: coefficients x basis' + centers
-- Handles subsetting (ROI, time)
 
-## What You Get Automatically
+- Projects `X` onto the basis → stores the coefficient matrix
+- Stores the basis matrix and centers in HDF5
+- On read: reconstructs as `coefficients %*% t(basis) + centers`
+- Handles ROI and time subsetting
 
-All three helpers provide:
+## Defining parameters
 
-- **HDF5 Storage**: Compressed data and metadata stored correctly
-- **Parameter Validation**: Schema enforces types, ranges, defaults
-- **Pipeline Integration**: Works with `c("delta", "yourtype", "quant")`
-- **Subsetting**: ROI masks and time indexing work automatically
-- **Error Handling**: Clear messages for invalid inputs
-- **Schema Generation**: JSON schema created from simple definition
-
-## Schema Made Easy
-
-Define parameters with simple lists:
+The `schema` argument (for `simple_matrix_transform`) or `params`
+argument (for the basis/function helpers) tells neuroarchive what
+parameters your transform accepts, their types, and defaults.
 
 ```{r}
 schema = list(
-  k = list(
-    type = "integer",    # or "number", "string", "boolean"
-    default = 50,
-    minimum = 1,         # Validation
-    maximum = 1000,
-    description = "Number of components"
-  ),
-  method = list(
-    type = "string",
-    enum = c("fast", "accurate"),  # Only these values allowed
-    default = "fast"
-  ),
-  threshold = list(
-    type = "number",
-    default = 0.01,
-    minimum = 0,
-    maximum = 1
-  )
+  k = list(type = "integer", default = 50, minimum = 1, maximum = 1000),
+  method = list(type = "string", enum = c("fast", "accurate"), default = "fast"),
+  threshold = list(type = "number", default = 0.01, minimum = 0, maximum = 1)
 )
 ```
 
-This automatically generates full JSON Schema with validation!
+This generates a JSON schema automatically. The schema is used for:
 
-## Best Practices
+- Default parameter values when the user doesn't specify them
+- Validation at write time
+- File-level validation via `validate_lna()`
 
-### 1. Handle Optional Packages
+## Custom HDF5 storage types
 
-```{r}
-compress_fn = function(X, params) {
-  if (requireNamespace("mypackage", quietly = TRUE)) {
-    compress <- getFromNamespace("compress", "mypackage")
-    result <- compress(X)
-  } else {
-    warning("Install 'mypackage' for better performance")
-    result <- base_r_compress(X)
-  }
-  ...
-}
-```
-
-### 2. Validate k Parameter
+By default, all datasets are stored as `float32`. To use a different
+type (e.g., `uint8` for quantized data), include a `dtypes` list in
+your metadata:
 
 ```{r}
-basis_fn = function(X, params) {
-  k <- params$k %||% 50
-  k <- min(k, min(dim(X)) - 1)  # Cap at matrix rank
-  ...
-}
-```
-
-### 3. Store Metadata for Diagnostics
-
-```{r}
-compress_fn = function(X, params) {
-  ...
-  metadata <- list(
-    original_dims = dim(X),
-    compression_ratio = prod(dim(X)) / length(compressed),
-    sparsity = sum(compressed == 0) / length(compressed),
-    algorithm_version = "1.0"
-  )
-  list(compressed = compressed, metadata = metadata)
-}
-```
-
-### 4. Test Reconstruction Error
-
-```{r}
-# After creating your transform
-X <- matrix(rnorm(100*50), 100, 50)
-
-# Compress and decompress
-result <- compress_fn(X, list(k = 10))
-X_recon <- decompress_fn(result$compressed, result$metadata, list(k = 10))
-
-# Check error
-mse <- mean((X - X_recon)^2)
-cat("MSE:", mse, "\n")
-```
-
-## Advanced Features & Technical Notes
-
-### Custom Storage Types with `metadata$dtypes`
-
-By default, all datasets are stored as `float32`. To use different HDF5 datatypes (e.g., `uint8` for quantized data, `int32` for indices), include a `dtypes` named list in your metadata:
-
-```{r}
-compress_fn = function(X, params) {
-  # Quantize to 8-bit integers
-  min_val <- min(X)
-  max_val <- max(X)
-  range_val <- max_val - min_val
-
-  compressed <- list(
-    quantized = as.integer((X - min_val) / range_val * 255),
-    indices = as.integer(sample(nrow(X), 100))
-  )
-
-  metadata <- list(
-    scale = range_val,
-    offset = min_val,
-    dtypes = list(  # Specify storage types per dataset
-      quantized = "uint8",
-      indices = "int32"
+topk_compress_typed <- function(X, params) {
+  # ... compression logic ...
+  list(
+    compressed = list(
+      quantized = as.integer(round(X * 255)),
+      indices   = as.integer(idx)
+    ),
+    metadata = list(
+      scale = 1 / 255,
+      dtypes = list(quantized = "uint8", indices = "int32")
     )
   )
-
-  list(compressed = compressed, metadata = metadata)
 }
 ```
 
-The `dtypes` list is **not** stored in HDF5 (it's only used during write). Available types: `"uint8"`, `"uint16"`, `"int32"`, `"float32"`, `"float64"`.
+The `dtypes` list is only used during write — it is not stored in the
+file.
 
-### Byte-exact blobs (reports) and raw IO
+## When to use the full transform API
 
-When you need to store a gzipped JSON (or any binary) and read it back as an R `raw()` vector, use neuroarchive's low-level helpers:
+The simple API covers most cases. Use `forward_step()` /
+`invert_step()` S3 methods directly only if you need:
 
-```{r}
-# Write gzipped bytes as UINT8 dataset, and tag compression attribute
-root <- h5[["/"]]
-bytes <- memCompress(charToRaw('{"ok":true}'), type = "gzip")
-d <- neuroarchive:::h5_write_blob(root, "/transforms/00_quant_report.json", bytes)
-neuroarchive::h5_attr_write(d, "compression", "gzip")
-d$close()
+- Multiple input/output datasets with custom paths
+- Custom HDF5 group layouts
+- Multi-run awareness within the transform
+- Direct control over the `DataHandle` pipeline
 
-# Read back as raw (byte-exact)
-raw_back <- neuroarchive:::h5_read_blob(root, "/transforms/00_quant_report.json")
-stopifnot(identical(bytes, raw_back))
-```
-
-These helpers bypass high-level type inference so you don't get numeric doubles for byte arrays.
-
-### True sub-byte storage with N-bit (and optional shuffle/deflate)
-
-For integer "codes" (e.g., 3-bit or 7-bit), HDF5's N-bit filter stores only the significant bits on disk. In neuroarchive:
-
-```{r}
-# Non-blockwise (materialization) path
-codes <- as.integer(sample(0:7, 1024, replace = TRUE))
-d <- neuroarchive:::h5_write_qbits_nbit(root, "/codes/q3", codes, bits = 3L)
-neuroarchive::h5_attr_write(d, "quant_bits", 3L)
-neuroarchive::is_nbit_dataset(d)        # TRUE
-neuroarchive::list_h5_filters(d)        # includes "nbit" (and maybe more)
-d$close()
-
-# Blockwise (voxel scope) precreation path
-ds <- neuroarchive:::h5_create_empty_dataset_nbit(root, "/codes/q7_blk", dims = c(64,64), bits = 7L)
-ds$write(matrix(as.integer(sample(0:127, 4096, replace = TRUE)), 64, 64))
-neuroarchive::is_nbit_dataset(ds)       # TRUE
-ds$close()
-```
-
-You can enable additional DCPL filters for N-bit datasets via options (off by default):
-
-```{r}
-# Enable byte shuffle and deflate for N-bit datasets
-neuroarchive::lna_options(write.quant.nbit.shuffle = TRUE,
-                          write.quant.nbit.deflate_level = 6L)
-
-# Create/write as usual; DCPL will include nbit + shuffle + deflate
-```
-
-Notes:
-- N-bit requires chunked datasets; neuroarchive sets chunking automatically.
-- The file datatype for codes remains 1 byte; the N-bit filter governs stored precision.
-- gzip on random-like codes can inflate; benchmark with your data before enabling deflate.
-
-### Schema Discovery: Development vs Runtime
-
-**During package development** (when `inst/schemas/` exists):
-
-- Schemas are automatically written to `inst/schemas/<name>.schema.json`
-- These ship with your package so `validate_lna()` works for all users
-
-**In user scripts** (after package installation):
-
-- Schemas are auto-registered in a runtime cache
-- Write/read operations work normally
-- `validate_lna()` will find the schema via cache
-
-**Best practice**: For production transforms, define them during package development so schemas are properly installed with your package.
-See the lightweight `lna.robustcenter` example (plugins/lna.robustcenter) for a reference plugin that ships its schema and S3 methods.
-
-### Runtime Schema Caching
-
-The simple API automatically handles schema registration:
-
-```{r}
-# When you call simple_matrix_transform() in a user script:
-simple_matrix_transform(name = "mycompressor", ...)
-
-# The schema is automatically:
-# 1. Generated from your simplified schema definition
-# 2. Written to inst/schemas/ if in development mode
-# 3. Registered in runtime cache for validation/defaults
-```
-
-This means:
-
-- `write_lna()` works (creates valid LNA files with descriptors)
-- `read_lna()` works (discovers transforms from descriptors)
-- `validate_lna()` works (finds schema in runtime cache)
-
-**No manual schema management needed!** The simple API handles everything automatically, whether you're developing a package or writing a one-off script.
-
-## When to Use Advanced API
-
-Use the full transform API (implement `forward_step()` and `invert_step()` S3 methods directly) only if you need:
-
-- Multiple input/output datasets
-- Custom HDF5 group structure
-- Special dataset ordering requirements
-- Complex multi-run handling
-
-For **90% of compression algorithms**, the simple API is sufficient!
-
-## Complete Workflow
-
-```{r}
-# 1. Define transform (5 minutes)
-simple_matrix_transform(
-  name = "mycompressor",
-  compress_fn = my_compress,
-  decompress_fn = my_decompress,
-  schema = my_schema
-)
-
-# 2. Test locally (2 minutes)
-X_test <- matrix(rnorm(100*50), 100, 50)
-result <- my_compress(X_test, list(k = 10))
-X_recon <- my_decompress(result$compressed, result$metadata, list(k = 10))
-mean((X_test - X_recon)^2)  # Check MSE
-
-# 3. Use with neuroarchive (done!)
-write_lna(data, "compressed.h5",
-          transforms = c("mycompressor", "quant"),
-          transform_params = list(
-            mycompressor = list(k = 30),
-            quant = list(bits = 8)
-          ))
-
-result <- read_lna("compressed.h5")
-```
-
-## Examples Gallery
-
-### Sparse Coding
-
-```{r}
-simple_matrix_transform(
-  name = "sparse_code",
-  compress_fn = function(X, params) {
-    # L1-penalized dictionary learning
-    ...
-  },
-  decompress_fn = function(compressed, metadata, params) {
-    # dict %*% codes
-    ...
-  },
-  schema = list(
-    n_atoms = list(type = "integer", default = 100),
-    lambda = list(type = "number", default = 0.1)
-  )
-)
-```
-
-### NMF (Non-negative Matrix Factorization)
-
-```{r}
-simple_basis_transform(
-  name = "nmf",
-  basis_fn = function(X, params) {
-    k <- params$k
-    X[X < 0] <- 0  # Enforce non-negativity
-
-    have_nmf <- tryCatch(
-      requireNamespace("NMF", quietly = TRUE),
-      error = function(e) FALSE
-    )
-
-    if (have_nmf) {
-      nmf_fun <- getFromNamespace("nmf", "NMF")
-      basis_fun <- getFromNamespace("basis", "NMF")
-      nmf_res <- nmf_fun(X, k)
-      list(basis = basis_fun(nmf_res))
-    } else {
-      stop("Install the 'NMF' package (and its dependencies) to use this example")
-    }
-  },
-  params = list(k = 50)
-)
-```
-
-### Wavelet Denoising
-
-```{r}
-simple_function_transform(
-  name = "wavelet_denoise",
-  forward_fn = function(X, params) {
-    threshold <- params$threshold %||% 0.1
-
-    # Apply wavelet transform per column
-    dwt_fun <- getFromNamespace("dwt", "wavelets")
-    idwt_fun <- getFromNamespace("idwt", "wavelets")
-    apply(X, 2, function(col) {
-      w <- dwt_fun(col, filter = "haar")
-      # Threshold coefficients
-      w@W <- lapply(w@W, function(x) x * (abs(x) > threshold))
-      idwt_fun(w)
-    })
-  },
-  inverse_fn = function(X, params) {
-    warning("Wavelet denoising is not reversible")
-    X
-  },
-  params = list(threshold = 0.1)
-)
-```
-
-## Summary
-
-Creating custom compression is **easy** with the simple API:
-
-1. **Choose helper**: `simple_matrix_transform`, `simple_basis_transform`, or `simple_function_transform`
-2. **Implement logic**: Write compress/decompress or basis functions (10-30 lines)
-3. **Define schema**: List parameters with types and defaults
-4. **Done**: Use with `write_lna()` / `read_lna()`
-
-**No need to learn**:
-- DataHandle / Plan internals
-- HDF5 structure
-- JSON Schema format
-- Transform registration
-- Subsetting implementation
-
-**Just write**:
-- Your compression algorithm
-- Your decompression algorithm
-- Parameter defaults
-
-See built-in transforms in `R/transform_*.R` for more examples!
+For a reference implementation, see any `R/transform_*.R` file in the
+package source.

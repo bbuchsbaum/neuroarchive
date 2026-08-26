@@ -161,7 +161,7 @@ lna_pipeline <- R6::R6Class(
 
       plural <- if (run_count == 1L) "" else "s"
       self$input_summary <- sprintf(
-        "%d run%s × (%d TR × %s vox)",
+        "%d run%s x (%d TR x %s vox)",
         run_count, plural, as.integer(time_dim), format(as.integer(vox_dim), scientific = FALSE)
       )
 

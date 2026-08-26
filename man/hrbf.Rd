@@ -2,9 +2,12 @@
 % Please edit documentation in R/dsl_verbs.R
 \name{hrbf}
 \alias{hrbf}
+\alias{hrbf.default}
 \title{Hierarchical Radial Basis Function DSL verb}
 \usage{
 hrbf(data_or_pipe, levels = NULL, ...)
+
+\method{hrbf}{default}(data_or_pipe, levels = NULL, ...)
 }
 \arguments{
 \item{data_or_pipe}{Data object or `lna_pipeline`.}

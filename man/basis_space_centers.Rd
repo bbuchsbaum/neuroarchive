@@ -51,29 +51,31 @@ basis functions that respect the spatial structure of neuroimaging data.
 }
 \examples{
 \donttest{
-# Create a simple 3D mask for demonstration
-library(neuroim2)
-dims <- c(20, 20, 10)
-arr <- array(TRUE, dims)
-mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+if (requireNamespace("fmrilatent", quietly = TRUE)) {
+  # Create a simple 3D mask for demonstration
+  library(neuroim2)
+  dims <- c(20, 20, 10)
+  arr <- array(TRUE, dims)
+  mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 
-# Basic spatial basis center generation
-centers <- basis_space_centers(mask, sigma0 = 4, levels = 2)
+  # Basic spatial basis center generation
+  centers <- basis_space_centers(mask, sigma0 = 4, levels = 2)
 
-# Edge-adaptive sampling (requires structural data)
-centers_adaptive <- basis_space_centers(
-  mask,
-  use_edge_adaptive = TRUE,
-  edge_source = "self_mean"
-)
+  # Edge-adaptive sampling (requires structural data)
+  centers_adaptive <- basis_space_centers(
+    mask,
+    use_edge_adaptive = TRUE,
+    edge_source = "self_mean"
+  )
 
-# Fine-scale analysis
-centers_fine <- basis_space_centers(
-  mask,
-  sigma0 = 3,
-  levels = 4,
-  extra_fine_levels = 2
-)
+  # Fine-scale analysis
+  centers_fine <- basis_space_centers(
+    mask,
+    sigma0 = 3,
+    levels = 4,
+    extra_fine_levels = 2
+  )
+}
 }
 
 }

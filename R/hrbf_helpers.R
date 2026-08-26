@@ -503,11 +503,11 @@ hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
 #'
 #' @details 
 #' **Performance Warning:** The `self_mean` mode computes 3D Sobel gradients 
-#' using pure R, which is extremely slow on large volumes (≈10 min for 64³). 
+#' using pure R, which is extremely slow on large volumes (~10 min for 64^3).
 #' For performance-critical applications, consider:
 #' \itemize{
 #'   \item Pre-computing structural gradients and using `structural_path` mode
-#'   \item Installing the Rcpp acceleration (when available): 30-100× faster
+#'   \item Installing the Rcpp acceleration (when available): 30-100x faster
 #'   \item Disabling edge-adaptive sampling via parameters
 #' }
 #'
@@ -562,7 +562,7 @@ compute_edge_map_neuroim2 <- function(source_spec, data_handle,
     
     # Performance warning for large volumes
     nvox <- prod(dim(vol))
-    if (nvox > 50000) {  # Warn for volumes larger than ~37³
+    if (nvox > 50000) {  # Warn for volumes larger than ~37^3
       warn_lna(
         sprintf("Computing 3D Sobel gradients on %dx%dx%d volume in pure R. This may take several minutes. Consider pre-computing gradients or installing Rcpp acceleration.",
                 dim(vol)[1], dim(vol)[2], dim(vol)[3]),
@@ -681,9 +681,9 @@ check_edge_adaptive_performance <- function(dims, warn_large = TRUE) {
     "sobel3d_magnitude_rcpp" %in% names(dll_routines$`.Call`)
   
   # Performance thresholds
-  small_vol <- nvox <= 10000    # ~21³, fast even in R
-  medium_vol <- nvox <= 100000  # ~46³, manageable in R
-  large_vol <- nvox > 100000    # >46³, very slow in R
+  small_vol <- nvox <= 10000    # ~21^3, fast even in R
+  medium_vol <- nvox <= 100000  # ~46^3, manageable in R
+  large_vol <- nvox > 100000    # >46^3, very slow in R
   
   recommendation <- if (has_rcpp) {
     "fast" # Can handle any size with Rcpp
@@ -730,6 +730,6 @@ check_edge_adaptive_performance <- function(dims, warn_large = TRUE) {
     has_rcpp = has_rcpp,
     recommendation = recommendation,
     estimated_time_r = estimated_time_r,
-    dims_str = paste(dims, collapse = "×")
+    dims_str = paste(dims, collapse = "x")
   )
 }

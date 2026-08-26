@@ -3,7 +3,6 @@
 #' @description Provides internal functions for reading and writing transform
 #'   descriptors stored as JSON strings within HDF5 datasets.
 #'
-#' @import jsonlite
 #' @import hdf5r
 #' @importFrom hdf5r H5File H5Group H5S H5T H5D h5types
 #' @keywords internal

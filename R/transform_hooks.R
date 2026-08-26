@@ -19,6 +19,10 @@ NULL
 
 #' Validate transform parameters (hook)
 #'
+#' @param type Character scalar transform type name.
+#' @param desc Transform descriptor list.
+#' @param handle A `DataHandle` object.
+#' @param ... Reserved for future extensions.
 #' @export
 validate_params <- function(type, desc, handle, ...) {
   type_obj <- structure(type, class = as.character(type))
@@ -33,6 +37,10 @@ validate_params.default <- function(type, desc, handle, ...) {
 
 #' Prepare a transform before execution (hook)
 #'
+#' @param type Character scalar transform type name.
+#' @param desc Transform descriptor list.
+#' @param handle A `DataHandle` object.
+#' @param ... Reserved for future extensions.
 #' @export
 prepare_transform <- function(type, desc, handle, ...) {
   type_obj <- structure(type, class = as.character(type))
@@ -47,6 +55,10 @@ prepare_transform.default <- function(type, desc, handle, ...) {
 
 #' Cleanup after a transform (hook)
 #'
+#' @param type Character scalar transform type name.
+#' @param desc Transform descriptor list.
+#' @param handle A `DataHandle` object.
+#' @param ... Reserved for future extensions.
 #' @export
 cleanup_transform <- function(type, desc, handle, ...) {
   type_obj <- structure(type, class = as.character(type))
@@ -58,4 +70,3 @@ cleanup_transform <- function(type, desc, handle, ...) {
 cleanup_transform.default <- function(type, desc, handle, ...) {
   invisible(TRUE)
 }
-

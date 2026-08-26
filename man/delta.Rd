@@ -2,9 +2,12 @@
 % Please edit documentation in R/dsl_verbs.R
 \name{delta}
 \alias{delta}
+\alias{delta.default}
 \title{Finite Difference (Delta) DSL verb}
 \usage{
 delta(data_or_pipe, order = NULL, ...)
+
+\method{delta}{default}(data_or_pipe, order = NULL, ...)
 }
 \arguments{
 \item{data_or_pipe}{Data object or `lna_pipeline`.}

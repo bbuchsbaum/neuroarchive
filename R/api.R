@@ -101,6 +101,12 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     header <- derive_header_from_input(x)
   }
 
+  transform_params <- .normalise_transform_pipeline(
+    transforms,
+    transform_params,
+    warn_semantics = TRUE
+  )
+
   result <- core_write(
     x = x,
     transforms = transforms,

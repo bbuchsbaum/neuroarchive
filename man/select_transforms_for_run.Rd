@@ -7,7 +7,9 @@
 select_transforms_for_run(transforms, tf_group, run_id)
 }
 \description{
-Descriptors without `run_id` remain archive-wide for backward
-compatibility. Run-tagged descriptors are applied only to their owner.
+Descriptors written before run-local tagging did not contain `run_id`; those
+descriptors remain archive-wide for backward compatibility. New multi-run
+archives tag every independently executed descriptor and must not apply one
+run's fitted parameters or payload paths to another run.
 }
 \keyword{internal}

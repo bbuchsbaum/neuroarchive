@@ -90,6 +90,12 @@ lna_write <- function(pipeline_obj, file, ...,
     transform_params_list[[step$type]] <- step$params
   }
 
+  transform_params_list <- .normalise_transform_pipeline(
+    transform_types,
+    transform_params_list,
+    warn_semantics = TRUE
+  )
+
   extra_args <- utils::modifyList(pipeline_obj$engine_opts %||% list(), list(...))
 
   args <- c(
@@ -149,17 +155,15 @@ lna_write <- function(pipeline_obj, file, ...,
 #' @param data_or_pipe Data object or `lna_pipeline`.
 #' @param bits Number of quantization bits (1-16). If `NULL`, the
 #'   schema default is used.
-#' @param method Method for determining scale/offset (`"range"` or
-#'   `"sd"`).
-#' @param center Logical indicating whether the data should be
-#'   effectively centered before quantisation.
-#' @param scale_scope Either `"global"` for one scale/offset or
-#'   `"voxel"` for per-voxel parameters.
-#' @param allow_clip If `TRUE`, quantisation proceeds even when the
-#'   clipping percentage exceeds `lna.quant.clip_abort_pct`.
 #' @param ... Additional parameters for the quant transform.
 #'
 #' @return An `lna_pipeline` object with the quant step appended.
+#'
+#' @details Named arguments passed through `...` may include:
+#'   `method` for scale estimation (`"range"` or `"sd"`),
+#'   `center` to center values before quantisation,
+#'   `scale_scope` to choose global versus voxel-wise scaling,
+#'   and `allow_clip` to permit clipping beyond the configured abort threshold.
 #'
 #' @examples
 #' # allow over 5% clipping without error
@@ -209,10 +213,10 @@ pca <- function(data_or_pipe, k = NULL, ...) {
 #'
 #' @param prev_step Step specification from `get_last_step_spec()`.
 #' @param prev_index Integer index (1-based) of the previous step.
-#' @return List with fields `type` and `basis_path`.
+#' @return List with fields `type` and `params`.
 #' @keywords internal
 infer_embed_step <- function(prev_step, prev_index) {
-  res <- list(type = "embed", basis_path = NULL)
+  res <- list(type = "embed", params = list(basis_path = NULL))
   if (is.null(prev_step)) return(res)
 
   zero_idx <- prev_index - 1L
@@ -221,14 +225,162 @@ infer_embed_step <- function(prev_step, prev_index) {
     method <- prev_step$params$method %||% "pca"
     res$type <- paste0("embed.", method)
     base_name <- sprintf("%02d_%s", zero_idx, prev_step$type)
-    res$basis_path <- paste0("/basis/", base_name, "/matrix")
+    res$params$basis_path <- paste0("/basis/", base_name, "/matrix")
+    if (isTRUE(prev_step$params$center %||% FALSE)) {
+      res$params$center_data_with <- paste0("/basis/", base_name, "/center")
+    }
+    if (isTRUE(prev_step$params$scale %||% FALSE)) {
+      res$params$scale_data_with <- paste0("/basis/", base_name, "/scale")
+    }
+    if (!is.null(prev_step$params$storage_order)) {
+      res$params$storage_order <- prev_step$params$storage_order
+    }
   } else if (identical(prev_step$type, "spat.hrbf")) {
     res$type <- "embed.hrbf_analytic"
     base_name <- sprintf("%02d_%s", zero_idx, prev_step$type)
-    res$basis_path <- paste0("/basis/", base_name, "/matrix")
+    res$params$basis_path <- paste0("/basis/", base_name, "/matrix")
   }
 
   res
+}
+
+.basis_step_has_following_embed <- function(transforms, idx) {
+  next_basis <- which(transforms == "basis" & seq_along(transforms) > idx)
+  stop_idx <- if (length(next_basis) > 0) next_basis[[1]] - 1L else length(transforms)
+  if (stop_idx <= idx) {
+    return(FALSE)
+  }
+  window <- transforms[seq.int(idx + 1L, stop_idx)]
+  any(startsWith(window, "embed"))
+}
+
+.basis_step_window <- function(transforms, idx) {
+  next_basis <- which(transforms == "basis" & seq_along(transforms) > idx)
+  stop_idx <- if (length(next_basis) > 0) next_basis[[1]] - 1L else length(transforms)
+  if (stop_idx <= idx) {
+    return(character(0))
+  }
+  transforms[seq.int(idx + 1L, stop_idx)]
+}
+
+.basis_without_embed_mode <- function(mode = NULL) {
+  if (!is.null(mode)) {
+    return(match.arg(mode, c("error", "warn", "allow")))
+  }
+
+  explicit_mode <- lna_options("basis_without_embed")[[1]]
+  if (!is.null(explicit_mode)) {
+    return(match.arg(explicit_mode, c("error", "warn", "allow")))
+  }
+
+  if (isTRUE(lna_options("warn.basis_without_embed")[[1]])) {
+    "warn"
+  } else {
+    "allow"
+  }
+}
+
+.basis_without_embed_allowed <- function(merged, idx) {
+  step_key <- sprintf("step_%02d", idx)
+  step_params <- merged[[step_key]] %||% list()
+  isTRUE(step_params$allow_dense_passthrough)
+}
+
+.strip_semantic_override_params <- function(merged) {
+  for (nm in names(merged)) {
+    if (is.list(merged[[nm]]) && !is.null(merged[[nm]]$allow_dense_passthrough)) {
+      merged[[nm]]$allow_dense_passthrough <- NULL
+    }
+  }
+  merged
+}
+
+.validate_basis_without_embed <- function(transforms, merged, mode = NULL) {
+  mode <- .basis_without_embed_mode(mode)
+  if (identical(mode, "allow")) {
+    return(invisible(NULL))
+  }
+
+  basis_idx <- which(transforms == "basis")
+  if (length(basis_idx) == 0) {
+    return(invisible(NULL))
+  }
+
+  for (idx in basis_idx) {
+    window <- .basis_step_window(transforms, idx)
+
+    if (.basis_step_has_following_embed(transforms, idx) ||
+        length(window) == 0L ||
+        .basis_without_embed_allowed(merged, idx)) {
+      next
+    }
+
+    msg <- sprintf(
+      "Step %d uses 'basis' without a following 'embed'. This stores basis metadata but keeps dense voxel data; add 'embed' after 'basis' for coefficient-based latent compression. To allow this dense pass-through pipeline explicitly, set basis$params$allow_dense_passthrough = TRUE or lna_options(basis_without_embed = 'allow').",
+      idx
+    )
+
+    if (identical(mode, "warn")) {
+      warn_lna(
+        msg,
+        .subclass = "lna_warning_validation",
+        location = "pipeline_semantics:basis_without_embed"
+      )
+    } else {
+      abort_lna(
+        msg,
+        .subclass = "lna_error_validation",
+        location = "pipeline_semantics:basis_without_embed"
+      )
+    }
+  }
+
+  invisible(NULL)
+}
+
+.param_is_missing <- function(x) {
+  is.null(x) || (is.character(x) && length(x) == 1L && !nzchar(x))
+}
+
+.normalise_transform_pipeline <- function(transforms, transform_params = list(),
+                                         warn_semantics = TRUE) {
+  checked <- isTRUE(attr(transform_params, "lna_semantics_checked"))
+  merged <- resolve_transform_params(transforms, transform_params)
+
+  for (i in seq_along(transforms)) {
+    if (i < 2L || !startsWith(transforms[[i]], "embed")) {
+      next
+    }
+
+    step_key <- sprintf("step_%02d", i)
+    prev_key <- sprintf("step_%02d", i - 1L)
+    prev_step <- list(
+      type = transforms[[i - 1L]],
+      params = merged[[prev_key]] %||% list()
+    )
+    info <- infer_embed_step(prev_step, i - 1L)
+    inferred <- info$params %||% list()
+    if (length(inferred) == 0) {
+      next
+    }
+
+    step_params <- merged[[step_key]] %||% list()
+    for (nm in names(inferred)) {
+      if (.param_is_missing(step_params[[nm]]) && !is.null(inferred[[nm]])) {
+        step_params[[nm]] <- inferred[[nm]]
+      }
+    }
+    merged[[step_key]] <- step_params
+    merged[[transforms[[i]]]] <- step_params
+  }
+
+  if (isTRUE(warn_semantics) && !checked) {
+    .validate_basis_without_embed(transforms, merged)
+  }
+
+  merged <- .strip_semantic_override_params(merged)
+  attr(merged, "lna_semantics_checked") <- TRUE
+  merged
 }
 
 
@@ -239,7 +391,8 @@ infer_embed_step <- function(prev_step, prev_index) {
 #' `basis` step (e.g., created by `pca()`), the path to the basis matrix
 #' is inferred automatically using the conventional HDF5 location
 #' `/basis/<NN>_basis/matrix` where `<NN>` is the zero-based index of the
-#' previous step.
+#' previous step. When the preceding step is `basis`, compatible
+#' centering, scaling, and storage-order metadata are also inferred.
 #'
 #' @param data_or_pipe Data object or `lna_pipeline`.
 #' @param basis_path Optional explicit HDF5 path to the basis matrix.
@@ -293,18 +446,20 @@ embed <- function(data_or_pipe, basis_path = NULL, basis_step = NULL, ...) {
 
   info <- infer_embed_step(prev, step_idx)
   embed_type <- info$type
-  default_path <- info$basis_path
+  inferred_params <- info$params %||% list()
+
+  for (nm in names(inferred_params)) {
+    if (is.null(user_params[[nm]]) && !is.null(inferred_params[[nm]])) {
+      user_params[[nm]] <- inferred_params[[nm]]
+    }
+  }
 
   if (is.null(user_params$basis_path)) {
-    if (!is.null(default_path)) {
-      user_params$basis_path <- default_path
-    } else {
-      abort_lna(
-        "basis_path must be supplied or inferable from previous step",
-        .subclass = "lna_error_validation",
-        location = "embed:basis_path"
-      )
-    }
+    abort_lna(
+      "basis_path must be supplied or inferable from previous step",
+      .subclass = "lna_error_validation",
+      location = "embed:basis_path"
+    )
   }
 
   append_lna_step(pipe, embed_type, user_params)
@@ -385,20 +540,32 @@ hrbf <- function(data_or_pipe, levels = NULL, ...) {
 # S3 methods for seamless verb chaining
 # These allow using verbs directly on data without explicit as_pipeline() calls
 
+#' @rdname quant
+#' @method quant default
 #' @export
 quant.default <- quant
 
+#' @rdname pca
+#' @method pca default
 #' @export
 pca.default <- pca
 
+#' @rdname embed
+#' @method embed default
 #' @export
 embed.default <- embed
 
+#' @rdname delta
+#' @method delta default
 #' @export
 delta.default <- delta
 
+#' @rdname temporal
+#' @method temporal default
 #' @export
 temporal.default <- temporal
 
+#' @rdname hrbf
+#' @method hrbf default
 #' @export
 hrbf.default <- hrbf

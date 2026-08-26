@@ -114,14 +114,17 @@ invert_step.spat.hrbf_project <- function(type, desc, handle) {
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 
   subset <- handle$subset
+  applied <- handle$subset_applied %||% list(roi_mask = FALSE, time_idx = FALSE)
   roi_mask <- subset$roi_mask %||% subset$roi
-  if (!is.null(roi_mask)) {
+  if (!isTRUE(applied$roi_mask) && !is.null(roi_mask)) {
     vox_idx <- which(as.logical(roi_mask))
     B_final <- B_final[, vox_idx, drop = FALSE]
+    handle$subset_applied$roi_mask <- TRUE
   }
   time_idx <- subset$time_idx %||% subset$time
-  if (!is.null(time_idx)) {
+  if (!isTRUE(applied$time_idx) && !is.null(time_idx)) {
     coeff <- coeff[time_idx, , drop = FALSE]
+    handle$subset_applied$time_idx <- TRUE
   }
 
   dense <- coeff %*% B_final  # Let Matrix package handle sparse operations efficiently

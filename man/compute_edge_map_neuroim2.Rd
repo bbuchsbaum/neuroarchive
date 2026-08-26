@@ -27,11 +27,11 @@ current data or loads a pre-computed gradient map.
 }
 \details{
 **Performance Warning:** The `self_mean` mode computes 3D Sobel gradients 
-using pure R, which is extremely slow on large volumes (≈10 min for 64³). 
+using pure R, which is extremely slow on large volumes (~10 min for 64^3).
 For performance-critical applications, consider:
 \itemize{
   \item Pre-computing structural gradients and using `structural_path` mode
-  \item Installing the Rcpp acceleration (when available): 30-100× faster
+  \item Installing the Rcpp acceleration (when available): 30-100x faster
   \item Disabling edge-adaptive sampling via parameters
 }
 

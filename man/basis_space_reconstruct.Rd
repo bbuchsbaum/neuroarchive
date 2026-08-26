@@ -25,28 +25,30 @@ Reconstruct data from spatial basis embedding
 }
 \examples{
 \donttest{
-# Create example data and mask
-library(neuroim2)
-dims <- c(20, 20, 10)
-arr <- array(TRUE, dims)
-mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+if (requireNamespace("fmrilatent", quietly = TRUE)) {
+  # Create example data and mask
+  library(neuroim2)
+  dims <- c(20, 20, 10)
+  arr <- array(TRUE, dims)
+  mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 
-# Create time series data
-set.seed(123)
-n_voxels <- sum(as.logical(mask))
-my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
+  # Create time series data
+  set.seed(123)
+  n_voxels <- sum(as.logical(mask))
+  my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
 
-# Embed the data
-embedded <- basis_space_embed(my_data, mask)
+  # Embed the data
+  embedded <- basis_space_embed(my_data, mask)
 
-# Full reconstruction
-reconstructed <- basis_space_reconstruct(embedded, mask)
+  # Full reconstruction
+  reconstructed <- basis_space_reconstruct(embedded, mask)
 
-# Partial reconstruction (first 20 timepoints)
-partial_time <- basis_space_reconstruct(embedded, mask, subset_time = 1:20)
+  # Partial reconstruction (first 20 timepoints)
+  partial_time <- basis_space_reconstruct(embedded, mask, subset_time = 1:20)
 
-# Spatial subset reconstruction
-partial_voxels <- basis_space_reconstruct(embedded, mask, subset_voxels = 1:100)
+  # Spatial subset reconstruction
+  partial_voxels <- basis_space_reconstruct(embedded, mask, subset_voxels = 1:100)
+}
 }
 
 }

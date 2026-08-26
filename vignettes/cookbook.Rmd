@@ -1,12 +1,13 @@
 ---
 title: LNA Cookbook
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{LNA Cookbook}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -19,7 +20,6 @@ includes:
 ---
 
 ```{r setup, include = FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -35,6 +35,18 @@ files so you can run any section independently.
 
 ```{r}
 library(neuroarchive)
+library(neuroim2)
+```
+
+```{r helpers, include = FALSE}
+make_demo_bundle <- function(dims = c(4L, 4L, 4L), n_time = 2L, seed = 1L) {
+  sp <- neuroim2::NeuroSpace(as.integer(dims), spacing = c(2, 2, 2))
+  mask <- neuroim2::LogicalNeuroVol(array(TRUE, dim = dims), sp)
+  mask_vol <- neuroim2::NeuroVol(as.integer(as.array(mask)), sp)
+  sim <- neuroim2::simulate_fmri(mask_vol, n_time = as.integer(n_time), seed = as.integer(seed))
+  vec <- methods::as(sim, "DenseNeuroVec")
+  list(vec = vec, mask = mask, space = sp)
+}
 ```
 
 ## Quantization and Lazy Reading
@@ -43,7 +55,8 @@ Write data with quantization and read a temporal subset lazily (without
 loading the entire file into memory).
 
 ```{r quant_lazy}
-x <- array(rnorm(128), dim = c(4, 4, 4, 2))
+bundle <- make_demo_bundle(n_time = 2L, seed = 11L)
+x <- bundle$vec
 tmp <- tempfile(fileext = ".h5")
 
 write_lna(x, tmp, transforms = "quant")
@@ -54,7 +67,7 @@ r$subset(time_idx = 1)
 subset_data <- r$data()
 r$close()
 
-cat(sprintf("Full data: %s\n", paste(dim(x), collapse = " x ")))
+cat(sprintf("Full data: %s\n", paste(dim(as.array(x)), collapse = " x ")))
 cat(sprintf("Subset shape: %s\n", paste(dim(subset_data), collapse = " x ")))
 ```
 
@@ -64,19 +77,21 @@ Combine PCA basis decomposition with quantization for higher compression.
 
 ```{r pca_pipeline}
 set.seed(1)
-x <- array(rnorm(4 * 4 * 4 * 10), dim = c(4, 4, 4, 10))
+bundle <- make_demo_bundle(n_time = 10L, seed = 12L)
+x <- bundle$vec
+x_arr <- as.array(x)
 tmp <- tempfile(fileext = ".h5")
 
 write_lna(x, tmp,
-          transforms = c("basis", "quant"),
+          transforms = c("basis", "embed", "quant"),
           transform_params = list(basis = list(k = 5)))
 
 handle <- read_lna(tmp)
 recon <- handle$stash$input
 
-cat(sprintf("Original range: [%.2f, %.2f]\n", min(x), max(x)))
+cat(sprintf("Original range: [%.2f, %.2f]\n", min(x_arr), max(x_arr)))
 cat(sprintf("Correlation: %.4f\n",
-            cor(as.vector(x), as.vector(recon))))
+            cor(as.vector(x_arr), as.vector(recon))))
 ```
 
 ## ROI and Time Slicing
@@ -86,7 +101,8 @@ combined with time indexing.
 
 ```{r roi_slicing}
 set.seed(2)
-x <- array(rnorm(4 * 4 * 4 * 6), dim = c(4, 4, 4, 6))
+bundle <- make_demo_bundle(n_time = 6L, seed = 13L)
+x <- bundle$vec
 tmp <- tempfile(fileext = ".h5")
 
 write_lna(x, tmp,
@@ -96,12 +112,13 @@ write_lna(x, tmp,
 r <- read_lna(tmp, lazy = TRUE)
 
 # Create a binary ROI mask (keep ~half the voxels)
-roi <- array(runif(64) > 0.5, dim = c(4, 4, 4))
+roi_arr <- array(runif(prod(dim(bundle$mask))) > 0.5, dim = dim(bundle$mask))
+roi <- neuroim2::LogicalNeuroVol(roi_arr, bundle$space)
 r$subset(roi_mask = roi, time_idx = 1:3)
 roi_data <- r$data()
 r$close()
 
-cat(sprintf("Voxels in ROI: %d\n", sum(roi)))
+cat(sprintf("Voxels in ROI: %d\n", sum(roi_arr)))
 cat(sprintf("ROI subset shape: %s\n",
             paste(dim(roi_data), collapse = " x ")))
 ```
@@ -112,7 +129,9 @@ Project time series onto a DCT basis for temporal compression.
 
 ```{r temporal_dct}
 set.seed(3)
-x <- array(rnorm(4 * 4 * 4 * 20), dim = c(4, 4, 4, 20))
+bundle <- make_demo_bundle(n_time = 20L, seed = 14L)
+x <- bundle$vec
+x_arr <- as.array(x)
 tmp <- tempfile(fileext = ".h5")
 
 write_lna(x, tmp,
@@ -126,7 +145,7 @@ handle <- read_lna(tmp)
 recon <- handle$stash$input
 
 cat(sprintf("Correlation: %.4f\n",
-            cor(as.vector(x), as.vector(recon))))
+            cor(as.vector(x_arr), as.vector(recon))))
 cat(sprintf("File size: %.1f KB\n",
             file.info(tmp)$size / 1024))
 ```
@@ -138,7 +157,9 @@ It is lossless and often helps subsequent quantization.
 
 ```{r delta_transform}
 set.seed(4)
-x <- array(rnorm(4 * 4 * 4 * 8), dim = c(4, 4, 4, 8))
+bundle <- make_demo_bundle(n_time = 8L, seed = 15L)
+x <- bundle$vec
+x_arr <- as.array(x)
 tmp <- tempfile(fileext = ".h5")
 
 write_lna(x, tmp, transforms = "delta")
@@ -147,7 +168,7 @@ handle <- read_lna(tmp)
 recon <- handle$stash$input
 
 cat(sprintf("Max reconstruction error: %e\n",
-            max(abs(as.vector(x) - as.vector(recon)))))
+            max(abs(as.vector(x_arr) - as.vector(recon)))))
 ```
 
 ## Haar Octave Wavelet
@@ -158,18 +179,24 @@ thresholded for lossy spatial compression.
 
 ```{r haar_octwave}
 set.seed(5)
-x <- array(rnorm(4 * 4 * 4 * 4), dim = c(4, 4, 4, 4))
-mask <- array(TRUE, dim = c(4, 4, 4))
+bundle <- make_demo_bundle(n_time = 4L, seed = 16L)
+x <- bundle$vec
+mask <- bundle$mask
 tmp <- tempfile(fileext = ".h5")
 
-write_lna(x, tmp,
-          mask = mask,
-          transforms = "spat.haar_octwave",
-          transform_params = list(
-            spat.haar_octwave = list(levels = 2)
-          ))
-
-handle <- read_lna(tmp)
+roundtrip_internal_haar <- function(x, file, ...) {
+  old_engine <- lna_options("engine.math")[[1]]
+  on.exit(lna_options(engine.math = old_engine), add = TRUE)
+  lna_options(engine.math = "internal")
+  write_lna(x, file, ...)
+  read_lna(file)
+}
+handle <- roundtrip_internal_haar(
+  x, tmp,
+  mask = mask,
+  transforms = "spat.haar_octwave",
+  transform_params = list(spat.haar_octwave = list(levels = 2))
+)
 recon <- handle$stash$input
 
 # Spatial transforms return a time-by-voxel matrix
@@ -184,7 +211,8 @@ SHA-256 checksums.
 
 ```{r validate}
 set.seed(6)
-x <- array(rnorm(4 * 4 * 4 * 2), dim = c(4, 4, 4, 2))
+bundle <- make_demo_bundle(n_time = 2L, seed = 17L)
+x <- bundle$vec
 tmp <- tempfile(fileext = ".h5")
 
 write_lna(x, tmp, transforms = "quant")
@@ -202,11 +230,13 @@ quantization minimizes storage.
 
 ```{r multistep}
 set.seed(7)
-x <- array(rnorm(6 * 6 * 6 * 30), dim = c(6, 6, 6, 30))
+bundle <- make_demo_bundle(dims = c(6L, 6L, 6L), n_time = 30L, seed = 18L)
+x <- bundle$vec
+x_arr <- as.array(x)
 tmp <- tempfile(fileext = ".h5")
 
 write_lna(x, tmp,
-          transforms = c("basis", "temporal", "quant"),
+          transforms = c("basis", "embed", "temporal", "quant"),
           transform_params = list(
             basis = list(k = 15),
             temporal = list(kind = "dct", n_basis = 20),
@@ -216,12 +246,49 @@ write_lna(x, tmp,
 handle <- read_lna(tmp)
 recon <- handle$stash$input
 
-input_kb <- prod(dim(x)) * 4 / 1024
+input_kb <- prod(dim(x_arr)) * 4 / 1024
 output_kb <- file.info(tmp)$size / 1024
 cat(sprintf("Input: %.1f KB -> Output: %.1f KB (%.1fx)\n",
             input_kb, output_kb, input_kb / output_kb))
 cat(sprintf("Correlation: %.4f\n",
-            cor(as.vector(x), as.vector(recon))))
+            cor(as.vector(x_arr), as.vector(recon))))
+```
+
+## Recipe Summary
+
+The table below compares file sizes across the recipes run in this
+vignette.
+
+```{r summary_table, echo = FALSE}
+recipes <- c("Quant + Lazy", "PCA Pipeline", "ROI Slicing",
+             "Temporal DCT", "Delta", "Haar Octwave", "Validate",
+             "Multi-Step")
+
+# Collect temp file paths in creation order
+tmp_paths <- mget(ls(pattern = "^tmp"), envir = environment())
+tmp_paths <- Filter(function(v) is.character(v) && length(v) == 1 && file.exists(v), tmp_paths)
+sizes_kb <- vapply(tmp_paths, function(f) file.info(f)$size / 1024, numeric(1))
+
+# Trim to match recipe names (one temp file per recipe)
+n <- min(length(recipes), length(sizes_kb))
+summary_df <- data.frame(
+  Recipe = recipes[seq_len(n)],
+  `Size (KB)` = round(sizes_kb[seq_len(n)], 1),
+  check.names = FALSE
+)
+knitr::kable(summary_df, align = c("l", "r"))
+```
+
+```{r summary_barplot, echo = FALSE, fig.width = 6, fig.height = 3.5, fig.cap = "File sizes by recipe."}
+if (nrow(summary_df) > 0) {
+  old_par <- par(mar = c(5, 8, 2, 1))
+  barplot(summary_df[["Size (KB)"]],
+          names.arg = summary_df$Recipe,
+          horiz = TRUE, las = 1, cex.names = 0.7,
+          xlab = "File size (KB)",
+          col = "steelblue", border = NA)
+  par(old_par)
+}
 ```
 
 ```{r cleanup, include = FALSE}

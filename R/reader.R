@@ -12,10 +12,14 @@
 #' `$close()` when finished.
 #'
 #' @examples
-#' r <- read_lna("example.lna.h5", lazy = TRUE)
+#' tmp <- tempfile(fileext = ".h5")
+#' arr <- array(rnorm(4 * 4 * 1 * 10), dim = c(4, 4, 1, 10))
+#' write_lna(arr, tmp, transforms = "quant")
+#' r <- read_lna(tmp, lazy = TRUE)
 #' r$subset(time_idx = 1:10)
 #' dat <- r$data()
 #' r$close()
+#' unlink(tmp)
 #'
 #' @keywords internal
 lna_reader <- R6::R6Class("lna_reader",
@@ -63,7 +67,7 @@ lna_reader <- R6::R6Class("lna_reader",
       self$qpp_tile_cache <- .qpp_new_tile_cache()
 
       h5 <- open_h5(file, mode = "r")
-        on.exit(neuroarchive:::close_h5_safely(h5))
+      on.exit(close_h5_safely(h5))
 
       runs_avail <- discover_run_ids(h5)
       runs <- resolve_run_ids(core_read_args$run_id, runs_avail)
@@ -89,6 +93,9 @@ lna_reader <- R6::R6Class("lna_reader",
       .qpp_tile_cache_clear(self$qpp_tile_cache)
       self$qpp_tile_cache <- NULL
       if (!is.null(self$h5)) {
+        # A wildcard lazy read owns one H5File identifier per run. `close_all()`
+        # closes every identifier for the same physical file, so use the
+        # reader-owned identifier close here to keep sibling readers alive.
         if (isTRUE(self$h5$is_valid)) {
           tryCatch(
             self$h5$close(),
@@ -164,14 +171,19 @@ lna_reader <- R6::R6Class("lna_reader",
       }
 
       h5 <- self$h5
+      run_header <- .read_lna_header(h5, run_id = self$current_run_id)
       handle <- DataHandle$new(
         h5 = h5,
-        initial_meta = list(qpp_tile_cache = self$qpp_tile_cache),
+        initial_meta = list(
+          qpp_tile_cache = self$qpp_tile_cache,
+          header = run_header
+        ),
         subset = params,
         run_ids = self$run_ids,
         current_run_id = self$current_run_id
       )
       tf_group <- h5[["transforms"]]
+      on.exit(safe_h5_close(tf_group), add = TRUE)
       transforms <- discover_transforms(tf_group)
       transforms <- select_transforms_for_run(
         transforms,
@@ -227,9 +239,85 @@ lna_reader <- R6::R6Class("lna_reader",
       self$data_cache <- handle
       self$cache_params <- params
       handle
+    },
+
+    #' @description
+    #' Extract time series for specific voxels.
+    #'
+    #' Runs the inverse pipeline with an ROI mask selecting only the
+    #' requested voxels. Returns a time x voxels matrix.
+    #'
+    #' @param voxel_indices Integer vector of linear voxel indices (in
+    #'   mask order), or a logical 3D array used as an ROI mask.
+    #' @param time_idx Optional integer vector of time indices.
+    #' @return Numeric matrix (time x selected voxels).
+    series = function(voxel_indices, time_idx = NULL) {
+      if (is.null(self$h5) || !self$h5$is_valid) {
+        abort_lna("lna_reader is closed",
+                  .subclass = "lna_error_closed_reader",
+                  location = "lna_reader:series")
+      }
+
+      params <- list()
+      if (is.logical(voxel_indices) || (is.array(voxel_indices) && is.logical(voxel_indices))) {
+        params$roi_mask <- voxel_indices
+      } else {
+        # Convert linear indices to a logical mask
+        # Need the mask dimensions from the file
+        handle_for_mask <- self$data(roi_mask = NULL, time_idx = 1L)
+        mask_arr <- handle_for_mask$mask_info$mask
+        if (is.null(mask_arr)) {
+          abort_lna("No mask found; cannot convert voxel indices to ROI",
+                    .subclass = "lna_error_missing_data",
+                    location = "lna_reader:series")
+        }
+        roi <- array(FALSE, dim = dim(mask_arr))
+        # voxel_indices are in masked-voxel order
+        mask_idx <- which(as.logical(mask_arr))
+        if (max(voxel_indices) > length(mask_idx)) {
+          abort_lna("voxel_indices exceed number of masked voxels",
+                    .subclass = "lna_error_validation",
+                    location = "lna_reader:series")
+        }
+        roi[mask_idx[voxel_indices]] <- TRUE
+        params$roi_mask <- roi
+      }
+      if (!is.null(time_idx)) params$time_idx <- as.integer(time_idx)
+
+      handle <- self$data(roi_mask = params$roi_mask, time_idx = params$time_idx)
+      mat <- as_dense_mat(handle$stash$input)
+      # Normalize to time x voxels. The stash may contain voxels x time
+      # when ROI-subsetted. Use the requested voxel count to orient.
+      if (!is.null(params$roi_mask)) {
+        n_roi <- sum(as.logical(params$roi_mask))
+        if (nrow(mat) == n_roi && ncol(mat) != n_roi) {
+          mat <- t(mat)
+        }
+      }
+      mat
+    },
+
+    #' @description
+    #' Coerce the reader's data to a neuroim2 NeuroVec.
+    #'
+    #' Materializes data and returns a spatially-aware neuroim2 object.
+    #' Returns `SparseNeuroVec` when an ROI mask is active, otherwise
+    #' `DenseNeuroVec`.
+    #'
+    #' @param assume_identity Logical. Explicitly allow identity geometry when
+    #'   the LNA header has no dimensions or affine. Defaults to `FALSE`.
+    #' @param ... Subsetting parameters passed to `$data()`.
+    #' @return A `neuroim2::SparseNeuroVec` or `neuroim2::DenseNeuroVec`.
+    as_neurovec = function(assume_identity = FALSE, ...) {
+      handle <- self$data(...)
+      .as_neurovec_with_h5(
+        handle,
+        self$h5,
+        assume_identity = assume_identity
+      )
     }
   ),
-  
+
   private = list(
     #' @description
     #' Finalizer called by GC

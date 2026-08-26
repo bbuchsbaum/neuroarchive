@@ -1,12 +1,13 @@
 ---
 title: Compression Methods Guide
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Compression Methods Guide}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -19,7 +20,6 @@ includes:
 ---
 
 ```{r setup, include = FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -31,10 +31,10 @@ knitr::opts_chunk$set(
 
 # Overview
 
-The `neuroarchive` package provides 12 compression and transform methods
-that you can combine into flexible pipelines. This guide catalogs every
-method with its parameters, typical position in a pipeline, and example
-usage.
+When compressing fMRI data, you need to choose the right combination of
+transforms for your quality and size targets. This guide catalogs every
+available method with its parameters, typical position in a pipeline, and
+example usage so you can build the pipeline that fits your study.
 
 All examples below use the standard API:
 
@@ -220,9 +220,10 @@ Standard PCA decomposition into basis matrix + coefficients.
 - `k` (default: 20): Number of components
 - `storage_order`: `"component_x_voxel"` (default) or `"voxel_x_component"`
 
-**Typical Position:** Early/middle pipeline before quantization
+**Typical Position:** Preparatory step before `embed`
 
-**Compression:** 10--50x depending on k
+**Compression:** `basis` alone stores basis metadata. For coefficient-based
+compression, pair it with `embed`.
 
 ```{r}
 # PCA with 30 components
@@ -230,9 +231,9 @@ write_lna(data, "output.h5",
           transforms = "basis",
           transform_params = list(basis = list(k = 30)))
 
-# PCA + quantization pipeline
+# PCA basis + embedding + quantization
 write_lna(data, "output.h5",
-          transforms = c("basis", "quant"),
+          transforms = c("basis", "embed", "quant"),
           transform_params = list(
             basis = list(k = 50),
             quant = list(bits = 10)
@@ -439,11 +440,11 @@ write_lna(data, "high_compression.h5",
 
 ## Medium Compression (~20--50x)
 
-PCA + quantization for a good quality/compression balance.
+PCA embedding + quantization for a good quality/compression balance.
 
 ```{r}
 write_lna(data, "medium_compression.h5",
-          transforms = c("basis", "quant"),
+          transforms = c("basis", "embed", "quant"),
           transform_params = list(
             basis = list(k = 100),
             quant = list(bits = 12)
@@ -502,7 +503,9 @@ write_lna(template_data, "template.h5",
 
 # Apply to individual subjects
 for (subject_file in subject_files) {
-  subject_data <- load_subject(subject_file)
+  # Load your subject data here, e.g.:
+  # subject_data <- read_nifti(subject_file)
+  subject_data <- array(rnorm(64*64*20*100), dim = c(64, 64, 20, 100))
 
   write_lna(subject_data, paste0(subject_file, ".h5"),
             transforms = c("embed.transfer_hrbf_basis", "quant"),
@@ -533,7 +536,6 @@ for (subject_file in subject_files) {
 ## C++ Acceleration
 
 Transforms with compiled C++ code (via `src/`):
-- `spat.hrbf`, `spat.hrbf_project` (with OpenMP parallelization)
 - `spat.haar_octwave` (Morton hashing, lifting)
 - `basis.empirical_hrbf_compressed` (HRBF operations)
 
@@ -541,10 +543,12 @@ Transforms with compiled C++ code (via `src/`):
 
 **Core transforms** (no extra packages):
 - `quant`, `delta`, `basis`, `embed`, `aggregate_runs`
-- `spat.hrbf`, `spat.hrbf_project`, `spat.haar_octwave` (C++ only)
+- `spat.haar_octwave`
 - `temporal` (most basis types)
 
 **Optional dependencies:**
+- `spat.hrbf`, `spat.hrbf_project`, `basis.empirical_hrbf_compressed`:
+  fmrilatent package
 - `sparsepca`: sparsepca package (fallback: irlba or base svd)
 - `temporal` (DPSS): multitaper package
 - `basis` (efficient): irlba package

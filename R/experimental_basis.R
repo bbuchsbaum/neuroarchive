@@ -5,6 +5,10 @@
 #' (Hemodynamic Response Basis Functions). These functions provide
 #' simplified interfaces for spatial compression and analysis.
 #'
+#' @section Lifecycle:
+#' Experimental. These helpers are research-facing basis utilities and are not
+#' yet part of the stable archive read/write contract.
+#'
 #' @name experimental_basis
 NULL
 
@@ -35,29 +39,31 @@ NULL
 #'
 #' @examples
 #' \donttest{
-#' # Create a simple 3D mask for demonstration
-#' library(neuroim2)
-#' dims <- c(20, 20, 10)
-#' arr <- array(TRUE, dims)
-#' mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+#' if (requireNamespace("fmrilatent", quietly = TRUE)) {
+#'   # Create a simple 3D mask for demonstration
+#'   library(neuroim2)
+#'   dims <- c(20, 20, 10)
+#'   arr <- array(TRUE, dims)
+#'   mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 #'
-#' # Basic spatial basis center generation
-#' centers <- basis_space_centers(mask, sigma0 = 4, levels = 2)
+#'   # Basic spatial basis center generation
+#'   centers <- basis_space_centers(mask, sigma0 = 4, levels = 2)
 #'
-#' # Edge-adaptive sampling (requires structural data)
-#' centers_adaptive <- basis_space_centers(
-#'   mask,
-#'   use_edge_adaptive = TRUE,
-#'   edge_source = "self_mean"
-#' )
+#'   # Edge-adaptive sampling (requires structural data)
+#'   centers_adaptive <- basis_space_centers(
+#'     mask,
+#'     use_edge_adaptive = TRUE,
+#'     edge_source = "self_mean"
+#'   )
 #'
-#' # Fine-scale analysis
-#' centers_fine <- basis_space_centers(
-#'   mask,
-#'   sigma0 = 3,
-#'   levels = 4,
-#'   extra_fine_levels = 2
-#' )
+#'   # Fine-scale analysis
+#'   centers_fine <- basis_space_centers(
+#'     mask,
+#'     sigma0 = 3,
+#'     levels = 4,
+#'     extra_fine_levels = 2
+#'   )
+#' }
 #' }
 #'
 #' @export
@@ -122,34 +128,36 @@ basis_space_centers <- function(mask,
 #'
 #' @examples
 #' \donttest{
-#' # Create example data and mask
-#' library(neuroim2)
-#' dims <- c(20, 20, 10)
-#' arr <- array(TRUE, dims)
-#' mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+#' if (requireNamespace("fmrilatent", quietly = TRUE)) {
+#'   # Create example data and mask
+#'   library(neuroim2)
+#'   dims <- c(20, 20, 10)
+#'   arr <- array(TRUE, dims)
+#'   mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 #'
-#' # Create time series data (50 timepoints, 4000 voxels)
-#' set.seed(123)
-#' n_voxels <- sum(as.logical(mask))
-#' my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
+#'   # Create time series data (50 timepoints, 4000 voxels)
+#'   set.seed(123)
+#'   n_voxels <- sum(as.logical(mask))
+#'   my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
 #'
-#' # Basic embedding with default parameters
-#' embedded <- basis_space_embed(my_data, mask)
+#'   # Basic embedding with default parameters
+#'   embedded <- basis_space_embed(my_data, mask)
 #'
-#' # High compression
-#' compressed <- basis_space_embed(
-#'   my_data,
-#'   mask,
-#'   compression_ratio = 0.1,  # 10:1 compression
-#'   return_basis = TRUE
-#' )
+#'   # High compression
+#'   compressed <- basis_space_embed(
+#'     my_data,
+#'     mask,
+#'     compression_ratio = 0.1,  # 10:1 compression
+#'     return_basis = TRUE
+#'   )
 #'
-#' # Custom basis parameters
-#' custom_embedded <- basis_space_embed(
-#'   my_data,
-#'   mask,
-#'   basis_params = list(sigma0 = 4, levels = 4, kernel_type = "wendland_c4")
-#' )
+#'   # Custom basis parameters
+#'   custom_embedded <- basis_space_embed(
+#'     my_data,
+#'     mask,
+#'     basis_params = list(sigma0 = 4, levels = 4, kernel_type = "wendland_c4")
+#'   )
+#' }
 #' }
 #'
 #' @export
@@ -202,28 +210,30 @@ basis_space_embed <- function(data,
 #'
 #' @examples
 #' \donttest{
-#' # Create example data and mask
-#' library(neuroim2)
-#' dims <- c(20, 20, 10)
-#' arr <- array(TRUE, dims)
-#' mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+#' if (requireNamespace("fmrilatent", quietly = TRUE)) {
+#'   # Create example data and mask
+#'   library(neuroim2)
+#'   dims <- c(20, 20, 10)
+#'   arr <- array(TRUE, dims)
+#'   mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 #'
-#' # Create time series data
-#' set.seed(123)
-#' n_voxels <- sum(as.logical(mask))
-#' my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
+#'   # Create time series data
+#'   set.seed(123)
+#'   n_voxels <- sum(as.logical(mask))
+#'   my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
 #'
-#' # Embed the data
-#' embedded <- basis_space_embed(my_data, mask)
+#'   # Embed the data
+#'   embedded <- basis_space_embed(my_data, mask)
 #'
-#' # Full reconstruction
-#' reconstructed <- basis_space_reconstruct(embedded, mask)
+#'   # Full reconstruction
+#'   reconstructed <- basis_space_reconstruct(embedded, mask)
 #'
-#' # Partial reconstruction (first 20 timepoints)
-#' partial_time <- basis_space_reconstruct(embedded, mask, subset_time = 1:20)
+#'   # Partial reconstruction (first 20 timepoints)
+#'   partial_time <- basis_space_reconstruct(embedded, mask, subset_time = 1:20)
 #'
-#' # Spatial subset reconstruction
-#' partial_voxels <- basis_space_reconstruct(embedded, mask, subset_voxels = 1:100)
+#'   # Spatial subset reconstruction
+#'   partial_voxels <- basis_space_reconstruct(embedded, mask, subset_voxels = 1:100)
+#' }
 #' }
 #'
 #' @export
@@ -274,27 +284,29 @@ basis_space_reconstruct <- function(embedded_result,
 #' @return Grid of basis function visualizations
 #'
 #' @examples
-#' \donttest{
-#' # Create example mask and basis
-#' library(neuroim2)
-#' dims <- c(20, 20, 10)
-#' arr <- array(TRUE, dims)
-#' mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+#' \dontrun{
+#' if (requireNamespace("fmrilatent", quietly = TRUE)) {
+#'   # Create example mask and basis
+#'   library(neuroim2)
+#'   dims <- c(20, 20, 10)
+#'   arr <- array(TRUE, dims)
+#'   mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 #'
-#' # Generate basis for visualization
-#' my_basis <- basis_space_centers(mask, sigma0 = 4, levels = 2)
+#'   # Generate basis for visualization
+#'   my_basis <- basis_space_centers(mask, sigma0 = 4, levels = 2)
 #'
-#' # Visualize first 9 basis functions
-#' basis_viz <- basis_space_visualize(my_basis, mask)
+#'   # Visualize first 9 basis functions
+#'   basis_viz <- basis_space_visualize(my_basis, mask)
 #'
-#' # Focus on specific slice and functions
-#' slice_viz <- basis_space_visualize(
-#'   my_basis,
-#'   mask,
-#'   n_show = 4,
-#'   slice_axis = "axial",
-#'   slice_position = 5
-#' )
+#'   # Focus on specific slice and functions
+#'   slice_viz <- basis_space_visualize(
+#'     my_basis,
+#'     mask,
+#'     n_show = 4,
+#'     slice_axis = "axial",
+#'     slice_position = 5
+#'   )
+#' }
 #' }
 #'
 #' @keywords internal

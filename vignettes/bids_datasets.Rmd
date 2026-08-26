@@ -1,0 +1,331 @@
+---
+title: "Package and Share an fMRI Dataset"
+output: rmarkdown::html_vignette
+vignette: |
+  %\VignetteIndexEntry{Package and Share an fMRI Dataset}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+params:
+  family: red
+  preset: homage
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+An LNA dataset packages each source fMRI image as one compressed `.lna.h5`
+artifact while preserving the BIDS entities, resolved metadata, spatial
+geometry, associations, and source checksum needed to find or restore it. The
+result is useful when storage or network bandwidth is constrained: recipients
+can verify every transferred file before treating the manifest as authoritative.
+
+The dataset profile is experimental in neuroarchive 0.1.1. Its core does not
+depend on bidser. The optional bidser adapter is the ordinary discovery route
+for a BIDS tree once bidser 0.5.1 or later is available.
+
+## What is the storage model?
+
+Three rules explain the profile:
+
+1. **BIDS is the envelope.** Subject, session, task, acquisition, run, echo,
+   derivative pipeline, and other entities remain exact manifest fields and
+   path components. `.lna.h5` is a neuroarchive extension, not a recognized
+   BIDS imaging extension.
+2. **One source image becomes one LNA artifact.** A BIDS run with two echoes
+   has two source images and therefore two manifest rows. Conditions within a
+   run remain opaque, byte-preserved `events.tsv` content rather than separate
+   LNA artifacts.
+3. **Spatial compatibility has three parts.** `grid_id` is computed from
+   dimensions, affine, units, and voxel ordering; `support_id` identifies an
+   exact mask or explicit full grid; `reference_identifier` is a provenance
+   assertion such as `MNI152NLin2009cAsym`, never an inference from the affine.
+
+Raw native images are usually not registered across subjects. When no BIDS
+`space-` entity, `SpatialReference`, or user assertion is available, each file
+receives a unique unknown-native reference. Those references do not match one
+another. MNI-normalized files may share a reference assertion, but shared-basis
+use still requires exact grid and support identities.
+
+## Create a small bidser-free archive
+
+The following example constructs source records directly. This is also how the
+package's CRAN-safe tests exercise the dataset layer without making bidser a
+load-bearing dependency.
+
+```{r create-sources}
+library(neuroarchive)
+library(neuroim2)
+
+source_root <- file.path(tempdir(), "lna-source-study")
+archive_root <- file.path(tempdir(), "lna-exchange-study")
+unlink(c(source_root, archive_root), recursive = TRUE)
+
+make_source <- function(subject, offset = 0) {
+  relative <- file.path(
+    paste0("sub-", subject), "func",
+    paste0("sub-", subject, "_task-rest_run-01_bold.nii.gz")
+  )
+  path <- file.path(source_root, relative)
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  values <- array(seq_len(24) + offset, dim = c(2L, 2L, 2L, 3L))
+  affine <- diag(c(2, 2, 2, 1))
+  write_vec(NeuroVec(values, NeuroSpace(dim(values), trans = affine)), path)
+  metadata_relative <- sub("[.]nii[.]gz$", ".json", relative)
+  metadata_path <- file.path(source_root, metadata_relative)
+  jsonlite::write_json(
+    list(RepetitionTime = 0.8, TaskName = "rest"),
+    metadata_path,
+    auto_unbox = TRUE,
+    pretty = TRUE
+  )
+
+  lna_source_record(
+    record_id = paste0("rest-", subject),
+    source_path = relative,
+    source_checksum = lna_file_checksum(path),
+    entities = list(sub = subject, task = "rest", run = "01"),
+    datatype = "func",
+    suffix = "bold",
+    extension = ".nii.gz",
+    resolved_metadata = list(RepetitionTime = 0.8, TaskName = "rest"),
+    associations = list(list(
+      association_id = paste0("metadata-", subject),
+      role = "metadata-source",
+      path = metadata_relative,
+      checksum = lna_file_checksum(metadata_path),
+      metadata = list(
+        inheritance_level = "run",
+        precedence = 100L,
+        fields = c("RepetitionTime", "TaskName"),
+        media_type = "application/json"
+      )
+    )),
+    geometry = list(
+      dims = c(2L, 2L, 2L),
+      affine = affine,
+      units = "mm",
+      voxel_ordering = "first-axis-fastest",
+      n_volumes = 3L
+    )
+  )
+}
+
+records <- list(make_source("01"), make_source("02", 100))
+```
+
+`write_lna_dataset()` plans before it writes, records an append-only resume
+journal, installs each artifact transactionally, and writes the manifest and
+declaration last.
+
+```{r package-dataset}
+packed <- write_lna_dataset(
+  records,
+  output_root = archive_root,
+  source_root = source_root
+)
+
+packed$manifest$data[, c(
+  "record_id", "entity_sub", "lna_path", "grid_id",
+  "reference_identifier", "status"
+)]
+```
+
+Both rows have the same grid because the dimensions and affine match. Their
+unknown-native references differ because matching voxel coordinates do not
+prove cross-subject registration.
+
+## Query without opening HDF5 files
+
+The manifest is the query authority. Entity comparisons are exact by default,
+so `task = "rest"` does not match `task-resting`, and `space = "MNI"` does not
+match a longer template name.
+
+```{r query}
+dataset <- open_lna_dataset(archive_root)
+query_lna(dataset, sub = "01", task = "rest")$record_id
+```
+
+Use `match = "regex"` or `match = "glob"` only when approximate matching is
+intentional.
+
+## Transfer and verify the archive
+
+`transfer_lna_dataset()` inventories every portable file, copies with a bounded
+buffer, resumes only from a byte-verified partial prefix, and installs the
+manifest authority last. Upload and download are provenance labels for the same
+strict protocol.
+
+```{r transfer}
+receiver_root <- file.path(tempdir(), "lna-receiver-study")
+unlink(receiver_root, recursive = TRUE)
+sent <- transfer_lna_dataset(
+  archive_root,
+  receiver_root,
+  direction = "upload",
+  chunk_bytes = 1024^2
+)
+sent$verification$passed
+```
+
+A receiver cannot disable checksum verification. Repeating the transfer reuses
+verified files, resumes valid partials, and repairs corrupt destinations when
+`repair = TRUE`.
+
+## Restore a BIDS-shaped dataset
+
+A closed restoration includes every selected artifact and its dependency
+closure. It restores imaging values under the codec's declared numerical error
+contract and recreates effective sidecars and byte-preserved events.
+
+```{r restore}
+restored_root <- file.path(tempdir(), "lna-restored-study")
+unlink(restored_root, recursive = TRUE)
+restored <- restore_bids(
+  open_lna_dataset(receiver_root),
+  restored_root,
+  closure = "closed"
+)
+restored$status
+```
+
+A partial selection cannot truthfully claim to be a complete BIDS dataset.
+`closure = "partial"` therefore marks the output explicitly; it does not write
+a misleading ordinary BIDS declaration.
+
+## Discover records with bidser
+
+neuroarchive owns the source-record contract, planning, writing, manifest,
+query, update, transfer, and restoration. bidser owns BIDS discovery, entity
+parsing, metadata inheritance, event lookup, derivative discovery, and NIfTI
+volume counting. The adapter is optional:
+
+```{r bidser-adapter, eval = FALSE}
+if (requireNamespace("bidser", quietly = TRUE) &&
+    packageVersion("bidser") >= "0.5.1") {
+  records <- lna_source_records_from_bidser("/data/my-bids-study")
+  write_lna_dataset(
+    records,
+    output_root = "/data/my-lna-exchange",
+    source_root = "/data/my-bids-study"
+  )
+}
+```
+
+Version 0.5.1 is required because the adapter depends on compound `.lna.h5`
+extension parsing and metadata-provenance output. The dataset core and its
+fixtures remain usable when bidser is absent.
+
+## Update an existing archive
+
+Updates are previewed before mutation. The preview classifies every record as
+`unchanged`, `added`, `changed`, `source-missing`, `stale`, or `corrupt`.
+
+```{r update-preview}
+preview <- plan_lna_dataset_update(
+  archive_root,
+  records,
+  source_root,
+  mode = "refresh"
+)
+as.data.frame(preview)
+```
+
+The modes have different promises:
+
+| Mode | Adds | Rebuilds | Removes |
+|:--|:--|:--|:--|
+| `append` | New records | Never; changed records are reported and retained | Never |
+| `refresh` | New records | Changed, stale, or corrupt records | Never |
+| `mirror` | New records | Changed, stale, or corrupt records | Only with `prune = TRUE` and confirmation of the reviewed preview hash |
+
+`update_lna_dataset(preview)` builds a complete sibling generation, verifies
+it, then swaps it into place. The previous generation remains as a recoverable
+sibling directory. Shared-basis receipts state their update policy: append may
+reuse only unchanged membership and source checksums; refresh requires refit
+when either changes; repacking reuses only an exact basis checksum.
+
+## When can records share a basis?
+
+Shared bases are an advanced, lossy profile. Group first, fit second, then
+write. The grouping function requires exact grid, support, and reference
+identity; a masked support must supply its actual mask.
+
+```{r shared-basis-shape, eval = FALSE}
+groups <- lna_shared_basis_groups(records)
+resources <- fit_lna_shared_bases(
+  groups,
+  source_root = source_root,
+  basis_dir = file.path(archive_root, "bases"),
+  n_atoms = 32L
+)
+
+profile <- list(
+  profile_id = "study-shared-pca-v1",
+  loss_mode = "lossy",
+  transforms = "embed.shared_basis",
+  transform_params = list(),
+  error_contract = lna_error_contract(
+    "lossy", "float64", max_abs_error = 0.01, rmse_max = 0.002
+  )
+)
+
+plan <- plan_lna_dataset(
+  records,
+  archive_root,
+  codec_profile = profile,
+  fit_resources = resources
+)
+write_lna_dataset(plan, source_root = source_root)
+```
+
+The numerical bounds above are study decisions, not recommended universal
+values. Validate them against source images with `validate_lna_restoration()`.
+
+## What changes and what is preserved?
+
+| Operation | Image values | Geometry and reference | Metadata and associations | Authority |
+|:--|:--|:--|:--|:--|
+| Package | Reconstructed within the declared codec contract | Full affine and per-run grid retained; reference remains asserted provenance | Resolved metadata and selected companions recorded | Manifest plus declaration |
+| Query | Unopened | Filtered as exact manifest fields | Filtered as exact manifest fields | Manifest only |
+| Transfer | Byte-identical | Byte-identical | Byte-identical | Receiver verifies all digests before use |
+| Restore | Decoded within the declared contract | NIfTI geometry restored | Effective sidecars/events restored | Closed or explicitly partial receipt |
+| Update | Unchanged files reused by checksum; selected files rebuilt | Reclassified before writing | Replanned from incoming source records | New revision and plan hash; previous generation retained |
+
+## Ownership and non-goals
+
+| Concern | Owner |
+|:--|:--|
+| BIDS discovery, entities, inheritance, events, derivative inventory | bidser adapter |
+| Typed source record, spatial identities, reference provenance | neuroarchive |
+| Compression, HDF5 validation, reconstruction error contract | neuroarchive |
+| Dataset plan, journal, manifest, declaration, query, update, transfer, restore | neuroarchive |
+| General BIDS editing or validation | External BIDS tools |
+
+neuroarchive does not try to become a general BIDS library. It records enough
+of the common BIDS architecture to represent and restore the compressed
+exchange dataset. It also does not infer template identity from an affine,
+register native images, permit shared bases across incompatible supports, or
+promise that a `.lna.h5` tree is itself valid BIDS.
+
+For the normative field and failure contract, see
+`inst/spec/bids-fmri-profile-v1.md` in the installed source package.
+
+```{r cleanup, include = FALSE}
+unlink(c(
+  source_root, archive_root, receiver_root, restored_root
+), recursive = TRUE)
+```

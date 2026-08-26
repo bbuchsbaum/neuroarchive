@@ -62,7 +62,7 @@ forward_step.quant_refactored <- function(type, desc, handle) {
     # Validate input data
     if (any(!is.finite(input_data))) {
       abort_lna(
-        "quant cannot handle non-finite values – run an imputation/filtering transform first.",
+        "quant cannot handle non-finite values; run an imputation/filtering transform first.",
         .subclass = "lna_error_validation",
         location = "forward_step.quant"
       )

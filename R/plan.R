@@ -5,7 +5,6 @@
 #'   and payload management.
 #' @importFrom R6 R6Class
 #' @import tibble
-#' @import jsonlite
 #' @keywords internal
 Plan <- R6::R6Class("Plan",
   public = list(

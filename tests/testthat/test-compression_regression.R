@@ -62,7 +62,13 @@ test_that("basis+quant pipeline achieves >= 3.0x compression on fMRI-like data",
   tmp <- tempfile(fileext = ".h5")
   on.exit(unlink(tmp), add = TRUE)
 
-  result <- write_lna(arr, tmp, transforms = c("basis", "quant"))
+  result <- NULL
+  result <- write_lna(
+    arr,
+    tmp,
+    transforms = c("basis", "quant"),
+    transform_params = list(basis = list(allow_dense_passthrough = TRUE))
+  )
 
   expect_s3_class(result, "lna_write_result")
   expect_true(is.numeric(result$ratio))

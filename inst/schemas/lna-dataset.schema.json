@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "lna-dataset.schema.json",
+  "title": "Latent NeuroArchive BIDS exchange declaration",
+  "type": "object",
+  "required": [
+    "schema_version", "profile", "profile_version", "plan_hash", "manifest",
+    "extension_registry", "bids_envelope", "metadata_policy", "fit_resources",
+    "participants_receipt"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "profile": {"const": "NeuroarchiveBIDSExchange"},
+    "profile_version": {"const": "1.0.0"},
+    "plan_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "manifest": {
+      "type": "object",
+      "required": ["table", "sidecar", "schema_version", "authority"],
+      "properties": {
+        "table": {"const": "lna_manifest.tsv"},
+        "sidecar": {"const": "lna_manifest.json"},
+        "schema_version": {
+          "pattern": "^1\\.[0-9]+\\.[0-9]+$",
+          "examples": ["1.0.0", "1.1.0"]
+        },
+        "authority": {"const": "manifest-plus-declaration"}
+      }
+    },
+    "extension_registry": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "extension", "media_type", "row_semantics",
+          "bids_recognized_extension"
+        ],
+        "properties": {
+          "extension": {"const": ".lna.h5"},
+          "media_type": {"const": "application/vnd.neuroarchive.lna+hdf5"},
+          "bids_recognized_extension": {"const": false}
+        }
+      }
+    },
+    "bids_envelope": {"type": "object"},
+    "metadata_policy": {"type": "object"},
+    "fit_resources": {"type": "array"},
+    "participants_receipt": {"type": ["object", "null"]}
+  },
+  "additionalProperties": false
+}

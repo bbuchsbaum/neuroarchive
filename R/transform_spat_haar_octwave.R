@@ -275,10 +275,12 @@ invert_step.spat.haar_octwave <- function(type, desc, handle) {
   }
 
   subset <- handle$subset
+  applied <- handle$subset_applied %||% list(roi_mask = FALSE, time_idx = FALSE)
   time_idx <- subset$time_idx %||% subset$time
-  if (!is.null(time_idx)) {
+  if (!isTRUE(applied$time_idx) && !is.null(time_idx)) {
     root_coeffs <- root_coeffs[time_idx, , drop = FALSE]
     detail_coeffs <- lapply(detail_coeffs, function(m) m[time_idx, , drop = FALSE])
+    handle$subset_applied$time_idx <- TRUE
   }
 
   levels <- p$levels %||% length(detail_coeffs)
@@ -288,9 +290,10 @@ invert_step.spat.haar_octwave <- function(type, desc, handle) {
   )
 
   roi_mask <- subset$roi_mask %||% subset$roi
-  if (!is.null(roi_mask)) {
+  if (!isTRUE(applied$roi_mask) && !is.null(roi_mask)) {
     vox_idx <- which(as.logical(roi_mask))
     reco <- reco[, vox_idx, drop = FALSE]
+    handle$subset_applied$roi_mask <- TRUE
   }
 
   coeff_key <- desc$outputs[[1]] %||% "wavelet_coefficients"

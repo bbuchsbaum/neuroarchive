@@ -4,7 +4,6 @@
 #'   data being transformed, metadata, the write plan (if applicable),
 #'   HDF5 file access, and subsetting information.
 #' @importFrom R6 R6Class
-#' @import rlang
 #' @keywords internal
 DataHandle <- R6::R6Class("DataHandle",
   public = list(

@@ -353,6 +353,9 @@ resolve_run_local_step_params <- function(type, params, plan, run_id) {
   scale_path <- by_role("scale")
   if (!is.null(center_path)) params$center_data_with <- center_path
   if (!is.null(scale_path)) params$scale_data_with <- scale_path
+  if (!is.null(previous$params$storage_order)) {
+    params$storage_order <- previous$params$storage_order
+  }
   params
 }
 

@@ -159,9 +159,9 @@ validate_lna <- function(file, strict = TRUE, checksum = TRUE,
   }
 
   .validate_lna_structure(h5, root, fail)
-  .validate_lna_run_geometry(h5, fail)
   .validate_lna_descriptors(h5, root, fail)
   .validate_required_transforms(h5, root, fail)
+  .validate_lna_run_geometry(h5, fail)
   qpp_receipts <- .validate_qpp_archives(
     h5, root, fail, mode = qpp,
     sample_tiles = as.integer(qpp_sample_tiles), limits = qpp_limits

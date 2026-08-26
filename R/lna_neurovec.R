@@ -3,7 +3,6 @@
 #' @importFrom neuroim2 space spacing origin indices
 #' @importClassesFrom neuroim2 AbstractSparseNeuroVec SparseNeuroVec NeuroVec ArrayLike4D NeuroSpace LogicalNeuroVol IndexLookupVol
 #' @importMethodsFrom neuroim2 linear_access matricized_access series sub_vector lookup
-#' @importFrom methods new show
 NULL
 
 # LNANeuroVec: lazy subset-dispatch NeuroVec backed by an LNA archive

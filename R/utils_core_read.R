@@ -101,8 +101,10 @@ prepare_transforms_for_read <- function(tf_group, allow_plugins, file) {
 
 #' Select transform descriptors owned by one run
 #'
-#' Descriptors without `run_id` remain archive-wide for backward
-#' compatibility. Run-tagged descriptors are applied only to their owner.
+#' Descriptors written before run-local tagging did not contain `run_id`; those
+#' descriptors remain archive-wide for backward compatibility. New multi-run
+#' archives tag every independently executed descriptor and must not apply one
+#' run's fitted parameters or payload paths to another run.
 #'
 #' @keywords internal
 select_transforms_for_run <- function(transforms, tf_group, run_id) {
@@ -201,9 +203,7 @@ process_run_core_read <- function(rid, h5, runs, subset_params, transforms,
     meta <- handle$meta
     meta$transform_descriptors <- descriptor_map
     handle <- handle$with(meta = meta)
-    handle <- apply_invert_transforms(
-      handle, run_transforms, tf_group, validate, h5
-    )
+    handle <- apply_invert_transforms(handle, run_transforms, tf_group, validate, h5)
   } else {
     path <- file.path("scans", rid, "data", "values")
     data <- h5_read(root, path)

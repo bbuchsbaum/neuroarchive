@@ -142,6 +142,7 @@ test_that("edge cases produce valid files", {
 # checksum validation on complex pipeline
 
 test_that("checksum validation on complex pipeline", {
+  skip_if(requireNamespace("covr", quietly = TRUE) && covr::in_covr(), "HDF5 mutation tests unreliable under covr")
   testthat::local_mocked_bindings(
     default_params = function(type) {
       if (type == "aggregate_runs") return(list())

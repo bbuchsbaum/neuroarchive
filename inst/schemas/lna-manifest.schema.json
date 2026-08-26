@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "lna-manifest.schema.json",
+  "title": "Latent NeuroArchive exchange manifest sidecar",
+  "$comment": "Schema 1.1.0 adds required shared_basis_json. Readers migrate the shipped 1.0.0 layout only when that is the sole missing core column.",
+  "type": "object",
+  "required": [
+    "manifest_schema_version",
+    "table",
+    "null_encoding",
+    "row_semantics",
+    "column_order",
+    "columns",
+    "entity_semantics",
+    "identity_algorithms",
+    "checksum_algorithms"
+  ],
+  "properties": {
+    "manifest_schema_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+\\.[0-9]+$",
+      "examples": ["1.0.0", "1.1.0"]
+    },
+    "table": {"const": "lna_manifest.tsv"},
+    "null_encoding": {"const": "n/a"},
+    "row_semantics": {"const": "one-row-per-source-image"},
+    "column_order": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "columns": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/column"}
+    },
+    "entity_semantics": {
+      "type": "object",
+      "required": ["prefix", "optional", "comparison", "missing"],
+      "properties": {
+        "prefix": {"const": "entity_"},
+        "optional": {"const": true},
+        "comparison": {"const": "exact"},
+        "missing": {"const": "n/a"}
+      },
+      "additionalProperties": true
+    },
+    "identity_algorithms": {"type": "object"},
+    "checksum_algorithms": {"type": "object"}
+  },
+  "definitions": {
+    "column": {
+      "type": "object",
+      "required": ["type", "nullable", "unit", "description", "role"],
+      "properties": {
+        "type": {
+          "enum": [
+            "string", "integer", "number", "boolean", "json", "path",
+            "uri", "checksum"
+          ]
+        },
+        "nullable": {"type": "boolean"},
+        "unit": {"type": ["string", "null"]},
+        "description": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1},
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

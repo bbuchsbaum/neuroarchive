@@ -1,10 +1,14 @@
-#' Analytic HRBF Transform - Forward Step (centre generation)
+#' Analytic HRBF Transform - Forward Step
 #'
-#' Implements the centre generation and parameter bookkeeping portion of
-#' the `spat.hrbf` transform. This step either analytically generates
-#' RBF centres via Poisson-disk sampling or loads them from an HDF5
-#' location. The generated centres and their corresponding sigma values
-#' are stored in the handle's stash for use by later steps. Set
+#' Implements the write-time bookkeeping portion of the `spat.hrbf`
+#' transform. The HRBF basis itself is generated through the active
+#' backend contract, and descriptor parameters are updated with
+#' reconstruction-critical fields such as `k_actual` and `mask_hash`.
+#'
+#' Centre metadata (`hrbf_centres`, `hrbf_sigmas`) is treated as
+#' descriptive, non-authoritative metadata. When available from the
+#' backend or stored inputs it is placed in the handle stash for
+#' inspection, but reconstruction must not depend on it. Set
 #' `num_extra_fine_levels` to generate additional dyadic scales beyond
 #' `levels`.
 #' @method forward_step spat.hrbf
@@ -96,6 +100,13 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
     p$use_differential_encoding <- FALSE
   }
 
+  B_final <- hrbf_basis_from_params(
+    p, mask_neurovol,
+    if (!is.null(handle$h5)) handle$h5[["/"]] else NULL,
+    mask_world_coords = cached_mask_world_coords,
+    mask_arr = mask_arr,
+    mask_linear_indices = mask_linear_indices
+  )
   centre_spec <- na_hrbf_centres_from_params(
     params = p,
     mask_neurovol = mask_neurovol,
@@ -104,11 +115,13 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   C_total <- centre_spec$centres
   sigma_vec <- centre_spec$sigmas
   p$centres_stored <- isTRUE(centre_spec$centres_stored)
-
-  p$k_actual <- nrow(C_total)
+  p$k_actual <- nrow(B_final)
   mask_hash_val <- digest::digest(as.array(mask_neurovol), algo = "sha256")
   p$mask_hash <- paste0("sha256:", mask_hash_val)
-
+  p$centre_metadata_status <- centre_spec$status %||% if (!is.null(C_total) && !is.null(sigma_vec)) "present" else "unavailable"
+  p$centre_metadata_source <- centre_spec$source %||% "unknown"
+  p$centre_metadata_authoritative <- isTRUE(centre_spec$authoritative)
+  p$basis_generation_backend <- "fmrilatent"
 
   desc$params <- p
   desc$version <- "1.0"
@@ -122,17 +135,6 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
   plan <- handle$plan
   step_index <- plan$next_index
   fname <- plan$get_next_filename(type)
-
-
-
-
-  B_final <- hrbf_basis_from_params(
-    p, mask_neurovol,
-    if (!is.null(handle$h5)) handle$h5[["/"]] else NULL,
-    mask_world_coords = cached_mask_world_coords,
-    mask_arr = mask_arr,
-    mask_linear_indices = mask_linear_indices
-  )
 
   matrix_path <- "/basis/hrbf/analytic/matrix"
   params_json <- as.character(jsonlite::toJSON(p, auto_unbox = TRUE))
@@ -166,10 +168,22 @@ forward_step.spat.hrbf <- function(type, desc, handle) {
 
   handle$plan <- plan
 
-  stash_vals <- list(hrbf_centres = C_total,
-                     hrbf_sigmas = sigma_vec,
-                     hrbf_basis = B_final,
-                     coefficients_hrbf = coeff)
+  stash_vals <- list(
+    hrbf_basis = B_final,
+    coefficients_hrbf = coeff,
+    hrbf_centre_metadata = list(
+      status = p$centre_metadata_status,
+      source = p$centre_metadata_source,
+      authoritative = p$centre_metadata_authoritative,
+      k_actual = p$k_actual
+    )
+  )
+  if (!is.null(C_total)) {
+    stash_vals$hrbf_centres <- C_total
+  }
+  if (!is.null(sigma_vec)) {
+    stash_vals$hrbf_sigmas <- sigma_vec
+  }
   stash_vals[[pipeline_output_key]] <- coeff
   handle$update_stash(keys = character(),
                       new_values = stash_vals)
@@ -229,14 +243,17 @@ invert_step.spat.hrbf <- function(type, desc, handle) {
   coeff <- handle$get_inputs(coeff_key)[[coeff_key]]
 
   subset <- handle$subset
+  applied <- handle$subset_applied %||% list(roi_mask = FALSE, time_idx = FALSE)
   roi_mask <- subset$roi_mask %||% subset$roi
-  if (!is.null(roi_mask)) {
+  if (!isTRUE(applied$roi_mask) && !is.null(roi_mask)) {
     vox_idx <- which(as.logical(roi_mask))
     B_final <- B_final[, vox_idx, drop = FALSE]
+    handle$subset_applied$roi_mask <- TRUE
   }
   time_idx <- subset$time_idx %||% subset$time
-  if (!is.null(time_idx)) {
+  if (!isTRUE(applied$time_idx) && !is.null(time_idx)) {
     coeff <- coeff[time_idx, , drop = FALSE]
+    handle$subset_applied$time_idx <- TRUE
   }
 
   dense <- coeff %*% B_final

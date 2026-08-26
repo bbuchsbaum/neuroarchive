@@ -35,10 +35,15 @@ test_that("forward_step.spat.hrbf generates centres and hash", {
 
   expect_true(h2$has_key("hrbf_centres"))
   expect_true(h2$has_key("hrbf_sigmas"))
+  expect_true(h2$has_key("hrbf_centre_metadata"))
   dname <- names(h2$plan$descriptors)[1]
   stored_desc <- h2$plan$descriptors[[dname]]
   expect_true(startsWith(stored_desc$params$mask_hash, "sha256:"))
   expect_equal(stored_desc$params$k_actual, nrow(h2$stash$hrbf_centres))
+  expect_identical(stored_desc$params$centre_metadata_status, "present")
+  expect_false(isTRUE(stored_desc$params$centre_metadata_authoritative))
+  expect_identical(h2$stash$hrbf_centre_metadata$status, "present")
+  expect_false(isTRUE(h2$stash$hrbf_centre_metadata$authoritative))
 })
 
 test_that("forward_step.spat.hrbf stores basis matrix when requested", {

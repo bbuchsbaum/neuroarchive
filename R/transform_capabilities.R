@@ -147,13 +147,3 @@
     dense_passthrough_pipeline = roi_strategy %in% c("dense-pass-through", "mixed")
   )
 }
-.basis_step_has_following_embed <- function(transforms, idx) {
-  next_basis <- which(transforms == "basis" & seq_along(transforms) > idx)
-  stop_idx <- if (length(next_basis) > 0L) {
-    next_basis[[1L]] - 1L
-  } else {
-    length(transforms)
-  }
-  if (stop_idx <= idx) return(FALSE)
-  any(startsWith(transforms[seq.int(idx + 1L, stop_idx)], "embed"))
-}

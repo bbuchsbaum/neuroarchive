@@ -12,7 +12,7 @@ infer_embed_step(prev_step, prev_index)
 \item{prev_index}{Integer index (1-based) of the previous step.}
 }
 \value{
-List with fields `type` and `basis_path`.
+List with fields `type` and `params`.
 }
 \description{
 Helper used by `embed()` to derive the appropriate transform type and

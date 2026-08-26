@@ -68,7 +68,7 @@ forward_step.quant <- function(type, desc, handle) {
 
   if (any(!is.finite(input_data))) {
     abort_lna(
-      "quant cannot handle non-finite values – run an imputation/filtering transform first.",
+      "quant cannot handle non-finite values; run an imputation/filtering transform first.",
       .subclass = "lna_error_validation",
       location = "forward_step.quant"
     )
@@ -428,6 +428,7 @@ invert_step.quant <- function(type, desc, handle) {
   offset_path <- paths$offset
 
   root <- handle$h5[["/"]]
+  on.exit(safe_h5_close(root), add = TRUE)
   dset <- NULL
   q <- NULL
   attr_bits <- desc$params$bits %||% NA

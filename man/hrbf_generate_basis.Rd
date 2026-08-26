@@ -32,3 +32,9 @@ For `hrbf_generate_basis`, a sparse matrix with one row per
 These helpers expose analytic HRBF basis generation and simple
 projection/reconstruction outside of a full LNA pipeline.
 }
+\section{Lifecycle}{
+
+Experimental. These standalone HRBF helpers are useful for research and
+diagnostics, but the stable archive path is the `spat.hrbf` transform inside
+`write_lna()` / `read_lna()` pipelines.
+}

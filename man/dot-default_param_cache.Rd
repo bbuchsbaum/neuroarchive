@@ -5,21 +5,16 @@
 \alias{.default_param_cache}
 \title{Default Parameter Retrieval}
 \format{
-An object of class \code{environment} of length 0.
+An environment.
 }
 \usage{
 .default_param_cache
 }
-\arguments{
-\item{type}{Character transform type.}
-}
-\value{
-A list of default parameters extracted from the schema, or an empty
-  list if none are defined or the schema is missing.
-}
 \description{
-Loads parameter defaults from a JSON schema for the given transform type and
-caches both the schema and the resulting defaults. If a schema cannot be
-found, an empty list is cached and returned with a warning.
+Environment used to memoize default parameter lists by transform type.
+}
+\details{
+The cache is populated by `default_params_impl()` and cleared by
+`default_param_cache_clear()`.
 }
 \keyword{internal}

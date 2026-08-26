@@ -77,9 +77,45 @@ test_that("pca -> embed -> quant pipeline executes", {
   expect_equal(captured$transform_params$step_01$k, 2)
   expect_equal(captured$transform_params$step_03$bits, 6)
   expect_equal(captured$transform_params$step_02$basis_path, "/basis/00_basis/matrix")
+  expect_equal(captured$transform_params$step_02$center_data_with, "/basis/00_basis/center")
 })
 
 test_that("embed() without prior basis step errors", {
   rm(list = ls(envir = opts_env), envir = opts_env)
   expect_error(embed(as_pipeline(matrix(1, 2, 2))), "basis-producing")
+})
+
+test_that("pca -> quant errors about missing embed", {
+  rm(list = ls(envir = opts_env), envir = opts_env)
+  arr <- array(rnorm(20), dim = c(5, 4))
+
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    list(ok = TRUE)
+  })
+
+  pipe <- pca(arr, k = 2)
+  pipe <- quant(pipe, bits = 6)
+
+  expect_error(
+    lna_write(pipe, file = "warn.h5"),
+    regexp = "basis.*without a following 'embed'|allow this dense pass-through pipeline explicitly",
+    class = "lna_error_validation"
+  )
+})
+
+test_that("pca -> quant allows explicit dense pass-through opt-in", {
+  rm(list = ls(envir = opts_env), envir = opts_env)
+  arr <- array(rnorm(20), dim = c(5, 4))
+
+  captured <- list()
+  local_mock_write_lna(function(x, file, transforms, transform_params, run_id, checksum = "none") {
+    captured$transform_params <<- transform_params
+    list(ok = TRUE)
+  })
+
+  pipe <- pca(arr, k = 2, allow_dense_passthrough = TRUE)
+  pipe <- quant(pipe, bits = 6)
+  lna_write(pipe, file = "ok.h5")
+
+  expect_null(captured$transform_params$step_01$allow_dense_passthrough)
 })

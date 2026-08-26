@@ -2,9 +2,12 @@
 % Please edit documentation in R/dsl_verbs.R
 \name{pca}
 \alias{pca}
+\alias{pca.default}
 \title{Principal Component Analysis DSL verb}
 \usage{
 pca(data_or_pipe, k = NULL, ...)
+
+\method{pca}{default}(data_or_pipe, k = NULL, ...)
 }
 \arguments{
 \item{data_or_pipe}{Data object or `lna_pipeline`.}

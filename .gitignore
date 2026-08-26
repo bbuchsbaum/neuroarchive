@@ -16,6 +16,7 @@ src/symbols.rds
 .vscode/
 .claude/
 .omc/
+.mote/
 
 # Local backup and generated docs
 .albersdown.bak/

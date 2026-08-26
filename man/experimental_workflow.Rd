@@ -7,3 +7,8 @@
 High-level workflow functions and utilities for data preprocessing,
 quantization, dimensionality reduction, and Rcpp acceleration control.
 }
+\section{Lifecycle}{
+
+Experimental. Prefer the stable archive APIs (`write_lna()`, `read_lna()`,
+and transform pipelines) for durable workflows.
+}

@@ -1,5 +1,4 @@
 #include <Rcpp.h>
-#include <array>
 #include <deque>
 using namespace Rcpp;
 

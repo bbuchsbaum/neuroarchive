@@ -1,12 +1,13 @@
 ---
 title: Getting Started with neuroarchive
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Getting Started with neuroarchive}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -19,7 +20,6 @@ includes:
 ---
 
 ```{r setup, include = FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -44,20 +44,33 @@ remotes::install_github("bbuchsbaum/neuroarchive")
 
 ```{r library}
 library(neuroarchive)
+library(neuroim2)
+```
+
+```{r helpers, include = FALSE}
+make_demo_bundle <- function(dims = c(6L, 6L, 4L), n_time = 20L, seed = 42L) {
+  sp <- neuroim2::NeuroSpace(as.integer(dims), spacing = c(2, 2, 2))
+  mask <- neuroim2::LogicalNeuroVol(array(TRUE, dim = dims), sp)
+  mask_vol <- neuroim2::NeuroVol(as.integer(as.array(mask)), sp)
+  sim <- neuroim2::simulate_fmri(mask_vol, n_time = as.integer(n_time), seed = as.integer(seed))
+  vec <- methods::as(sim, "DenseNeuroVec")
+  list(vec = vec, mask = mask, space = sp)
+}
 ```
 
 # Quick Start: Write and Read
 
-Create synthetic fMRI data (8x8x8 voxels, 20 timepoints), compress it, and read it back.
+Create synthetic fMRI data as a `DenseNeuroVec`, compress it, and read it back.
+This is the preferred interface because it preserves spatial metadata.
 
 ```{r quickstart}
-# Create synthetic 4D fMRI data
-set.seed(42)
-data <- array(rnorm(8 * 8 * 8 * 20), dim = c(8, 8, 8, 20))
+demo <- make_demo_bundle()
+vec <- demo$vec
+data_arr <- as.array(vec)
 
 # Write with default quantization
 tmp <- tempfile(fileext = ".lna.h5")
-result <- write_lna(data, tmp, transforms = "quant")
+result <- write_lna(vec, tmp, transforms = "quant")
 
 # Inspect compression result
 print(result)
@@ -73,15 +86,25 @@ The `write_lna()` function returns an `lna_write_result` object showing compress
 
 ```{r verify}
 # Correlation between original and reconstructed
-cor_value <- cor(as.vector(data), as.vector(reconstructed))
+cor_value <- cor(as.vector(data_arr), as.vector(reconstructed))
 cat(sprintf("Correlation: %.4f\n", cor_value))
 
 # Maximum absolute error
-max_error <- max(abs(data - reconstructed))
+max_error <- max(abs(data_arr - reconstructed))
 cat(sprintf("Max error: %.4f\n", max_error))
 ```
 
 With 8-bit quantization, expect correlation > 0.99 for typical fMRI data.
+
+```{r scatter_plot, echo = FALSE, fig.width = 4, fig.height = 4, fig.cap = "Original vs reconstructed values (subsampled)."}
+set.seed(1)
+idx <- sample(length(data_arr), min(2000, length(data_arr)))
+plot(as.vector(data_arr)[idx], as.vector(reconstructed)[idx],
+     pch = ".", cex = 2, col = rgb(0, 0, 0, 0.3),
+     xlab = "Original", ylab = "Reconstructed",
+     main = "Original vs Reconstructed")
+abline(0, 1, col = "red", lwd = 1.5)
+```
 
 # Transform Options
 
@@ -93,7 +116,7 @@ Reduces floating-point precision to save space. Controls the fundamental lossy c
 
 ```{r quant}
 # Higher bit depth = better quality, less compression
-result_12bit <- write_lna(data, tempfile(fileext = ".h5"),
+result_12bit <- write_lna(vec, tempfile(fileext = ".h5"),
                           transforms = "quant",
                           transform_params = list(quant = list(bits = 12)))
 print(result_12bit)
@@ -101,11 +124,13 @@ print(result_12bit)
 
 ## Basis Decomposition (`basis`)
 
-PCA-based dimensionality reduction. Reduces spatial or temporal dimensions before quantization.
+`basis` computes and stores a PCA basis, but by itself it does not switch
+the archive into a coefficient representation. Use `embed` after `basis`
+for true latent compression.
 
 ```{r basis}
-# Use 10 principal components
-result_pca <- write_lna(data, tempfile(fileext = ".h5"),
+# Store a reusable PCA basis
+result_pca <- write_lna(vec, tempfile(fileext = ".h5"),
                         transforms = "basis",
                         transform_params = list(basis = list(k = 10)))
 print(result_pca)
@@ -116,11 +141,11 @@ print(result_pca)
 Chain transforms for higher compression. Each transform operates on the output of the previous one.
 
 ```{r combined}
-# PCA (10 components) + quantization (8 bits)
+# PCA basis + embedding + quantization
 result_combined <- write_lna(
-  data,
+  vec,
   tempfile(fileext = ".h5"),
-  transforms = c("basis", "quant"),
+  transforms = c("basis", "embed", "quant"),
   transform_params = list(
     basis = list(k = 10),
     quant = list(bits = 8)
@@ -129,7 +154,10 @@ result_combined <- write_lna(
 print(result_combined)
 ```
 
-This pipeline typically achieves 20--100x compression depending on data characteristics.
+This is the coefficient-based PCA pipeline. A raw `basis + quant` pipeline
+is now rejected by default because it stores dense voxel data alongside basis
+metadata rather than latent coefficients. Use it only with explicit expert
+opt-in when you really want dense pass-through semantics.
 
 # Customization with lna_options()
 
@@ -139,11 +167,11 @@ Set default parameters globally to avoid repeating them:
 # Set defaults for all subsequent write_lna() calls
 lna_options(
   quant = list(bits = 10),
-  basis = list(k = 20)
+  `basis.pca` = list(k = 20)
 )
 
 # Now these parameters apply automatically
-write_lna(data, "output.h5", transforms = c("basis", "quant"))
+write_lna(vec, "output.h5", transforms = c("basis", "embed", "quant"))
 ```
 
 # What's Next?
@@ -156,7 +184,10 @@ write_lna(data, "output.h5", transforms = c("basis", "quant"))
 
 # Tips
 
-- Always use 4D arrays shaped `c(x, y, z, time)` for spatial + temporal data
+- Prefer `DenseNeuroVec`, `SparseNeuroVec`, `DenseNeuroVol`, or `SparseNeuroVol`
+  so spacing and other spatial metadata remain attached
+- Use bare arrays only as a fallback; if you do, keep the time dimension
+  last as `c(x, y, z, time)`
 - Start with simple `"quant"` transform, then add dimensionality reduction
 - Use `validate_lna(file)` to verify file integrity and checksums
 - The `lazy = TRUE` option in `read_lna()` enables on-demand data loading for large files

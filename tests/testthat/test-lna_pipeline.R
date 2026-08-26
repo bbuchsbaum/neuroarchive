@@ -108,7 +108,9 @@ test_that("lna_write forwards arguments to write_lna", {
   expect_identical(captured$x, arr)
   expect_equal(captured$file, "foo.h5")
   expect_equal(captured$transforms, "quant")
-  expect_equal(captured$transform_params, list(step_01 = list(bits = 8), quant = list(bits = 8)))
+  expect_true(isTRUE(attr(captured$transform_params, "lna_semantics_checked")))
+  expect_equal(captured$transform_params$step_01$bits, 8)
+  expect_equal(captured$transform_params$quant$bits, 8)
   expect_equal(captured$run_id, "run-01")
   expect_equal(captured$header, list(a = 1))
   expect_equal(captured$checksum, "sha256")  # Check the default .checksum value
@@ -130,7 +132,10 @@ test_that("lna_write works with empty pipeline", {
 
   lna_write(pipe, file = "bar.h5")
   expect_length(captured$transforms, 0L)
-  expect_equal(captured$transform_params, list())  # Empty list with no elements
+  expect_true(isTRUE(attr(captured$transform_params, "lna_semantics_checked")))
+  params_plain <- captured$transform_params
+  attr(params_plain, "lna_semantics_checked") <- NULL
+  expect_length(params_plain, 0L)
   expect_equal(captured$checksum, "sha256")  # Check the default .checksum value
 })
 

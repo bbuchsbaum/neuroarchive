@@ -2,16 +2,21 @@
 % Please edit documentation in R/transform_spat_hrbf.R
 \name{forward_step.spat.hrbf}
 \alias{forward_step.spat.hrbf}
-\title{Analytic HRBF Transform - Forward Step (centre generation)}
+\title{Analytic HRBF Transform - Forward Step}
 \usage{
 \method{forward_step}{spat.hrbf}(type, desc, handle)
 }
 \description{
-Implements the centre generation and parameter bookkeeping portion of
-the `spat.hrbf` transform. This step either analytically generates
-RBF centres via Poisson-disk sampling or loads them from an HDF5
-location. The generated centres and their corresponding sigma values
-are stored in the handle's stash for use by later steps. Set
+Implements the write-time bookkeeping portion of the `spat.hrbf`
+transform. The HRBF basis itself is generated through the active
+backend contract, and descriptor parameters are updated with
+reconstruction-critical fields such as `k_actual` and `mask_hash`.
+}
+\details{
+Centre metadata (`hrbf_centres`, `hrbf_sigmas`) is treated as
+descriptive, non-authoritative metadata. When available from the
+backend or stored inputs it is placed in the handle stash for
+inspection, but reconstruction must not depend on it. Set
 `num_extra_fine_levels` to generate additional dyadic scales beyond
 `levels`.
 }

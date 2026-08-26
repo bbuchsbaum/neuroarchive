@@ -8,3 +8,8 @@ User-facing functions for spatial basis decomposition using HRBF
 (Hemodynamic Response Basis Functions). These functions provide
 simplified interfaces for spatial compression and analysis.
 }
+\section{Lifecycle}{
+
+Experimental. These helpers are research-facing basis utilities and are not
+yet part of the stable archive read/write contract.
+}

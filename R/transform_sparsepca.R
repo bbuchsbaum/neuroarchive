@@ -8,9 +8,7 @@
 #' This example demonstrates how an external plugin transform
 #' might integrate with the LNA pipeline.
 #'
-#' @param storage_order Character string specifying the orientation of the
-#'   basis matrix. Either "component_x_voxel" (default) or
-#'   "voxel_x_component".
+#' @inheritParams forward_step
 #' @method forward_step sparsepca
 #' @export
 #' @keywords internal
@@ -176,11 +174,8 @@ forward_step.sparsepca <- function(type, desc, handle) {
     list(path = basis_h5_path, role = "basis_matrix"),
     list(path = embed_h5_path, role = "coefficients")
   )
-  if (!is.null(d) && length(d) > 0L) {
-    desc$datasets <- c(
-      desc$datasets,
-      list(list(path = d_h5_path, role = "singular_values"))
-    )
+  if (!is.null(d) && length(d) > 0) {
+    desc$datasets <- c(desc$datasets, list(list(path = d_h5_path, role = "singular_values")))
   }
   
   plan$add_descriptor(fname, desc) 
@@ -195,7 +190,7 @@ forward_step.sparsepca <- function(type, desc, handle) {
                        run_id_for_path, as.integer(current_step_idx_for_path),
                        params_json, embed_h5_path, "eager", dtype = NA_character_)
 
-  if (!is.null(d) && length(d) > 0L) {
+  if (!is.null(d) && length(d) > 0) {
     plan$add_payload(d_h5_path, d)
     plan$add_dataset_def(d_h5_path, "singular_values", as.character(type),
                          run_id_for_path, as.integer(current_step_idx_for_path),
@@ -216,9 +211,7 @@ forward_step.sparsepca <- function(type, desc, handle) {
 #'
 #' Reconstructs data from the sparse PCA coefficients and basis matrix.
 #'
-#' @param storage_order Character string specifying the orientation of the
-#'   basis matrix. Either "component_x_voxel" (default) or
-#'   "voxel_x_component".
+#' @inheritParams invert_step
 #' @method invert_step sparsepca
 #' @export
 #' @keywords internal

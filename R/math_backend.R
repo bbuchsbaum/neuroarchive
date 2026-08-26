@@ -29,22 +29,52 @@ na_with_fmrilatent_compat <- function(expr) {
 }
 
 #' @keywords internal
-na_hrbf_centres_from_params <- function(params, mask_neurovol, h5_root = NULL) {
-  if (!na_use_fmrilatent_engine()) {
-    return(hrbf_centres_from_params_internal(
-      params = params,
-      mask_neurovol = mask_neurovol,
-      h5_root = h5_root
-    ))
-  }
-
+na_get_fmrilatent_fn <- function(name, location, required = TRUE) {
   if (!requireNamespace("fmrilatent", quietly = TRUE)) {
     abort_lna(
-      "engine.math='fmrilatent' requires the fmrilatent package",
+      "HRBF transforms require the fmrilatent package",
       .subclass = "lna_error_missing_package",
-      location = "na_hrbf_centres_from_params"
+      location = location
     )
   }
+
+  fmri_ns <- asNamespace("fmrilatent")
+  if (!exists(name, envir = fmri_ns, mode = "function")) {
+    if (!required) {
+      return(NULL)
+    }
+    abort_lna(
+      sprintf("Installed fmrilatent does not provide `%s`; update fmrilatent", name),
+      .subclass = "lna_error_missing_package",
+      location = location
+    )
+  }
+
+  get(name, envir = fmri_ns, mode = "function")
+}
+
+#' @keywords internal
+na_hrbf_compat_params <- function(params) {
+  out <- params
+  # neuroarchive historically exposed the C6 polynomial under the
+  # `wendland_c4` label.  Archives already contain that label, so translate it
+  # at the fmrilatent boundary instead of silently changing their numerical
+  # meaning now that fmrilatent distinguishes the two kernels.
+  for (field in c("kernel_type", "kernel_type_fine_levels")) {
+    if (identical(out[[field]], "wendland_c4")) {
+      out[[field]] <- "wendland_c6"
+    }
+  }
+  out
+}
+
+#' @keywords internal
+na_hrbf_centres_from_params <- function(params, mask_neurovol, h5_root = NULL) {
+  centres_fun <- na_get_fmrilatent_fn(
+    "lna_hrbf_centres_from_params",
+    "na_hrbf_centres_from_params",
+    required = FALSE
+  )
 
   centres <- NULL
   sigmas <- NULL
@@ -63,50 +93,41 @@ na_hrbf_centres_from_params <- function(params, mask_neurovol, h5_root = NULL) {
     sigmas <- as.numeric(h5_read(h5_root, sigma_vec_path))
   }
 
-  fmri_ns <- asNamespace("fmrilatent")
-  if (exists("lna_hrbf_centres_from_params", envir = fmri_ns, mode = "function")) {
-    return(
-      na_with_fmrilatent_compat(
-        fmrilatent:::lna_hrbf_centres_from_params(
-          params = params,
-          mask = mask_neurovol,
-          centres = centres,
-          sigmas = sigmas,
-          compat_profile = "neuroarchive_0.1.1"
-        )
-      )
-    )
+  if (is.null(centres_fun)) {
+    return(list(
+      centres = centres,
+      sigmas = sigmas,
+      level_vec = NULL,
+      centres_stored = centres_stored,
+      status = if (!is.null(centres) && !is.null(sigmas)) "present" else "unavailable_from_backend",
+      source = if (!is.null(centres) && !is.null(sigmas)) "stored_inputs" else "backend_api_missing",
+      authoritative = FALSE
+    ))
   }
 
-  hrbf_centres_from_params_internal(
-    params = params,
-    mask_neurovol = mask_neurovol,
-    h5_root = h5_root
+  out <- na_with_fmrilatent_compat(
+    centres_fun(
+      params = na_hrbf_compat_params(params),
+      mask = mask_neurovol,
+      centres = centres,
+      sigmas = sigmas,
+      compat_profile = "neuroarchive_0.1.1"
+    )
   )
+  out$status <- "present"
+  out$source <- if (isTRUE(out$centres_stored)) "stored_inputs" else "fmrilatent"
+  out$authoritative <- FALSE
+  out
 }
 
 #' @keywords internal
 na_hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
                                       mask_world_coords = NULL, mask_arr = NULL,
                                       mask_linear_indices = NULL) {
-  if (!na_use_fmrilatent_engine()) {
-    return(hrbf_basis_from_params_internal(
-      params = params,
-      mask_neurovol = mask_neurovol,
-      h5_root = h5_root,
-      mask_world_coords = mask_world_coords,
-      mask_arr = mask_arr,
-      mask_linear_indices = mask_linear_indices
-    ))
-  }
-
-  if (!requireNamespace("fmrilatent", quietly = TRUE)) {
-    abort_lna(
-      "engine.math='fmrilatent' requires the fmrilatent package",
-      .subclass = "lna_error_missing_package",
-      location = "na_hrbf_basis_from_params"
-    )
-  }
+  basis_fun <- na_get_fmrilatent_fn(
+    "lna_hrbf_basis_from_params",
+    "na_hrbf_basis_from_params"
+  )
 
   centres <- NULL
   sigmas <- NULL
@@ -126,8 +147,8 @@ na_hrbf_basis_from_params <- function(params, mask_neurovol, h5_root = NULL,
   }
 
   na_with_fmrilatent_compat(
-    fmrilatent::lna_hrbf_basis_from_params(
-      params = params,
+    basis_fun(
+      params = na_hrbf_compat_params(params),
       mask = mask_neurovol,
       centres = centres,
       sigmas = sigmas,
@@ -146,15 +167,12 @@ na_haar_forward_matrix <- function(data_morton, mask_flat_morton, mask_dims,
   if (!na_use_fmrilatent_engine()) {
     return(NULL)
   }
-  if (!requireNamespace("fmrilatent", quietly = TRUE)) {
-    abort_lna(
-      "engine.math='fmrilatent' requires the fmrilatent package",
-      .subclass = "lna_error_missing_package",
-      location = "na_haar_forward_matrix"
-    )
-  }
+  forward_fun <- na_get_fmrilatent_fn(
+    "lna_forward_lift_matrix",
+    "na_haar_forward_matrix"
+  )
   na_with_fmrilatent_compat(
-    fmrilatent::lna_forward_lift_matrix(
+    forward_fun(
       data_morton = data_morton,
       mask_flat_morton = mask_flat_morton,
       mask_dims = mask_dims,
@@ -172,15 +190,12 @@ na_haar_inverse_matrix <- function(root_coeff, detail_coeffs_by_level,
   if (!na_use_fmrilatent_engine()) {
     return(NULL)
   }
-  if (!requireNamespace("fmrilatent", quietly = TRUE)) {
-    abort_lna(
-      "engine.math='fmrilatent' requires the fmrilatent package",
-      .subclass = "lna_error_missing_package",
-      location = "na_haar_inverse_matrix"
-    )
-  }
+  inverse_fun <- na_get_fmrilatent_fn(
+    "lna_inverse_lift_matrix",
+    "na_haar_inverse_matrix"
+  )
   na_with_fmrilatent_compat(
-    fmrilatent::lna_inverse_lift_matrix(
+    inverse_fun(
       root_coeff = root_coeff,
       detail_coeffs_by_level = detail_coeffs_by_level,
       mask_flat_morton = mask_flat_morton,

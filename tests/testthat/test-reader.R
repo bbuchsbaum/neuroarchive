@@ -113,6 +113,17 @@ test_that("lna_reader close clears caches", {
   expect_null(reader$cache_params)
 })
 
+test_that("lna_reader data does not leak temporary HDF5 groups", {
+  tmp <- local_tempfile(fileext = ".h5")
+  create_empty_lna(tmp)
+
+  reader <- read_lna(tmp, lazy = TRUE)
+  baseline <- reader$h5$get_obj_count()
+  reader$data()
+  expect_identical(reader$h5$get_obj_count(), baseline)
+  reader$close()
+})
+
 
 test_that("lna_reader data caches result and respects subset", {
   tmp <- local_tempfile(fileext = ".h5")

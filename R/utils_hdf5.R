@@ -78,15 +78,21 @@ h5_attr_read <- function(h5_obj, name) {
     )
   }
 
-  # Use hdf5r's read function
+  # Open and close the attribute explicitly. The convenience `h5attr()`
+  # reader leaves the H5A identifier to garbage collection, which is unsafe
+  # for long-lived lazy readers that close only their own file identifier.
+  attr_obj <- NULL
   tryCatch({
-    hdf5r::h5attr(h5_obj, name)
+    attr_obj <- h5_obj$attr_open(name)
+    attr_obj$read()
   }, error = function(e) {
     abort_lna(
       sprintf("Error reading attribute '%s': %s", name, conditionMessage(e)),
       .subclass = "lna_error_io",
       location = "h5_attr_read"
     )
+  }, finally = {
+    safe_h5_close(attr_obj)
   })
 }
 
@@ -601,9 +607,9 @@ close_h5_safely <- function(h5) {
 
 #' Safely close an HDF5 object
 #'
-#' Checks that `obj` is not `NULL` and inherits from one of
-#' `"H5D"`, `"H5Group"`, or `"H5File"` before closing. `H5File`
-#' objects use `$close_all()` while other objects use `$close()`.
+#' Checks that `obj` is not `NULL` and is a supported HDF5 identifier before
+#' closing. `H5File` objects use `$close_all()` while groups, datasets,
+#' attributes, dataspaces, datatypes, and property lists use `$close()`.
 #'
 #' @param obj HDF5 object to close.
 #' @return Invisible `NULL`.
@@ -616,31 +622,12 @@ safe_h5_close <- function(obj) {
         warning(paste("Error closing H5File:", conditionMessage(e)))
       })
     }
-  } else if (inherits(obj, c("H5Group", "H5D"))) {
+  } else if (inherits(obj, c("H5Group", "H5D", "H5A", "H5S", "H5T", "H5P"))) {
     tryCatch(obj$close(), error = function(e) {
       warning(paste("Error closing HDF5 object:", conditionMessage(e)))
     })
   }
   invisible(NULL)
-}
-
-#' Safely check for the existence of an HDF5 path
-#'
-#' Wrapper around `H5Group$exists` that treats any error as the path not
-#' existing. This is useful when paths may contain characters that `exists()`
-#' cannot handle cleanly.
-#'
-#' @param group An `H5File` or `H5Group` to check.
-#' @param path_name Character path to test.
-#' @return Logical `TRUE` if the path exists, otherwise `FALSE`.
-#' @keywords internal
-path_exists_safely <- function(group, path_name) {
-  if (is.null(path_name) || !nzchar(path_name)) return(FALSE)
-  tryCatch({
-    group$exists(path_name)
-  }, error = function(e) {
-    FALSE
-  })
 }
 
 #' Assert that an HDF5 path exists
@@ -935,6 +922,7 @@ discover_run_ids <- function(h5) {
     return(character())
   }
   grp <- h5[["scans"]]
+  on.exit(safe_h5_close(grp), add = TRUE)
   nms <- grp$ls()$name
   runs <- grep("^run-", nms, value = TRUE)
   sort(runs)

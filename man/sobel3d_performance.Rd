@@ -42,10 +42,10 @@ characteristics and acceleration options.
 Computing 3D Sobel gradients requires triple-nested convolution that becomes
 extremely slow on large volumes when implemented in pure R:
 \itemize{
-  \item 32³ volume: ~30 seconds
-  \item 64³ volume: ~10 minutes  
-  \item 128³ volume: ~2 hours
-  \item 256³ volume: ~7 minutes (pure R) vs ~2.5 seconds (optimized C++)
+  \item 32^3 volume: ~30 seconds
+  \item 64^3 volume: ~10 minutes
+  \item 128^3 volume: ~2 hours
+  \item 256^3 volume: ~7 minutes (pure R) vs ~2.5 seconds (optimized C++)
 }
 }
 
@@ -54,14 +54,14 @@ extremely slow on large volumes when implemented in pure R:
 
 **Option 1: Rcpp + OpenMP (Recommended)**
 
-Install the included optimized C++ implementation for 30-100× speedup:
+Install the included optimized C++ implementation for 30-100x speedup:
 \preformatted{
 # The Rcpp code is included in src/sobel3d.cpp
 # Automatically compiled if Rcpp tools are available
 devtools::install()  # Will compile Rcpp if possible
 }
 
-The optimized version (64³ test volume, 8-core):
+The optimized version (64^3 test volume, 8-core):
 \itemize{
   \item Pure R: 4.2 seconds
   \item Original Rcpp: 110 ms  

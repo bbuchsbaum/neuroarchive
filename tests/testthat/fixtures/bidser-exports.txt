@@ -1,0 +1,5 @@
+# Collision-sensitive export snapshot from bidser 0.5.0 source NAMESPACE.
+# The complete adapter contract is tested in the bidser integration track;
+# this fixture pins the two names neuroarchive must not export.
+dataset_description
+participants

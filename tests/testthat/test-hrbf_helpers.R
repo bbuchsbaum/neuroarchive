@@ -136,7 +136,7 @@ test_that("compute_edge_map_neuroim2 structural_path", {
   tmp <- tempfile(fileext = ".h5")
   on.exit(unlink(tmp), add = TRUE)
   h5 <- H5File$new(tmp, mode = "w")
-  h5[['grad']] <- array(2, dim = c(2,2,2))
+  neuroarchive:::h5_write_dataset(h5[["/"]], "grad", array(2, dim = c(2,2,2)))
   h5$close_all()
   h5 <- H5File$new(tmp, mode = "r")
 
@@ -166,8 +166,8 @@ test_that("compute_edge_map_neuroim2 resamples structural with affine", {
   tmp <- tempfile(fileext = ".h5")
   on.exit(unlink(tmp), add = TRUE)
   h5 <- H5File$new(tmp, mode = "w")
-  h5[["grad"]] <- array(1, dim = c(3,3,3))
-  h5[["aff"]] <- diag(4)
+  neuroarchive:::h5_write_dataset(h5[["/"]], "grad", array(1, dim = c(3,3,3)))
+  neuroarchive:::h5_write_dataset(h5[["/"]], "aff", diag(4))
   h5$close_all()
   h5 <- H5File$new(tmp, mode = "r")
 
@@ -265,4 +265,3 @@ test_that("combined upgrades improve reconstruction MSE", {
   expect_true(mse_base >= 0)
   expect_true(mse_adv >= 0)
 })
-

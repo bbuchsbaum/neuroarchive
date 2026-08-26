@@ -10,6 +10,10 @@
 #'   HRBF atom and columns matching mask voxels.  `hrbf_project_matrix`
 #'   returns the coefficient matrix and `hrbf_reconstruct_matrix` returns
 #'   a dense numeric matrix.
+#' @section Lifecycle:
+#' Experimental. These standalone HRBF helpers are useful for research and
+#' diagnostics, but the stable archive path is the `spat.hrbf` transform inside
+#' `write_lna()` / `read_lna()` pipelines.
 #' @export
 hrbf_generate_basis <- function(params, mask) {
   # Clean interface for analytic HRBF basis generation

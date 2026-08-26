@@ -13,9 +13,9 @@ test_that("invert_step.spat.haar_octwave loads ROI subset using valid blocks", {
 
   tmp <- local_tempfile(fileext = ".h5")
   h5 <- neuroarchive:::open_h5(tmp, mode = "w")
-  h5[["/wavelet/level_ROOT/coefficients"]] <- root
-  h5[["/wavelet/level_0/detail_coefficients"]] <- detail
-  h5[["/aux_meta/haar_octwave/valid_blocks_L-1"]] <- valid
+  neuroarchive:::h5_write_dataset(h5[["/"]], "/wavelet/level_ROOT/coefficients", root)
+  neuroarchive:::h5_write_dataset(h5[["/"]], "/wavelet/level_0/detail_coefficients", detail)
+  neuroarchive:::h5_write_dataset(h5[["/"]], "/aux_meta/haar_octwave/valid_blocks_L-1", valid)
   h5$close_all()
 
   h5 <- neuroarchive:::open_h5(tmp, mode = "r")

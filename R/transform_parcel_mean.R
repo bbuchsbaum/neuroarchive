@@ -563,26 +563,3 @@ lna_default.parcel.mean <- function() {
        calibration_checksum = NULL, fit_provenance = NULL,
        normalization_provenance = NULL)
 }
-.compute_mask_checksum <- function(mask_arr) {
-  con <- rawConnection(raw(), open = "wb")
-  on.exit(close(con), add = TRUE)
-
-  write_string <- function(value) {
-    bytes <- charToRaw(enc2utf8(as.character(value %||% "")))
-    writeBin(as.integer(length(bytes)), con, size = 4L, endian = "little")
-    if (length(bytes) > 0L) writeBin(bytes, con)
-  }
-  write_int <- function(value) {
-    writeBin(as.integer(value), con, size = 4L, endian = "little")
-  }
-
-  write_string("lna_shared_basis_mask_v1")
-  write_string("mask")
-  write_int(dim(mask_arr))
-  writeBin(as.raw(as.integer(as.logical(mask_arr))), con)
-
-  paste0(
-    "sha256:",
-    digest::digest(rawConnectionValue(con), algo = "sha256", serialize = FALSE)
-  )
-}

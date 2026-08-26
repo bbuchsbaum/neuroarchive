@@ -7,7 +7,7 @@ test_that("transform files do not call low-level math internals directly", {
     mustWork = TRUE
   )
   transform_files <- sort(Sys.glob(file.path(pkg_root, "R", "transform_*.R")))
-  if (length(transform_files) == 0L) {
+  if (length(transform_files) == 0) {
     skip("source transform files are not available in the installed test environment")
   }
   expect_gt(length(transform_files), 0)

@@ -2,9 +2,12 @@
 % Please edit documentation in R/dsl_verbs.R
 \name{embed}
 \alias{embed}
+\alias{embed.default}
 \title{Embed DSL verb}
 \usage{
 embed(data_or_pipe, basis_path = NULL, basis_step = NULL, ...)
+
+\method{embed}{default}(data_or_pipe, basis_path = NULL, basis_step = NULL, ...)
 }
 \arguments{
 \item{data_or_pipe}{Data object or `lna_pipeline`.}
@@ -25,5 +28,6 @@ computed by a preceding transform. When called immediately after a
 `basis` step (e.g., created by `pca()`), the path to the basis matrix
 is inferred automatically using the conventional HDF5 location
 `/basis/<NN>_basis/matrix` where `<NN>` is the zero-based index of the
-previous step.
+previous step. When the preceding step is `basis`, compatible
+centering, scaling, and storage-order metadata are also inferred.
 }

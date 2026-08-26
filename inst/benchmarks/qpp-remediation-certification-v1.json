@@ -1,14 +1,12 @@
 {
-  "receipt_version": "1.1.0",
-  "generated_at_utc": "2026-08-26T00:21:15Z",
+  "receipt_version": "1.0.0",
+  "generated_at_utc": "2026-08-25T23:02:18Z",
   "epic_id": "bd-01M0XD72K8DKD9DHJBMC6453Q4",
   "ticket_id": "bd-01M0XD9B5MK8T0SWFS0RF8K3MF",
   "package": "neuroarchive",
   "package_version": "0.1.1",
   "source_base_sha": "863bfcf9780a660716673f0ad6523cdce2782301",
-  "tested_source_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
-  "source_branch": "codex/qpp-remediation-bd-01m0xd7",
-  "source_state": "isolated publication worktree; local and five-platform hosted QPP evidence complete",
+  "source_state": "intended dirty worktree slice; not committed or published",
   "platform": {
     "os": "macOS Sonoma 14.3",
     "machine": "arm64",
@@ -27,9 +25,14 @@
   },
   "artifacts": [
     {
+      "path": "neuroarchive_0.1.1.tar.gz",
+      "sha256": "6bcf3b5a60a74544817f569e44fb7e0a868a6ddbec325f29bb3bd397e2ecbaa6",
+      "kind": "source tarball built with --no-build-vignettes"
+    },
+    {
       "path": ".github/workflows/R-CMD-check.yaml",
-      "sha256": "d8b00ffeed9fed43fb2f92df038d41df506685e0e367a04f4591c77352d7848e",
-      "kind": "independent five-platform hosted QPP court and package-check jobs"
+      "sha256": "4f42d163913508acd3a82e8bb6c79f715361fe0c7ec730be2dbfc32034826e83",
+      "kind": "independent five-platform hosted QPP court and package-check jobs with uploaded court receipts"
     },
     {
       "path": "inst/consumer/qpp-installed-consumer.R",
@@ -49,28 +52,37 @@
   ],
   "local_evidence": [
     {
-      "claim": "focused_qpp_profile_geometry_multi_run",
-      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 Rscript -e 'testthat::set_max_fails(Inf); devtools::test(filter = \"analysis-contract|profile-qpp|qpp|multi-run-transforms|run-geometry|public-api|spatial-identity|temporal-lift53-reference|transform-parcel-mean|transform_capabilities\", stop_on_failure = FALSE)'",
+      "claim": "focused_qpp_profile_multi_run",
+      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 Rscript -e 'testthat::set_max_fails(Inf); devtools::test(filter = \"profile-qpp|qpp|multi-run-transforms\", stop_on_failure = FALSE)'",
       "result": "pass",
       "failures": 0,
       "warnings": 0,
       "skips": 0,
-      "passes": 1196
+      "passes": 746
     },
     {
-      "claim": "fresh_tarball_build_install",
-      "command": "R CMD build --no-manual --no-build-vignettes <isolated-worktree> && R CMD INSTALL --library=<empty-library> neuroarchive_0.1.1.tar.gz",
+      "claim": "current_source_public_courts",
+      "commands": [
+        "devtools::load_all(); source('inst/consumer/qpp-installed-consumer.R')",
+        "devtools::load_all(); source('inst/consumer/qpp-adversarial-consumer.R')"
+      ],
       "result": "pass"
+    },
+    {
+      "claim": "fresh_tarball_install",
+      "command": "R CMD build --no-build-vignettes --no-manual . && R CMD INSTALL --library=<empty-library> neuroarchive_0.1.1.tar.gz",
+      "result": "pass",
+      "empty_library": "/tmp/neuroarchive-r8-lib.Vjk4Ne"
     },
     {
       "claim": "installed_public_courts",
       "command": "source(system.file('consumer', c('qpp-installed-consumer.R','qpp-adversarial-consumer.R'), package='neuroarchive'))",
       "result": "pass",
       "coverage": [
-        "two-run write and independent reconstruction",
-        "exact spatial and fitted-asset provenance",
+        "two-run write",
+        "exact provenance validation",
         "pointwise split checking",
-        "selected tile and step integrity before decode or cache",
+        "selected tile and step integrity",
         "bounded time, parcel, and ROI reads",
         "independent Pure-R integer oracle",
         "typed adversarial mutation matrix",
@@ -78,42 +90,84 @@
       ]
     },
     {
-      "claim": "installed_analysis_safe_vignette",
-      "command": "rmarkdown::render('vignettes/analysis_safe_qpp.Rmd') against the clean tarball installation",
-      "result": "pass"
+      "claim": "analysis_safe_vignette",
+      "commands": [
+        "devtools::load_all(); rmarkdown::render('vignettes/analysis_safe_qpp.Rmd')",
+        ".libPaths(c(<empty-library>, .libPaths())); rmarkdown::render('vignettes/analysis_safe_qpp.Rmd')"
+      ],
+      "result": "pass",
+      "assertions": [
+        "nonempty finite reconstruction",
+        "pointwise machine split unit",
+        "full-tile validation receipt",
+        "selected digests verified",
+        "partial payload range",
+        "named two-run lazy readers"
+      ]
+    },
+    {
+      "claim": "hosted_court_receipt_logic",
+      "command": "install.packages('.', repos=NULL, type='source') into an empty library; run the QPP-public-court R receipt block; assert required fields and both named consumer SHA-256 values with jq",
+      "source": "/tmp/qpp-court-receipt-r8-source-install.json",
+      "source_sha256": "0a198652a5235190a1ce006ba9190c784ebdebbb3234d1a4fccfee1135ca6079",
+      "result": "pass",
+      "source_directory_install": "pass",
+      "workflow_yaml_parse": "pass",
+      "workflow_jobs": [
+        "QPP-public-court",
+        "R-CMD-check"
+      ],
+      "qpp_matrix_entries": 5,
+      "qpp_dependency_scope": "hard dependencies only; optional Suggests and Config/Needs are excluded from the focused court",
+      "claim_separation": "QPP court status and artifacts are independent of unrelated package-check status"
     },
     {
       "claim": "full_source_devtools_suite",
       "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 _R_CHECK_FORCE_SUGGESTS_=false Rscript -e 'devtools::test(stop_on_failure = FALSE)'",
       "result": "aborted",
       "exit_code": 134,
-      "location": "pre-existing experimental_api native path",
-      "classification": "legacy non-QPP source-load failure"
+      "location": "tests/testthat/test-experimental_api.R after 7 assertions",
+      "isolated_cause": "basis_space_embed(X, mask, basis_params=list(sigma0=4, levels=2)) raises SIGABRT under devtools::load_all()",
+      "classification": "pre-existing non-QPP source-load path"
+    },
+    {
+      "claim": "installed_package_suite",
+      "source": "/tmp/neuroarchive-qpp-check/neuroarchive.Rcheck/tests/testthat.Rout",
+      "source_sha256": "32d137535601887f0bf506ee6bc66689a74214e95855e05927521ed309ed26bf",
+      "result": "pass",
+      "failures": 0,
+      "warnings": 35,
+      "skips": 8,
+      "passes": 3482
     },
     {
       "claim": "r_cmd_check_no_vignette_tarball",
-      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 _R_CHECK_FORCE_SUGGESTS_=false R CMD check --no-manual --no-stop-on-test-error neuroarchive_0.1.1.tar.gz",
-      "result": "completed_with_legacy_failures",
-      "errors": 3,
-      "warnings": 10,
-      "notes": 3,
-      "check_log_sha256": "fa78d5474c2c40afae3b4ff95ef8f42fb5514a84d36cc070dc57ae76b727b8d0",
-      "test_log_sha256": "41680621aeea7a41df843f7f7d2fe7aa42c44c02981d14cd69fda5068e5f3e2c",
-      "analysis_safe_qpp_vignette": "pass",
-      "legacy_failures": [
-        "missing pre-existing example functions",
-        "pre-existing native test abort",
-        "pre-existing cookbook vignette abort"
-      ],
-      "branch_owned_documentation_and_namespace_regressions": 0
+      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 _R_CHECK_FORCE_SUGGESTS_=false R CMD check --as-cran --no-manual --no-stop-on-test-error neuroarchive_0.1.1.tar.gz",
+      "source": "/tmp/neuroarchive-qpp-check/neuroarchive.Rcheck/00check.log",
+      "source_sha256": "fa8e3773ed6eb14f02c0f70376d677f8e3e4f47fa72d97c38e9566f408a124bd",
+      "result": "completed",
+      "errors": 0,
+      "warnings": 2,
+      "notes": 2,
+      "warning_classification": "both warnings are expected missing-inst/doc diagnostics caused by the --no-build-vignettes tarball; check-time vignette rebuild passed",
+      "note_classification": [
+        "informational CRAN incoming/new submission and non-mainstream fmrilatent Suggests",
+        "actionable legacy C++11 declaration note"
+      ]
+    },
+    {
+      "claim": "normal_vignette_bearing_source_build",
+      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 _R_CHECK_FORCE_SUGGESTS_=false R CMD build --no-manual .",
+      "result": "aborted",
+      "exit_code": 134,
+      "last_completed_vignette": "compression_methods.Rmd",
+      "active_vignette": "cookbook.Rmd",
+      "analysis_safe_qpp": "pass",
+      "classification": "pre-existing non-QPP vignette path"
     }
   ],
   "hosted_evidence": {
-    "status": "complete-green",
-    "workflow_run_id": "32914327028",
-    "workflow_run_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028",
-    "tested_source_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
-    "pull_request_trigger_sha": "95f081cd582ccd7b4444d6ef6df9265ea5004874",
+    "status": "pending-publication",
     "workflow_matrix": [
       "macos-latest/r-release",
       "windows-latest/r-release",
@@ -124,57 +178,9 @@
     "artifact_name_pattern": "qpp-court-<os>-r-<r-version>",
     "qpp_job": "QPP-public-court",
     "package_check_job": "R-CMD-check",
-    "claim_separation": "hosted QPP court status and receipts are independent of the legacy package-check result",
-    "receipt_contract": {
-      "receipt_version": "1.1.0",
-      "git_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
-      "consumer_hash_mode": "sha256-lf-normalized-utf8",
-      "qpp_installed_consumer_sha256": "b797b396292fd66ad0361a6c490a80e60571f785cebecc9e256dc72744103032",
-      "qpp_adversarial_consumer_sha256": "5374deb2c4402ba7a4586cb03f60bebb40e8ab2ce67b376d444d48a6b3a794cd",
-      "required_fields": "all five receipts passed installed public and adversarial courts, two-run independence, exact provenance, selected integrity, bounded partial I/O, and the Pure-R integer oracle; stable promotion remained denied and multiresolution-run remained prototype-no-go"
-    },
-    "green_runs": [
-      {
-        "platform": "macos-latest/r-release",
-        "job_id": "98014709714",
-        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709714",
-        "artifact_id": "9587638436",
-        "artifact_name": "qpp-court-macos-latest-r-release",
-        "receipt_sha256": "13a898ed8705da0ddd4bda695094253d85d34a17e65f08128a84f6fb36c34255"
-      },
-      {
-        "platform": "windows-latest/r-release",
-        "job_id": "98014709803",
-        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709803",
-        "artifact_id": "9587655784",
-        "artifact_name": "qpp-court-windows-latest-r-release",
-        "receipt_sha256": "292529aa548e089166f086ff312bd2a4b40228d929352ccf5b1464647f40ebaf"
-      },
-      {
-        "platform": "ubuntu-latest/r-devel",
-        "job_id": "98014709771",
-        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709771",
-        "artifact_id": "9587687031",
-        "artifact_name": "qpp-court-ubuntu-latest-r-devel",
-        "receipt_sha256": "b42547f5e7fbb7807c58d22389f5c0992671ca88ecffc2d898786b3105c282ea"
-      },
-      {
-        "platform": "ubuntu-latest/r-release",
-        "job_id": "98014709687",
-        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709687",
-        "artifact_id": "9587646145",
-        "artifact_name": "qpp-court-ubuntu-latest-r-release",
-        "receipt_sha256": "149f8515a7b9cf818bae6557de30588138ebe588164348f012eabf0f5819fc77"
-      },
-      {
-        "platform": "ubuntu-latest/r-oldrel-1",
-        "job_id": "98014709552",
-        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709552",
-        "artifact_id": "9587672302",
-        "artifact_name": "qpp-court-ubuntu-latest-r-oldrel-1",
-        "receipt_sha256": "cfb477749081a42ba32b51994e1bc79dfcc936977fd7613c6f234c9bfa515547"
-      }
-    ]
+    "claim_separation": "the hosted QPP court has its own five-platform job and receipt; the package check is separately reported",
+    "publication_blocker": "the intended repository slice is uncommitted in a heavily dirty worktree; no commit or push was authorized or safely inferred",
+    "green_runs": []
   },
-  "final_status": "experimental-analysis-safe-hosted-certified-stable-promotion-denied"
+  "final_status": "local-evidence-complete-hosted-pending"
 }

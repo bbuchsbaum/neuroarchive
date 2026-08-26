@@ -1,12 +1,13 @@
 ---
-title: "Compression: Size vs Fidelity"
+title: 'Compression: Size vs Fidelity'
 output: rmarkdown::html_vignette
-vignette: >
+vignette: |
   %\VignetteIndexEntry{Compression: Size vs Fidelity}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 params:
   family: red
+  preset: homage
 css: albers.css
 resource_files:
 - albers.css
@@ -19,7 +20,6 @@ includes:
 ---
 
 ```{r setup, include = FALSE}
-if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -34,7 +34,7 @@ knitr::opts_chunk$set(
 Every LNA pipeline trades file size against reconstruction fidelity.
 This vignette benchmarks seven pipelines on the same synthetic data so you
 can see exactly how that trade-off plays out---from near-lossless 16-bit
-quantization down to aggressive basis + quantization combos.
+quantization down to aggressive latent basis + embedding pipelines.
 
 For each pipeline we report:
 
@@ -173,23 +173,26 @@ b_q6 <- benchmark_pipeline(
 )
 ```
 
-## 5. Basis (k=20) + Quant 8-bit
+## 5. Basis metadata (k=20) + Quant 8-bit
 
 ```{r bench_bk20}
 b_bk20 <- benchmark_pipeline(
   data_array, c("basis", "quant"),
-  list(basis = list(k = 20), quant = list(bits = 8)),
-  "Basis k=20 + Q8"
+  list(
+    basis = list(k = 20, allow_dense_passthrough = TRUE),
+    quant = list(bits = 8)
+  ),
+  "Basis metadata k=20 + Q8"
 )
 ```
 
-## 6. Basis (k=10) + Quant 8-bit
+## 6. Basis + Embed + Quant 8-bit
 
 ```{r bench_bk10}
 b_bk10 <- benchmark_pipeline(
-  data_array, c("basis", "quant"),
+  data_array, c("basis", "embed", "quant"),
   list(basis = list(k = 10), quant = list(bits = 8)),
-  "Basis k=10 + Q8"
+  "Basis+Embed k=10 + Q8"
 )
 ```
 
@@ -219,23 +222,21 @@ knitr::kable(
 
 # Compression Ratio vs Fidelity
 
+```{r load_ggplot2, include = FALSE}
+library(ggplot2)
+```
+
 ```{r scatter_plot, fig.width = 7, fig.height = 5}
-if (requireNamespace("ggplot2", quietly = TRUE)) {
-  library(ggplot2)
-  ggplot(results, aes(x = Ratio, y = Correlation, label = Pipeline)) +
-    geom_point(size = 3) +
-    geom_text(vjust = -0.8, hjust = 0.5, size = 3) +
-    scale_x_log10() +
-    labs(
-      x = "Compression Ratio (log scale)",
-      y = "Correlation with Original",
-      title = "Size vs Fidelity Trade-Off"
-    ) +
-    theme_minimal()
-} else {
-  cat("Install ggplot2 for a scatter plot of these results.\n")
-  print(results[, c("Pipeline", "Ratio", "Correlation")])
-}
+ggplot(results, aes(x = Ratio, y = Correlation, label = Pipeline)) +
+  geom_point(size = 3) +
+  geom_text(vjust = -0.8, hjust = 0.5, size = 3) +
+  scale_x_log10() +
+  labs(
+    x = "Compression Ratio (log scale)",
+    y = "Correlation with Original",
+    title = "Size vs Fidelity Trade-Off"
+  ) +
+  theme_minimal()
 ```
 
 # Choosing Bit Depth

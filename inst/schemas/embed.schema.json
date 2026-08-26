@@ -16,7 +16,12 @@
           "properties": {
             "basis_path": { "type": "string", "default": "" },
             "center_data_with": { "type": ["string", "null"], "default": null },
-            "scale_data_with": { "type": ["string", "null"], "default": null }
+            "scale_data_with": { "type": ["string", "null"], "default": null },
+            "storage_order": {
+              "type": "string",
+              "enum": ["component_x_voxel", "voxel_x_component"],
+              "default": "component_x_voxel"
+            }
           },
           "required": ["basis_path"],
           "additionalProperties": false

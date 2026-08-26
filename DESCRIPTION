@@ -2,25 +2,26 @@ Package: neuroarchive
 Type: Package
 Title: Latent NeuroArchive Data Format Tools
 Version: 0.1.1
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: Tools for reading and writing Latent NeuroArchive (LNA) files.
-    Use four spaces when indenting paragraphs within the Description.
+Authors@R:
+    person("Brad", "Buchsbaum", , "brad.buchsbaum@gmail.com", role = c("aut", "cre"))
+Description: Read, write, validate, and lazily access Latent NeuroArchive
+    (LNA) files, an HDF5-based format for transform-aware compression of
+    neuroimaging data. The package stores reconstruction pipelines, spatial
+    metadata, and shared basis references so compressed fMRI archives can be
+    inspected, validated, and reconstructed in downstream workflows.
+URL: https://github.com/bbuchsbaum/neuroarchive
+BugReports: https://github.com/bbuchsbaum/neuroarchive/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
 Imports:
     hdf5r,
     jsonlite,
     Matrix,
     Rcpp,
-    RcppEigen,
-    openssl,
     rlang,
     R6,
     tibble,
-    neuroim2,
-    igraph,
+    neuroim2 (>= 0.19.0),
     progressr,
     digest,
     memoise,
@@ -28,28 +29,50 @@ Imports:
     withr,
     methods,
     wavelets,
-    matrixStats
+    matrixStats,
+    stringi
 Suggests:
+    bidser (>= 0.5.1),
     sparsepca,
     irlba,
     testthat (>= 3.0.0),
     multitaper,
+    fmrilatent,
+    covr,
+    pillar,
+    future,
+    pkgload,
     knitr,
-    rmarkdown
+    rmarkdown,
+    pkgdown,
+    ggplot2,
+    albersdown
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 RoxygenNote: 7.3.3
-LinkingTo: Rcpp, RcppEigen, openssl
-SystemRequirements: C++14
+LinkingTo: Rcpp, RcppEigen
 Config/Needs/website: albersdown
 Collate:
     'RcppExports.R'
     'analysis_contract.R'
     'api.R'
+    'as_latent_neurovec.R'
     'as_neurovec.R'
+    'bidser_adapter.R'
     'constants.R'
     'core_read.R'
     'core_write.R'
+    'dataset_execution.R'
+    'dataset_journal.R'
+    'dataset_manifest.R'
+    'dataset_metadata.R'
+    'dataset_plan.R'
+    'dataset_query.R'
+    'dataset_restore.R'
+    'dataset_shared_basis.R'
+    'dataset_transfer.R'
+    'dataset_update.R'
+    'dataset_writer.R'
     'discover.R'
     'dispatch.R'
     'dsl_registry.R'
@@ -62,7 +85,6 @@ Collate:
     'facade.R'
     'haar_octwave_helpers.R'
     'handle.R'
-    'hdf5_s3.R'
     'hrbf_core.R'
     'hrbf_helpers.R'
     'transform_capabilities.R'
@@ -71,14 +93,19 @@ Collate:
     'math_backend.R'
     'neuroim2_header.R'
     'options.R'
+    'package.R'
     'pipeline.R'
     'plan.R'
     'profile_qpp.R'
     'qpp_codec.R'
     'reader.R'
+    'reference_identity.R'
+    'restoration_validation.R'
     'run_geometry.R'
+    'shared_basis.R'
     'simple_transform.R'
     'sobel_rcpp_helpers.R'
+    'source_record.R'
     'spatial_identity.R'
     'temporal_basis.R'
     'temporal_modwt.R'
@@ -92,6 +119,7 @@ Collate:
     'transform_builder.R'
     'transform_delta.R'
     'transform_embed.R'
+    'transform_embed_shared.R'
     'transform_embed_transfer_hrbf_basis.R'
     'transform_hooks.R'
     'transform_meta.R'

@@ -6,6 +6,15 @@
 \usage{
 cleanup_transform(type, desc, handle, ...)
 }
+\arguments{
+\item{type}{Character scalar transform type name.}
+
+\item{desc}{Transform descriptor list.}
+
+\item{handle}{A `DataHandle` object.}
+
+\item{...}{Reserved for future extensions.}
+}
 \description{
 Cleanup after a transform (hook)
 }

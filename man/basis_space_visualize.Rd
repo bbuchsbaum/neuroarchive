@@ -35,27 +35,29 @@ and quality control. Useful for understanding spatial coverage
 and basis characteristics.
 }
 \examples{
-\donttest{
-# Create example mask and basis
-library(neuroim2)
-dims <- c(20, 20, 10)
-arr <- array(TRUE, dims)
-mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+\dontrun{
+if (requireNamespace("fmrilatent", quietly = TRUE)) {
+  # Create example mask and basis
+  library(neuroim2)
+  dims <- c(20, 20, 10)
+  arr <- array(TRUE, dims)
+  mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 
-# Generate basis for visualization
-my_basis <- basis_space_centers(mask, sigma0 = 4, levels = 2)
+  # Generate basis for visualization
+  my_basis <- basis_space_centers(mask, sigma0 = 4, levels = 2)
 
-# Visualize first 9 basis functions
-basis_viz <- basis_space_visualize(my_basis, mask)
+  # Visualize first 9 basis functions
+  basis_viz <- basis_space_visualize(my_basis, mask)
 
-# Focus on specific slice and functions
-slice_viz <- basis_space_visualize(
-  my_basis,
-  mask,
-  n_show = 4,
-  slice_axis = "axial",
-  slice_position = 5
-)
+  # Focus on specific slice and functions
+  slice_viz <- basis_space_visualize(
+    my_basis,
+    mask,
+    n_show = 4,
+    slice_axis = "axial",
+    slice_position = 5
+  )
+}
 }
 
 }

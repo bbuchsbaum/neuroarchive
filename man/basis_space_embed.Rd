@@ -33,34 +33,36 @@ that preserves spatial structure.
 }
 \examples{
 \donttest{
-# Create example data and mask
-library(neuroim2)
-dims <- c(20, 20, 10)
-arr <- array(TRUE, dims)
-mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
+if (requireNamespace("fmrilatent", quietly = TRUE)) {
+  # Create example data and mask
+  library(neuroim2)
+  dims <- c(20, 20, 10)
+  arr <- array(TRUE, dims)
+  mask <- LogicalNeuroVol(arr, NeuroSpace(dims, spacing = c(2, 2, 2)))
 
-# Create time series data (50 timepoints, 4000 voxels)
-set.seed(123)
-n_voxels <- sum(as.logical(mask))
-my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
+  # Create time series data (50 timepoints, 4000 voxels)
+  set.seed(123)
+  n_voxels <- sum(as.logical(mask))
+  my_data <- matrix(rnorm(50 * n_voxels), nrow = 50, ncol = n_voxels)
 
-# Basic embedding with default parameters
-embedded <- basis_space_embed(my_data, mask)
+  # Basic embedding with default parameters
+  embedded <- basis_space_embed(my_data, mask)
 
-# High compression
-compressed <- basis_space_embed(
-  my_data,
-  mask,
-  compression_ratio = 0.1,  # 10:1 compression
-  return_basis = TRUE
-)
+  # High compression
+  compressed <- basis_space_embed(
+    my_data,
+    mask,
+    compression_ratio = 0.1,  # 10:1 compression
+    return_basis = TRUE
+  )
 
-# Custom basis parameters
-custom_embedded <- basis_space_embed(
-  my_data,
-  mask,
-  basis_params = list(sigma0 = 4, levels = 4, kernel_type = "wendland_c4")
-)
+  # Custom basis parameters
+  custom_embedded <- basis_space_embed(
+    my_data,
+    mask,
+    basis_params = list(sigma0 = 4, levels = 4, kernel_type = "wendland_c4")
+  )
+}
 }
 
 }

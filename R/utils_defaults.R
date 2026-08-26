@@ -1,12 +1,11 @@
 #' Default Parameter Retrieval
 #'
-#' Loads parameter defaults from a JSON schema for the given transform type and
-#' caches both the schema and the resulting defaults. If a schema cannot be
-#' found, an empty list is cached and returned with a warning.
+#' Environment used to memoize default parameter lists by transform type.
 #'
-#' @param type Character transform type.
-#' @return A list of default parameters extracted from the schema, or an empty
-#'   list if none are defined or the schema is missing.
+#' The cache is populated by `default_params_impl()` and cleared by
+#' `default_param_cache_clear()`.
+#'
+#' @format An environment.
 #' @keywords internal
 .default_param_cache <- new.env(parent = emptyenv())
 .required_param_cache <- new.env(parent = emptyenv())
@@ -101,6 +100,17 @@ default_params_impl <- function(type) {
   schema_path <- ""
   for (pkg in pkgs) {
     path <- system.file("schemas", paste0(type, ".schema.json"), package = pkg)
+    if (!(nzchar(path) && file.exists(path)) && pkg %in% loadedNamespaces()) {
+      ns_path <- tryCatch(getNamespaceInfo(asNamespace(pkg), "path"), error = function(e) "")
+      candidates <- c(
+        file.path(ns_path, "inst", "schemas", paste0(type, ".schema.json")),
+        file.path(ns_path, "schemas", paste0(type, ".schema.json"))
+      )
+      existing <- candidates[file.exists(candidates)]
+      if (length(existing) > 0) {
+        path <- existing[[1]]
+      }
+    }
     if (nzchar(path) && file.exists(path)) {
       schema_path <- path
       break
@@ -151,6 +161,17 @@ required_params <- function(type) {
   schema_path <- ""
   for (pkg in pkgs) {
     path <- system.file("schemas", paste0(type, ".schema.json"), package = pkg)
+    if (!(nzchar(path) && file.exists(path)) && pkg %in% loadedNamespaces()) {
+      ns_path <- tryCatch(getNamespaceInfo(asNamespace(pkg), "path"), error = function(e) "")
+      candidates <- c(
+        file.path(ns_path, "inst", "schemas", paste0(type, ".schema.json")),
+        file.path(ns_path, "schemas", paste0(type, ".schema.json"))
+      )
+      existing <- candidates[file.exists(candidates)]
+      if (length(existing) > 0) {
+        path <- existing[[1]]
+      }
+    }
     if (nzchar(path) && file.exists(path)) {
       schema_path <- path
       break

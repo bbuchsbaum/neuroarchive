@@ -42,7 +42,7 @@ core_read <- function(file, run_id = NULL,
 
   h5 <- open_h5(file, mode = "r")
   if (!lazy) {
-    on.exit(neuroarchive:::close_h5_safely(h5))
+    on.exit(close_h5_safely(h5))
   }
 
   runs <- resolve_runs_for_read(h5, run_id, lazy)

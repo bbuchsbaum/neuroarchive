@@ -1,4 +1,4 @@
-test_that("wendland_c6 equals legacy wendland_c4 on small mask", {
+test_that("wendland_c6 equals neuroarchive's legacy wendland_c4 label", {
   skip_on_cran()
   # Small 3D mask
   dims <- c(8L, 8L, 4L)
@@ -17,4 +17,3 @@ test_that("wendland_c6 equals legacy wendland_c4 on small mask", {
   # exact equality is plausible at this size; allow small tolerance
   expect_true(max(abs(Matrix::as.matrix(B6 - B4))) < 1e-8)
 })
-
