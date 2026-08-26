@@ -28,9 +28,12 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      QPP_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: r-lib/actions/setup-pandoc@v2
 
@@ -54,11 +57,25 @@ jobs:
           )
           stopifnot(length(consumers) == 2L, all(nzchar(consumers)))
           for (consumer in consumers) source(consumer, echo = TRUE)
+          checked_out_sha <- system2(
+            "git", c("rev-parse", "HEAD"), stdout = TRUE
+          )
+          stopifnot(identical(checked_out_sha, Sys.getenv("QPP_SOURCE_SHA")))
+          canonical_text_sha256 <- function(path) {
+            raw <- readBin(path, "raw", n = file.info(path)$size)
+            text <- gsub("\\r\\n?", "\\n", rawToChar(raw), perl = TRUE)
+            digest::digest(
+              charToRaw(enc2utf8(text)),
+              algo = "sha256",
+              serialize = FALSE
+            )
+          }
           receipt <- list(
-            receipt_version = "1.0.0",
+            receipt_version = "1.1.0",
             package = "neuroarchive",
             package_version = as.character(packageVersion("neuroarchive")),
-            git_sha = Sys.getenv("GITHUB_SHA"),
+            git_sha = checked_out_sha,
+            trigger_sha = Sys.getenv("GITHUB_SHA"),
             workflow_run_id = Sys.getenv("GITHUB_RUN_ID"),
             workflow_run_attempt = Sys.getenv("GITHUB_RUN_ATTEMPT"),
             os = unname(Sys.info()[["sysname"]]),
@@ -66,14 +83,11 @@ jobs:
             r_version = R.version.string,
             consumer_sha256 = as.list(setNames(vapply(
               consumers,
-              function(path) digest::digest(
-                file = path,
-                algo = "sha256",
-                serialize = FALSE
-              ),
+              canonical_text_sha256,
               character(1),
               USE.NAMES = FALSE
             ), basename(consumers))),
+            consumer_hash_mode = "sha256-lf-normalized-utf8",
             installed_public_consumer = "pass",
             installed_adversarial_court = "pass",
             two_run_independence = "pass",
