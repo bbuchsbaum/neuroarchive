@@ -63,7 +63,7 @@ jobs:
           stopifnot(identical(checked_out_sha, Sys.getenv("QPP_SOURCE_SHA")))
           canonical_text_sha256 <- function(path) {
             raw <- readBin(path, "raw", n = file.info(path)$size)
-            text <- gsub("\\r\\n?", "\\n", rawToChar(raw), perl = TRUE)
+            text <- gsub("\r", "", rawToChar(raw), fixed = TRUE)
             digest::digest(
               charToRaw(enc2utf8(text)),
               algo = "sha256",
