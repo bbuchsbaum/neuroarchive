@@ -1,13 +1,14 @@
 {
   "receipt_version": "1.1.0",
-  "generated_at_utc": "2026-08-25T23:46:52Z",
+  "generated_at_utc": "2026-08-26T00:21:15Z",
   "epic_id": "bd-01M0XD72K8DKD9DHJBMC6453Q4",
   "ticket_id": "bd-01M0XD9B5MK8T0SWFS0RF8K3MF",
   "package": "neuroarchive",
   "package_version": "0.1.1",
   "source_base_sha": "863bfcf9780a660716673f0ad6523cdce2782301",
+  "tested_source_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
   "source_branch": "codex/qpp-remediation-bd-01m0xd7",
-  "source_state": "isolated publication worktree; local evidence complete; hosted evidence pending",
+  "source_state": "isolated publication worktree; local and five-platform hosted QPP evidence complete",
   "platform": {
     "os": "macOS Sonoma 14.3",
     "machine": "arm64",
@@ -27,7 +28,7 @@
   "artifacts": [
     {
       "path": ".github/workflows/R-CMD-check.yaml",
-      "sha256": "4f42d163913508acd3a82e8bb6c79f715361fe0c7ec730be2dbfc32034826e83",
+      "sha256": "d8b00ffeed9fed43fb2f92df038d41df506685e0e367a04f4591c77352d7848e",
       "kind": "independent five-platform hosted QPP court and package-check jobs"
     },
     {
@@ -108,7 +109,11 @@
     }
   ],
   "hosted_evidence": {
-    "status": "pending-publication",
+    "status": "complete-green",
+    "workflow_run_id": "32914327028",
+    "workflow_run_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028",
+    "tested_source_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
+    "pull_request_trigger_sha": "95f081cd582ccd7b4444d6ef6df9265ea5004874",
     "workflow_matrix": [
       "macos-latest/r-release",
       "windows-latest/r-release",
@@ -120,7 +125,56 @@
     "qpp_job": "QPP-public-court",
     "package_check_job": "R-CMD-check",
     "claim_separation": "hosted QPP court status and receipts are independent of the legacy package-check result",
-    "green_runs": []
+    "receipt_contract": {
+      "receipt_version": "1.1.0",
+      "git_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
+      "consumer_hash_mode": "sha256-lf-normalized-utf8",
+      "qpp_installed_consumer_sha256": "b797b396292fd66ad0361a6c490a80e60571f785cebecc9e256dc72744103032",
+      "qpp_adversarial_consumer_sha256": "5374deb2c4402ba7a4586cb03f60bebb40e8ab2ce67b376d444d48a6b3a794cd",
+      "required_fields": "all five receipts passed installed public and adversarial courts, two-run independence, exact provenance, selected integrity, bounded partial I/O, and the Pure-R integer oracle; stable promotion remained denied and multiresolution-run remained prototype-no-go"
+    },
+    "green_runs": [
+      {
+        "platform": "macos-latest/r-release",
+        "job_id": "98014709714",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709714",
+        "artifact_id": "9587638436",
+        "artifact_name": "qpp-court-macos-latest-r-release",
+        "receipt_sha256": "13a898ed8705da0ddd4bda695094253d85d34a17e65f08128a84f6fb36c34255"
+      },
+      {
+        "platform": "windows-latest/r-release",
+        "job_id": "98014709803",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709803",
+        "artifact_id": "9587655784",
+        "artifact_name": "qpp-court-windows-latest-r-release",
+        "receipt_sha256": "292529aa548e089166f086ff312bd2a4b40228d929352ccf5b1464647f40ebaf"
+      },
+      {
+        "platform": "ubuntu-latest/r-devel",
+        "job_id": "98014709771",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709771",
+        "artifact_id": "9587687031",
+        "artifact_name": "qpp-court-ubuntu-latest-r-devel",
+        "receipt_sha256": "b42547f5e7fbb7807c58d22389f5c0992671ca88ecffc2d898786b3105c282ea"
+      },
+      {
+        "platform": "ubuntu-latest/r-release",
+        "job_id": "98014709687",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709687",
+        "artifact_id": "9587646145",
+        "artifact_name": "qpp-court-ubuntu-latest-r-release",
+        "receipt_sha256": "149f8515a7b9cf818bae6557de30588138ebe588164348f012eabf0f5819fc77"
+      },
+      {
+        "platform": "ubuntu-latest/r-oldrel-1",
+        "job_id": "98014709552",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709552",
+        "artifact_id": "9587672302",
+        "artifact_name": "qpp-court-ubuntu-latest-r-oldrel-1",
+        "receipt_sha256": "cfb477749081a42ba32b51994e1bc79dfcc936977fd7613c6f234c9bfa515547"
+      }
+    ]
   },
-  "final_status": "local-evidence-complete-hosted-pending"
+  "final_status": "experimental-analysis-safe-hosted-certified-stable-promotion-denied"
 }

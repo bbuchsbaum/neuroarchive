@@ -33,7 +33,7 @@ fitted operations become safe.
 - [ ] Full package tests and `R CMD check` are green.
 - [x] The macOS, Windows, Linux release/devel/oldrel CI matrix runs both golden
   package tests and the installed consumer.
-- [ ] Hosted cross-platform jobs have produced green artifacts for this change.
+- [x] Hosted cross-platform jobs have produced green artifacts for this change.
 
 The unchecked scientific item blocks stable admission. Engineering gates below
 may still be completed to make the experimental workflow inspectable and
@@ -89,14 +89,14 @@ thresholds, platform matrix, and profile version before evaluation begins.
 | Clean tarball install | PASS | Installed `neuroarchive_0.1.1.tar.gz` into an empty temporary library. |
 | Installed public courts | PASS | Both installed consumers passed: two-run write, exact provenance, split compatibility, bounded selected reads, selected integrity, Pure-R integer oracle, typed mutation matrix, and wavelet no-go. |
 | Current and installed QPP vignette | PASS | Both renders completed with executable checks for finite/nonempty output, full receipt, pointwise vocabulary, selected digests, partial bytes, and named lazy runs. |
-| Hosted court receipt logic | PASS locally | The isolated source tarball installed into an empty library and both public courts passed. Workflow YAML defines independent five-entry `QPP-public-court` and `R-CMD-check` matrices; the focused court installs hard dependencies only and does not depend on optional `Suggests`. |
+| Hosted court receipt logic | PASS | The isolated source tarball installed into an empty library and both public courts passed. The hosted receipt binds to the checked-out source SHA, records the pull-request trigger SHA separately, and uses LF-normalized UTF-8 hashes so installed consumer identity is comparable across platforms. |
 | Source-loaded package suite | ABORT, unrelated | `devtools::test()` exited 134 in the pre-existing `experimental_api` native path after all earlier QPP-independent contexts reported normally. |
 | Installed package test subprocess | ABORT, unrelated | The check subprocess exited 134 in the same legacy native path; no QPP court is inferred from this package-wide result. |
 | Normal vignette-bearing check | ABORT, unrelated | `analysis_safe_qpp.Rmd`, `compression_benchmarks.Rmd`, and `compression_methods.Rmd` completed; the child process exited 134 while entering the pre-existing `cookbook.Rmd`. |
 | `R CMD check` on no-build-vignette tarball | 3 ERROR, 10 WARNING, 3 NOTE | The errors are the missing legacy example function, legacy native test abort, and legacy `cookbook.Rmd` abort. Existing metadata, Rd, Makevars, and compiled-code diagnostics remain. Branch-owned namespace loading and write/validation documentation mismatches are clean. |
-| Hosted platform matrix | PENDING | An independent `QPP-public-court` job runs both installed courts and uploads per-platform JSON receipts on macOS, Windows, Ubuntu release/devel/oldrel. The separate package-check job cannot mask the QPP result; the dirty intended slice has not been committed or pushed. |
+| Hosted platform matrix | PASS | Run `32914327028` produced five green QPP jobs and five inspected JSON receipts for commit `01a7cf90fe8dc66a6a260e8026fbfebef90b55e5`: macOS, Windows, Ubuntu release, Ubuntu devel, and Ubuntu oldrel. Every receipt carries identical installed-consumer hashes and passes two-run independence, exact provenance, selected integrity, bounded partial I/O, and the Pure-R oracle while retaining `stable_promotion = denied` and `multiresolution_run = prototype-no-go`. |
 
-The source-load, installed-test, and normal-build aborts, plus the unrun hosted
-matrix, prevent a package-wide green or published claim. They do not alter the
-focused or installed public-court result, and they must not be hidden or
-reclassified as passing.
+The source-load, installed-test, normal-build, and separate hosted package-check
+failures prevent a package-wide green claim. They do not alter the green hosted
+QPP court or its explicit experimental/no-go decisions, and they must not be
+hidden or reclassified as passing.
