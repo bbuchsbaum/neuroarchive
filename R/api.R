@@ -90,7 +90,11 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
 
   info <- open_output_h5(file)
   h5 <- info$h5
-  on.exit(close_output_h5(info), add = TRUE)
+  archive_complete <- FALSE
+  on.exit(
+    close_output_h5(info, cleanup_temp = !archive_complete),
+    add = TRUE
+  )
 
   is_multi_input <- is.list(x) && !methods::is(x, "NeuroObj") && length(x) > 1L
   if (is.null(header) && is.null(run_geometry) && !is_multi_input) {
@@ -130,6 +134,10 @@ write_lna.default <- function(x, file = NULL, transforms = character(),
     plugins = plugins_from_handle,
     run_ids = result$handle$run_ids
   )
+
+  # From this point onward the temporary archive is complete. If publication
+  # fails, preserve it for recovery rather than treating it as a partial write.
+  archive_complete <- TRUE
 
   # Close the HDF5 file before atomic rename (but don't cleanup temp file yet)
   close_output_h5(info, cleanup_temp = FALSE)
@@ -372,9 +380,22 @@ close_output_h5 <- function(info, cleanup_temp = TRUE) {
 finalise_output_h5 <- function(info) {
   if (!is.null(info$target_path)) {
     ok <- file.rename(info$file, info$target_path)
-    if (!ok) {
+    if (!isTRUE(ok)) {
       # file.rename can fail across filesystems; fall back to copy+delete
-      file.copy(info$file, info$target_path, overwrite = TRUE)
+      copy_ok <- file.copy(info$file, info$target_path, overwrite = TRUE)
+      if (!isTRUE(copy_ok)) {
+        abort_lna(
+          paste0(
+            "Failed to publish completed LNA archive; temporary archive retained at '",
+            info$file,
+            "'"
+          ),
+          temporary_file = info$file,
+          target_file = info$target_path,
+          .subclass = "lna_error_write",
+          location = "api::finalise_output_h5"
+        )
+      }
       unlink(info$file, force = TRUE)
     }
     # Update file path in info so downstream code (like output_bytes) uses the right path

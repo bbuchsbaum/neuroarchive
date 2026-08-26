@@ -497,15 +497,16 @@ dequantize_data <- function(quant_result) {
   ds <- dim(scale)
   do <- dim(offset)
 
-  if (is.null(ds) && is.null(do)) {
-    return(q * scale + offset)
-  }
-
   if (is.matrix(q) && is.null(ds) && is.null(do) &&
       length(scale) == ncol(q) && length(offset) == ncol(q)) {
     out <- sweep(q, 2, scale, FUN = "*")
     out <- sweep(out, 2, offset, FUN = "+")
     return(out)
+  }
+
+  if (is.null(ds) && is.null(do) &&
+      length(scale) == 1L && length(offset) == 1L) {
+    return(q * scale + offset)
   }
 
   if (!is.null(dq) && !is.null(ds) && !is.null(do) &&
@@ -669,9 +670,12 @@ sparse_pca <- function(data,
       keep_n <- max(1L, ceiling(ncol(loadings) * sparsity_param))
       for (i in seq_len(nrow(loadings))) {
         ord <- order(abs(loadings[i, ]), decreasing = TRUE)
-        drop_idx <- ord[(keep_n + 1L):length(ord)]
-        if (length(drop_idx) > 0) loadings[i, drop_idx] <- 0
+        if (keep_n < length(ord)) {
+          drop_idx <- ord[(keep_n + 1L):length(ord)]
+          loadings[i, drop_idx] <- 0
+        }
       }
+      scores <- X %*% t(loadings)
     }
   }
 

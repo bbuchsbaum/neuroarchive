@@ -120,17 +120,38 @@ LNANeuroVec <- function(file, mask = NULL, run_id = NULL, label = "") {
     mask_arr <- as.logical(mask)
     dim(mask_arr) <- spatial_dims
   }
-  mask_space <- neuroim2::NeuroSpace(spatial_dims, spacing = sp, origin = orig)
-  mask_vol <- neuroim2::LogicalNeuroVol(mask_arr, mask_space)
   mask_indices <- as.integer(which(mask_arr))
   n_mask <- length(mask_indices)
 
   # 6. Determine n_time without full read
   n_time <- .lna_determine_ntime(reader, dims, header, n_mask)
 
-  # 7. Build space and map
-  space4d <- neuroim2::NeuroSpace(c(spatial_dims, as.integer(n_time)),
-                                   spacing = sp, origin = orig)
+  # 7. Build spaces and map. Prefer the complete stored affine so rotation,
+  # shear, and axis direction are not lost in the lazy bridge. The
+  # spacing/origin path remains for legacy archives without an affine.
+  if (!is.null(header$transform)) {
+    resolved <- .lna_neurospaces_from_header(
+      header,
+      inferred_dims = spatial_dims,
+      n_time = n_time,
+      assume_identity = FALSE,
+      location = "LNANeuroVec"
+    )
+    mask_space <- resolved$space3d
+    space4d <- resolved$space4d
+  } else {
+    mask_space <- neuroim2::NeuroSpace(
+      spatial_dims,
+      spacing = sp,
+      origin = orig
+    )
+    space4d <- neuroim2::NeuroSpace(
+      c(spatial_dims, as.integer(n_time)),
+      spacing = sp,
+      origin = orig
+    )
+  }
+  mask_vol <- neuroim2::LogicalNeuroVol(mask_arr, mask_space)
   map <- neuroim2::IndexLookupVol(mask_space, mask_indices)
 
   # 8. State environment

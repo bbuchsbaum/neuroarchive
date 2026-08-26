@@ -226,10 +226,32 @@ as_neurovec.character <- function(x, assume_identity = FALSE, ...) {
 
   mat <- as_dense_mat(raw_data)
   roi_mask <- handle$subset$roi_mask %||% handle$subset$roi
-  mask_arr <- handle$mask_info$mask %||% roi_mask
+  archive_mask <- handle$mask_info$mask
+  mask_arr <- archive_mask
 
   if (!is.null(roi_mask)) {
-    n_roi <- sum(as.logical(roi_mask))
+    if (!is.null(archive_mask)) {
+      archive_values <- as.logical(archive_mask)
+      roi_values <- as.logical(roi_mask)
+      if (length(archive_values) != length(roi_values)) {
+        abort_lna(
+          "ROI mask length does not match the stored archive mask",
+          archive_mask_length = length(archive_values),
+          roi_mask_length = length(roi_values),
+          .subclass = "lna_error_geometry",
+          location = location
+        )
+      }
+      mask_dims <- dim(archive_mask) %||% dim(roi_mask)
+      mask_arr <- archive_values & roi_values
+      if (!is.null(mask_dims)) dim(mask_arr) <- mask_dims
+    } else {
+      mask_arr <- roi_mask
+    }
+  }
+
+  if (!is.null(mask_arr)) {
+    n_roi <- sum(as.logical(mask_arr))
     if (nrow(mat) == n_roi && ncol(mat) != n_roi) {
       mat <- t(mat)
     }
