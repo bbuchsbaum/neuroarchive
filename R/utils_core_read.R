@@ -84,7 +84,7 @@ prepare_transforms_for_read <- function(tf_group, allow_plugins, file) {
   missing <- transforms$type[
     vapply(
       transforms$type,
-      function(t) is.null(getS3method("invert_step", t, optional = TRUE)),
+      function(t) is.null(.resolve_transform_method("invert_step", t)),
       logical(1)
     )
   ]
@@ -97,6 +97,24 @@ prepare_transforms_for_read <- function(tf_group, allow_plugins, file) {
     transforms <- transforms[!transforms$type %in% skip, , drop = FALSE]
   }
   transforms
+}
+
+#' Select transform descriptors owned by one run
+#'
+#' Descriptors without `run_id` remain archive-wide for backward
+#' compatibility. Run-tagged descriptors are applied only to their owner.
+#'
+#' @keywords internal
+select_transforms_for_run <- function(transforms, tf_group, run_id) {
+  if (nrow(transforms) == 0L) return(transforms)
+
+  keep <- vapply(transforms$name, function(name) {
+    desc <- read_json_descriptor(tf_group, name)
+    owner <- desc$run_id
+    is.null(owner) || identical(as.character(owner), run_id)
+  }, logical(1))
+
+  transforms[keep, , drop = FALSE]
 }
 
 #' Apply transforms in reverse order
@@ -150,8 +168,10 @@ finalize_handle_for_read <- function(handle, output_dtype, allow_plugins, file) 
 process_run_core_read <- function(rid, h5, runs, subset_params, transforms,
                                  tf_group, validate, output_dtype, allow_plugins,
                                  file) {
+  run_header <- .read_lna_header(h5, run_id = rid)
   handle <- DataHandle$new(
     h5 = h5,
+    initial_meta = list(header = run_header),
     subset = subset_params,
     run_ids = runs,
     current_run_id = rid
@@ -172,8 +192,18 @@ process_run_core_read <- function(rid, h5, runs, subset_params, transforms,
     ))
   }
 
-  if (nrow(transforms) > 0) {
-    handle <- apply_invert_transforms(handle, transforms, tf_group, validate, h5)
+  run_transforms <- select_transforms_for_run(transforms, tf_group, rid)
+  if (nrow(run_transforms) > 0) {
+    descriptor_map <- lapply(run_transforms$name, function(name) {
+      read_json_descriptor(tf_group, name)
+    })
+    names(descriptor_map) <- run_transforms$name
+    meta <- handle$meta
+    meta$transform_descriptors <- descriptor_map
+    handle <- handle$with(meta = meta)
+    handle <- apply_invert_transforms(
+      handle, run_transforms, tf_group, validate, h5
+    )
   } else {
     path <- file.path("scans", rid, "data", "values")
     data <- h5_read(root, path)

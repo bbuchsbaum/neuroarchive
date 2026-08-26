@@ -8,6 +8,10 @@
 #' @param transform_params Named list of user supplied parameters for transforms.
 #' @param mask Optional mask object passed through to transforms.
 #' @param header Optional named list of header attributes.
+#' @param run_geometry Optional named list of spatial geometry descriptors keyed
+#'   by run ID.
+#' @param geometry_policy Either `"optional"` for generic low-level archives or
+#'   `"fmri"` to require explicit geometry for every run.
 #' @param plugins Optional named list of plugin metadata to store under
 #'   `/plugins`.
 #' @param run_id Optional run_id parameter to override names(x) logic.
@@ -16,9 +20,42 @@
 #' @keywords internal
 core_write <- function(x, transforms, transform_params = list(),
                        mask = NULL, header = NULL, plugins = NULL, run_id = NULL,
-                       h5 = NULL) {
+                       h5 = NULL, run_geometry = NULL,
+                       geometry_policy = c("optional", "fmri")) {
   stopifnot(is.character(transforms))
   stopifnot(is.list(transform_params))
+
+  # Validate transform types have known forward_step methods
+  if (length(transforms) > 0) {
+    unknown <- transforms[vapply(transforms, function(t) {
+      is.null(.resolve_transform_method("forward_step", t))
+    }, logical(1))]
+    if (length(unknown) > 0) {
+      known <- names(which(vapply(
+        as.character(utils::methods("forward_step")),
+        function(m) !identical(sub("^forward_step\\.", "", m), "default"),
+        logical(1)
+      )))
+      known <- sub("^forward_step\\.", "", known)
+      runtime_known <- sub(
+        "^forward_step\\.",
+        "",
+        ls(.runtime_transform_methods, pattern = "^forward_step\\.", all.names = TRUE)
+      )
+      if (length(runtime_known) > 0) {
+        known <- unique(c(known, runtime_known))
+      }
+      abort_lna(
+        sprintf(
+          "Unknown transform type(s): %s. Available: %s",
+          paste(sQuote(unknown), collapse = ", "),
+          paste(sQuote(known), collapse = ", ")
+        ),
+        .subclass = "lna_error_validation",
+        location = "core_write:transforms"
+      )
+    }
+  }
   if (!is.null(h5)) {
     if (!inherits(h5, "H5File") || !isTRUE(h5$is_valid)) {
       abort_lna(
@@ -35,29 +72,71 @@ core_write <- function(x, transforms, transform_params = list(),
   mask_info <- validate_mask(mask, x)
   header_list <- validate_named_list(header, "header")
   plugin_list <- validate_named_list(plugins, "plugins")
+  geometry_policy <- match.arg(geometry_policy)
 
   run_ids <- determine_run_ids(x, run_id)
+  if (anyDuplicated(run_ids)) {
+    abort_lna(
+      "run_id values must be unique",
+      .subclass = "lna_error_validation",
+      location = "core_write:run_id"
+    )
+  }
   current_run_id <- if (length(run_ids) > 0) run_ids[1] else sanitize_run_id("run-01")
 
+  run_geometry_map <- .lna_resolve_run_geometry(
+    x = x,
+    run_ids = run_ids,
+    run_geometry = run_geometry,
+    header = header_list,
+    geometry_policy = geometry_policy
+  )
+  .lna_assert_aggregate_geometry(x, run_ids, run_geometry_map, transforms)
+  global_header <- .lna_global_header_for_write(header_list, run_geometry_map)
+
   x <- convert_inputs(x)
+  if (is.list(x)) {
+    if (length(x) != length(run_ids)) {
+      abort_lna(
+        "length of run_id must match the number of input runs",
+        .subclass = "lna_error_validation",
+        location = "core_write:run_id"
+      )
+    }
+    # Downstream storage is positional. Canonicalising names here makes an
+    # explicit run_id override authoritative and also fixes unnamed lists.
+    names(x) <- run_ids
+  }
   if (!is.null(mask_info$array)) {
     check_mask_against_input(mask_info$array, mask_info$active_voxels, x)
   }
 
-  plan <- Plan$new()
+  plan <- Plan$new(origin_label = current_run_id)
+  handle_mask_info <- if (!is.null(mask_info$array)) list(
+    mask = if (inherits(mask, "LogicalNeuroVol")) mask else mask_info$array,
+    mask_array = mask_info$array,
+    active_voxels = mask_info$active_voxels
+  ) else NULL
+  handle_meta <- list(
+    mask = mask_info$array,
+    header = if (length(run_geometry_map) == 1L) {
+      run_geometry_map[[current_run_id]]
+    } else {
+      global_header
+    },
+    run_geometry = run_geometry_map,
+    geometry_policy = geometry_policy,
+    plugins = plugin_list,
+    run_ordinal = 0L
+  )
   handle <- DataHandle$new(
     initial_stash = list(input = x),
-    initial_meta = list(mask = mask_info$array, header = header_list,
-                        plugins = plugin_list),
+    initial_meta = handle_meta,
     plan = plan,
     h5 = h5,
     run_ids = run_ids,
     current_run_id = current_run_id,
-    mask_info = if (!is.null(mask_info$array)) list(
-      mask = if (inherits(mask, "LogicalNeuroVol")) mask else mask_info$array,
-      mask_array = mask_info$array,
-      active_voxels = mask_info$active_voxels
-    ) else NULL
+    mask_info = handle_mask_info
   )
 
   if (!is.null(mask_info$array)) {
@@ -65,13 +144,71 @@ core_write <- function(x, transforms, transform_params = list(),
   }
 
   merged_params <- resolve_transform_params(transforms, transform_params)
-  handle <- run_transform_loop(handle, transforms, merged_params)
-
-  if (length(transforms) == 0) {
-    add_initial_data(handle)
+  aggregate_idx <- which(transforms == "aggregate_runs")
+  if (is.list(x) && length(aggregate_idx) > 0L && aggregate_idx[[1]] != 1L) {
+    abort_lna(
+      "aggregate_runs must be the first transform for multi-run input",
+      .subclass = "lna_error_validation",
+      location = "core_write:aggregate_runs"
+    )
   }
 
-  list(handle = handle, plan = plan)
+  if (length(transforms) == 0L) {
+    add_initial_data(handle)
+  } else if (is.list(x) && !identical(transforms[[1]], "aggregate_runs")) {
+    # A list denotes independent runs. Restart the complete transform chain
+    # from `input` for every element while sharing one materialisation plan.
+    run_handles <- setNames(vector("list", length(run_ids)), run_ids)
+    for (i in seq_along(run_ids)) {
+      rid <- run_ids[[i]]
+      plan$origin_label <- rid
+      run_meta <- handle_meta
+      run_meta$header <- run_geometry_map[[rid]] %||% global_header
+      run_meta$run_ordinal <- as.integer(i - 1L)
+      run_handle <- DataHandle$new(
+        initial_stash = list(input = x[[i]]),
+        initial_meta = run_meta,
+        plan = plan,
+        h5 = h5,
+        run_ids = rid,
+        current_run_id = rid,
+        mask_info = handle_mask_info
+      )
+      run_handles[[rid]] <- run_transform_loop(
+        run_handle,
+        transforms,
+        merged_params,
+        descriptor_run_id = rid
+      )
+    }
+
+    # Preserve the public multi-run summary on the returned handle. The plan is
+    # shared by every run handle, so the first handle already references the
+    # complete archive plan.
+    handle <- run_handles[[1]]
+    handle$run_ids <- run_ids
+    handle$current_run_id <- current_run_id
+    plan$origin_label <- current_run_id
+  } else {
+    # A leading aggregate_runs is the explicit opt-in to cross a run boundary.
+    # Preserve its legacy archive semantics rather than tagging its descriptors
+    # as belonging to only the first source run.
+    descriptor_run_id <- if (is.list(x)) NULL else current_run_id
+    handle <- run_transform_loop(
+      handle,
+      transforms,
+      merged_params,
+      descriptor_run_id = descriptor_run_id
+    )
+  }
+
+  list(
+    handle = handle,
+    plan = plan,
+    run_geometry = run_geometry_map,
+    global_header = global_header,
+    geometry_policy = geometry_policy
+  )
 }
 
 # Helper utilities -------------------------------------------------------
@@ -122,9 +259,9 @@ check_mask_against_input <- function(mask_array, active_voxels, x) {
         location = "core_write:mask_check"
       )
     }
-    if (active_voxels != prod(dims[1:3])) {
+    if (length(mask_array) != prod(dims[1:3])) {
       abort_lna(
-        "mask voxel count mismatch",
+        "mask dimensions do not match input spatial dimensions",
         .subclass = "lna_error_validation",
         location = "core_write:mask_check"
       )
@@ -137,7 +274,8 @@ check_mask_against_input <- function(mask_array, active_voxels, x) {
   }
 }
 
-run_transform_loop <- function(handle, transforms, params) {
+run_transform_loop <- function(handle, transforms, params,
+                               descriptor_run_id = handle$current_run_id) {
   if (length(transforms) == 0) return(handle)
 
   step_loop <- function(p) {
@@ -156,19 +294,66 @@ run_transform_loop <- function(handle, transforms, params) {
       step_key <- sprintf("step_%02d", i)
       step_params <- params[[step_key]]
       if (is.null(step_params)) step_params <- params[[type]]
+      step_params <- resolve_run_local_step_params(type, step_params, h$plan,
+                                                   descriptor_run_id)
       desc <- list(
         type = type,
         params = step_params,
         inputs = list(current_key),
         outputs = list(output_key)
       )
+      if (!is.null(descriptor_run_id)) {
+        desc$run_id <- descriptor_run_id
+      }
+      descriptor_count <- length(h$plan$descriptors)
       h <- run_transform_step("forward", type, desc, h, step_idx)
+      if (!is.null(descriptor_run_id) &&
+          length(h$plan$descriptors) > descriptor_count) {
+        new_idx <- seq.int(descriptor_count + 1L, length(h$plan$descriptors))
+        for (j in new_idx) {
+          stored_desc <- h$plan$descriptors[[j]]
+          stored_desc$run_id <- descriptor_run_id
+          h$plan$descriptors[[j]] <- stored_desc
+        }
+      }
       current_key <- output_key
     }
     h
   }
 
   with_progress_loop(length(transforms), step_loop)
+}
+
+resolve_run_local_step_params <- function(type, params, plan, run_id) {
+  params <- params %||% list()
+  if (!identical(type, "embed") || length(plan$descriptors) == 0L) {
+    return(params)
+  }
+
+  previous <- plan$descriptors[[length(plan$descriptors)]]
+  previous_run <- previous$run_id %||% run_id
+  if (!identical(previous_run, run_id) ||
+      !identical(previous$type, "basis") ||
+      !is.list(previous$datasets)) {
+    return(params)
+  }
+
+  by_role <- function(role) {
+    idx <- which(vapply(previous$datasets, function(x) {
+      identical(x$role %||% NULL, role)
+    }, logical(1)))
+    if (length(idx) == 0L) NULL else previous$datasets[[idx[[1]]]]$path
+  }
+
+  # These paths are inferred links to the immediately preceding basis step.
+  # Re-resolving them from the actual descriptor avoids run two accidentally
+  # reusing run one's /basis/00_basis assets after global descriptor indexing.
+  params$basis_path <- by_role("basis_matrix") %||% params$basis_path
+  center_path <- by_role("center")
+  scale_path <- by_role("scale")
+  if (!is.null(center_path)) params$center_data_with <- center_path
+  if (!is.null(scale_path)) params$scale_data_with <- scale_path
+  params
 }
 
 add_initial_data <- function(handle) {

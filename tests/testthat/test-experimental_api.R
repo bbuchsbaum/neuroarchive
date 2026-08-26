@@ -1,0 +1,58 @@
+library(testthat)
+library(neuroarchive)
+
+test_that("quantize_data/dequantize_data (global) produce consistent shapes", {
+  set.seed(1)
+  x <- array(rnorm(2*2*2*3), dim = c(2,2,2,3))
+  qres <- quantize_data(x, bits = 12L, method = "sd", scope = "global")
+  expect_s3_class(qres, "lna_quant_result")
+  expect_true(is.array(qres$q))
+  expect_equal(dim(qres$q), dim(x))
+  xhat <- dequantize_data(qres)
+  expect_true(is.array(xhat))
+  expect_equal(dim(xhat), dim(x))
+  expect_true(all(is.finite(xhat)))
+})
+
+test_that("quantize_data/dequantize_data (voxel) produce consistent shapes", {
+  set.seed(2)
+  x <- array(rnorm(3*3*2*4), dim = c(3,3,2,4))
+  qres <- quantize_data(x, bits = 10L, method = "range", scope = "voxel")
+  expect_s3_class(qres, "lna_quant_result")
+  expect_true(is.array(qres$scale))
+  expect_equal(dim(qres$scale), dim(x)[1:3])
+  xhat <- dequantize_data(qres)
+  expect_equal(dim(xhat), dim(x))
+  expect_true(all(is.finite(xhat)))
+})
+
+test_that("sparse_pca wrapper returns expected matrices", {
+  set.seed(3)
+  X <- matrix(rnorm(50*20), nrow = 50, ncol = 20)
+  sp <- sparse_pca(X, n_components = 5, standardize = TRUE)
+  expect_s3_class(sp, "lna_sparsepca_result")
+  expect_true(is.matrix(sp$loadings))
+  expect_true(is.matrix(sp$scores))
+  # loadings: components x voxels
+  expect_equal(ncol(sp$loadings), ncol(X))
+  expect_lte(nrow(sp$loadings), 5)
+  # scores: time x components
+  expect_equal(nrow(sp$scores), nrow(X))
+  expect_equal(ncol(sp$scores), nrow(sp$loadings))
+})
+
+test_that("basis_space_embed + basis_space_reconstruct preserve shapes", {
+  skip_if_not_installed("neuroim2")
+  dims <- c(6, 6, 3)
+  mask_arr <- array(TRUE, dims)
+  spc <- neuroim2::NeuroSpace(dims, spacing = c(2,2,2))
+  mask <- neuroim2::LogicalNeuroVol(mask_arr, spc)
+  set.seed(4)
+  X <- matrix(rnorm(30 * sum(mask_arr)), nrow = 30)
+  emb <- basis_space_embed(X, mask, basis_params = list(sigma0 = 4, levels = 2))
+  expect_s3_class(emb, "lna_basis_embed_result")
+  expect_true(is.matrix(emb$coefficients))
+  Xhat <- basis_space_reconstruct(emb, mask)
+  expect_true(is.matrix(Xhat))
+  expect_equal(dim(Xhat), dim(X))
+})

@@ -1,0 +1,166 @@
+---
+title: Getting Started with neuroarchive
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with neuroarchive}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
+---
+
+```{r setup, include = FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  eval = TRUE
+)
+```
+
+# What is neuroarchive?
+
+`neuroarchive` compresses fMRI data using the Latent NeuroArchive (LNA) format, an HDF5-based storage system with flexible transform pipelines. You can achieve 10--500x compression while controlling reconstruction quality through combinations of quantization, dimensionality reduction, and specialized neuroimaging transforms.
+
+In this vignette you will learn how to write and read an LNA file, compare transform options, and verify reconstruction quality.
+
+# Installation
+
+```{r install, eval = FALSE}
+# From GitHub
+remotes::install_github("bbuchsbaum/neuroarchive")
+```
+
+```{r library}
+library(neuroarchive)
+```
+
+# Quick Start: Write and Read
+
+Create synthetic fMRI data (8x8x8 voxels, 20 timepoints), compress it, and read it back.
+
+```{r quickstart}
+# Create synthetic 4D fMRI data
+set.seed(42)
+data <- array(rnorm(8 * 8 * 8 * 20), dim = c(8, 8, 8, 20))
+
+# Write with default quantization
+tmp <- tempfile(fileext = ".lna.h5")
+result <- write_lna(data, tmp, transforms = "quant")
+
+# Inspect compression result
+print(result)
+
+# Read back (returns DataHandle with reconstructed data in $stash$input)
+handle <- read_lna(tmp)
+reconstructed <- handle$stash$input
+```
+
+The `write_lna()` function returns an `lna_write_result` object showing compression ratio and file details.
+
+## Verify Reconstruction Quality
+
+```{r verify}
+# Correlation between original and reconstructed
+cor_value <- cor(as.vector(data), as.vector(reconstructed))
+cat(sprintf("Correlation: %.4f\n", cor_value))
+
+# Maximum absolute error
+max_error <- max(abs(data - reconstructed))
+cat(sprintf("Max error: %.4f\n", max_error))
+```
+
+With 8-bit quantization, expect correlation > 0.99 for typical fMRI data.
+
+# Transform Options
+
+Transforms are applied sequentially. The two most common are:
+
+## Quantization (`quant`)
+
+Reduces floating-point precision to save space. Controls the fundamental lossy compression.
+
+```{r quant}
+# Higher bit depth = better quality, less compression
+result_12bit <- write_lna(data, tempfile(fileext = ".h5"),
+                          transforms = "quant",
+                          transform_params = list(quant = list(bits = 12)))
+print(result_12bit)
+```
+
+## Basis Decomposition (`basis`)
+
+PCA-based dimensionality reduction. Reduces spatial or temporal dimensions before quantization.
+
+```{r basis}
+# Use 10 principal components
+result_pca <- write_lna(data, tempfile(fileext = ".h5"),
+                        transforms = "basis",
+                        transform_params = list(basis = list(k = 10)))
+print(result_pca)
+```
+
+## Combining Transforms
+
+Chain transforms for higher compression. Each transform operates on the output of the previous one.
+
+```{r combined}
+# PCA (10 components) + quantization (8 bits)
+result_combined <- write_lna(
+  data,
+  tempfile(fileext = ".h5"),
+  transforms = c("basis", "quant"),
+  transform_params = list(
+    basis = list(k = 10),
+    quant = list(bits = 8)
+  )
+)
+print(result_combined)
+```
+
+This pipeline typically achieves 20--100x compression depending on data characteristics.
+
+# Customization with lna_options()
+
+Set default parameters globally to avoid repeating them:
+
+```{r options, eval = FALSE}
+# Set defaults for all subsequent write_lna() calls
+lna_options(
+  quant = list(bits = 10),
+  basis = list(k = 20)
+)
+
+# Now these parameters apply automatically
+write_lna(data, "output.h5", transforms = c("basis", "quant"))
+```
+
+# What's Next?
+
+- **More transforms:** See `vignette("compression_methods")` for spatial transforms (HRBF, wavelets), temporal compression, and sparse PCA
+- **Cookbook examples:** `vignette("cookbook")` for real-world pipelines
+- **Benchmarks:** `vignette("compression_benchmarks")` for lossy-vs-size comparisons
+- **API reference:** `?write_lna`, `?read_lna`, `?validate_lna`
+- **Transform registry:** `list_transforms()` to see all available methods
+
+# Tips
+
+- Always use 4D arrays shaped `c(x, y, z, time)` for spatial + temporal data
+- Start with simple `"quant"` transform, then add dimensionality reduction
+- Use `validate_lna(file)` to verify file integrity and checksums
+- The `lazy = TRUE` option in `read_lna()` enables on-demand data loading for large files
+
+```{r cleanup, include = FALSE}
+unlink(tmp)
+```

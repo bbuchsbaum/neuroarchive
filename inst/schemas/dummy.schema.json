@@ -10,4 +10,4 @@
   },
   "required": [ "type" ],
   "additionalProperties": true
-} 
+}

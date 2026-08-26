@@ -9,7 +9,10 @@ materialise_plan(
   plan,
   checksum = c("none", "sha256"),
   header = NULL,
-  plugins = NULL
+  plugins = NULL,
+  run_ids = NULL,
+  run_geometry = NULL,
+  geometry_policy = c("optional", "fmri")
 )
 }
 \arguments{
@@ -22,6 +25,10 @@ materialise_plan(
 \item{header}{Optional named list of header attributes.}
 
 \item{plugins}{Optional named list of plugin metadata.}
+
+\item{run_geometry}{Optional named list of normalized run-scoped geometry.}
+
+\item{geometry_policy}{Geometry profile recorded with the header section.}
 }
 \value{
 Invisibly returns the `H5File` handle. When `checksum = "sha256"`

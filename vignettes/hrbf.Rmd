@@ -1,84 +1,261 @@
 ---
-title: "Using Hierarchical Radial Basis Functions in LNA"
+title: Hierarchical Radial Basis Functions
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using Hierarchical Radial Basis Functions in LNA}
-  %\VignetteEngine{rmarkdown}
+  %\VignetteIndexEntry{Hierarchical Radial Basis Functions}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
-This vignette gives a brief tour of the HRBF (Hierarchical Radial Basis
-Function) transforms introduced in LNA version 2.0.
-
-```r
-library(neuroarchive)
-```
-
-## Analytic HRBF
-
-The `spat.hrbf` transform analytically generates a multiresolution RBF
-basis. Only a small descriptor is stored in the file and the basis is
-recreated on the fly by the reader. Coefficients can be computed
-without keeping the dense basis matrix:
-
-```r
-write_lna(x, "analytic.h5", transforms = "spat.hrbf")
-```
-Extra dyadic levels can be added with the `num_extra_fine_levels` parameter.
-
-Set `compute_atom_importance = TRUE` when writing to record per-atom
-importance metrics which can later be used to keep only the top
-contributing atoms during reconstruction.
-
-From version 0.1.0 the parameters also include
-`num_extra_fine_levels` which adds extra dyadic levels beyond
-`levels`.  Each additional level halves `sigma` again and samples a
-denser set of centres for capturing fine details.
-
-## Project then Embed
-
-`spat.hrbf_project` provides a lightweight way to project data onto an
-analytic HRBF dictionary without storing the dictionary itself. This is
-useful when paired with other transforms. For example, the following
-pipeline performs PCA on HRBF coefficients:
-
-```r
-write_lna(x, "pca_hrbf.h5", transforms =
-  c("spat.hrbf_project", "basis.pca", "embed.pca_on_hrbf_coeffs"))
-```
-
-## Compressing and Transferring Empirical Bases
-
-Empirical bases learned from data can be compressed with
-`basis.empirical_hrbf_compressed`. The resulting compact representation
-can later be applied to new data with `embed.transfer_hrbf_basis`.
-
-```r
-# Compress a dense basis matrix B
-write_lna(list(B = B), "dict.h5",
-  transforms = "basis.empirical_hrbf_compressed")
-
-# Apply that basis to new data
-write_lna(x, "transfer.h5",
-  transforms = "embed.transfer_hrbf_basis",
-  transform_params = list(
-    `embed.transfer_hrbf_basis` = list(
-      source_lna_file_path = "dict.h5",
-      source_transform_descriptor_name = "00_basis.empirical_hrbf_compressed.json"
-    )
-  )
+```{r setup, include = FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  eval = FALSE
 )
 ```
 
-These tools allow sophisticated spatial representations while keeping
-files small and read/write operations fast.
+# What are HRBFs?
 
-Core computations such as Poisson-disk sampling and sparse coding are
-implemented in C++ via Rcpp for performance. This acceleration is
-enabled by default but can be disabled with
-`options(lna.hrbf.use_rcpp_helpers = FALSE)` if a pure R fallback is
-needed.
+Hierarchical Radial Basis Functions (HRBFs) are a multi-scale spatial
+representation for volumetric data. The idea is straightforward:
+place Gaussian-like basis functions at multiple scales across the
+brain volume, then represent each timepoint as a weighted combination
+of those functions.
 
-## Appendix: Mask-Adaptive Haar Octwave
+At coarse scales, a few wide basis functions capture global signal
+patterns. At finer scales, narrower functions capture local detail.
+This is well-suited to fMRI because the BOLD signal is spatially
+smooth---most of the variance lives at coarse scales.
 
-The `spat.haar_octwave` transform performs a Haar lifting wavelet analysis on a Morton-ordered octree derived from the voxel mask. Only root and detail coefficient datasets are stored. The `levels` parameter controls the octree depth, and small detail coefficients can be removed by specifying `detail_threshold_type` and `detail_threshold_value`. See `?spat.haar_octwave` for further reference.
+In `neuroarchive`, two HRBF transforms are available:
+
+- **`spat.hrbf`** --- builds the basis, projects the data, and stores
+  both the coefficients and a compact descriptor. The basis is
+  regenerated from the descriptor at read time.
+- **`spat.hrbf_project`** --- projects onto the basis without storing
+  the basis matrix itself. This saves space but requires regenerating
+  the basis on every read, so it is slower for repeated access.
+
+```{r, eval = TRUE}
+library(neuroarchive)
+```
+
+*Note: The HRBF transforms require a spatial mask with coordinate
+metadata (e.g., from `neuroim2`). The examples below show the API
+but are not evaluated in this vignette. See `vignette("neuroim2_roundtrip")`
+for runnable spatial examples.*
+
+# Analytic HRBF Compression
+
+The `spat.hrbf` transform analytically generates centres using Poisson
+disk sampling, builds Gaussian RBFs at each level, and projects the
+data. Only the coefficients and a compact parameter descriptor are
+stored; the full basis matrix is recreated on read.
+
+```{r hrbf_basic}
+set.seed(10)
+x <- array(rnorm(8 * 8 * 8 * 12), dim = c(8, 8, 8, 12))
+mask <- array(TRUE, dim = c(8, 8, 8))
+tmp <- tempfile(fileext = ".h5")
+
+result <- write_lna(x, tmp,
+                    mask = mask,
+                    transforms = "spat.hrbf",
+                    transform_params = list(
+                      spat.hrbf = list(sigma0 = 6, levels = 2, seed = 42)
+                    ))
+
+print(result)
+
+handle <- read_lna(tmp)
+recon <- handle$stash$input
+
+cat(sprintf("Correlation: %.4f\n",
+            cor(as.vector(x), as.vector(recon))))
+cat(sprintf("NMSE: %.6f\n",
+            mean((as.vector(x) - as.vector(recon))^2) / var(as.vector(x))))
+```
+
+Key parameters:
+
+- `sigma0` --- width of the coarsest basis functions (in voxel units).
+  Larger values produce smoother, more aggressive compression.
+- `levels` --- number of dyadic scales. Each level halves `sigma` and
+  places denser centres.
+- `seed` --- controls Poisson disk sampling for reproducibility.
+
+Extra dyadic levels can be added with `num_extra_fine_levels` to capture
+finer detail.
+
+## Atom Importance
+
+Set `compute_atom_importance = TRUE` to record per-atom importance
+metrics during writing. These can be used later to prune low-importance
+atoms for even smaller files.
+
+```{r hrbf_importance}
+tmp2 <- tempfile(fileext = ".h5")
+
+write_lna(x, tmp2,
+          mask = mask,
+          transforms = "spat.hrbf",
+          transform_params = list(
+            spat.hrbf = list(
+              sigma0 = 6, levels = 2, seed = 42,
+              compute_atom_importance = TRUE
+            )
+          ))
+
+# The importance metrics are stored as HDF5 attributes
+# accessible via the file's transform descriptor
+cat("Written with atom importance metrics\n")
+```
+
+# HRBF Projection (Lightweight)
+
+`spat.hrbf_project` works the same way but does **not** store the
+basis matrix. The basis is fully regenerated from parameters at read
+time. This is useful when file size is critical and read speed is
+secondary.
+
+```{r hrbf_project}
+set.seed(20)
+x2 <- array(rnorm(8 * 8 * 8 * 6), dim = c(8, 8, 8, 6))
+mask2 <- array(TRUE, dim = c(8, 8, 8))
+tmp3 <- tempfile(fileext = ".h5")
+
+result_proj <- write_lna(x2, tmp3,
+                         mask = mask2,
+                         transforms = "spat.hrbf_project",
+                         transform_params = list(
+                           spat.hrbf_project = list(
+                             sigma0 = 6, levels = 2, seed = 42
+                           )
+                         ))
+
+print(result_proj)
+
+handle_proj <- read_lna(tmp3)
+recon_proj <- handle_proj$stash$input
+
+cat(sprintf("Correlation: %.4f\n",
+            cor(as.vector(x2), as.vector(recon_proj))))
+```
+
+# Combining HRBF with Other Transforms
+
+HRBF works well as the first step in a multi-transform pipeline.
+After spatial compression, you can add temporal compression and
+quantization for very high overall compression.
+
+```{r hrbf_pipeline}
+set.seed(30)
+x3 <- array(rnorm(8 * 8 * 8 * 20), dim = c(8, 8, 8, 20))
+mask3 <- array(TRUE, dim = c(8, 8, 8))
+tmp4 <- tempfile(fileext = ".h5")
+
+write_lna(x3, tmp4,
+          mask = mask3,
+          transforms = c("spat.hrbf", "quant"),
+          transform_params = list(
+            spat.hrbf = list(sigma0 = 6, levels = 2, seed = 42),
+            quant = list(bits = 8)
+          ))
+
+handle3 <- read_lna(tmp4)
+recon3 <- handle3$stash$input
+
+input_kb <- prod(dim(x3)) * 4 / 1024
+output_kb <- file.info(tmp4)$size / 1024
+cat(sprintf("%.1f KB -> %.1f KB (%.1fx)\n",
+            input_kb, output_kb, input_kb / output_kb))
+cat(sprintf("Correlation: %.4f\n",
+            cor(as.vector(x3), as.vector(recon3))))
+```
+
+# Empirical HRBF Compressed Basis
+
+For advanced use cases, `basis.empirical_hrbf_compressed` learns a
+spatial basis from the data (like PCA) and then compresses the learned
+basis itself using an HRBF dictionary. This achieves double
+compression: PCA reduces dimensionality, and HRBF compresses the PCA
+loadings.
+
+This transform is computationally expensive but produces very compact
+representations. It is most useful for large datasets where storage
+savings justify the extra compute.
+
+```{r empirical_hrbf, eval = FALSE}
+# Learn compressed empirical basis (requires larger data to be meaningful)
+write_lna(data, "empirical_hrbf.h5",
+          transforms = "basis.empirical_hrbf_compressed",
+          transform_params = list(
+            basis.empirical_hrbf_compressed = list(
+              k = 30, sigma0 = 6, levels = 3, seed = 123
+            )
+          ))
+```
+
+# Transfer Learning with HRBF Bases
+
+Once you have learned an HRBF-compressed basis from a template dataset
+(e.g., a group average), you can apply it to new subjects using
+`embed.transfer_hrbf_basis`. This is useful for cross-subject analyses
+where all subjects share the same spatial coordinate system.
+
+```{r transfer_hrbf, eval = FALSE}
+# Step 1: Learn basis from template
+write_lna(template_data, "template.h5",
+          transforms = "basis.empirical_hrbf_compressed",
+          transform_params = list(
+            basis.empirical_hrbf_compressed = list(
+              k = 50, sigma0 = 6, levels = 3, seed = 42
+            )
+          ))
+
+# Step 2: Apply learned basis to new data
+write_lna(new_subject_data, "subject.h5",
+          transforms = c("embed.transfer_hrbf_basis", "quant"),
+          transform_params = list(
+            embed.transfer_hrbf_basis = list(
+              source_lna_file_path = "template.h5",
+              source_transform_descriptor_name = "00_basis.empirical_hrbf_compressed"
+            ),
+            quant = list(bits = 10)
+          ))
+```
+
+# C++ Acceleration
+
+The HRBF transforms rely on C++ code (via Rcpp) for the
+performance-critical operations: Poisson disk sampling, RBF evaluation,
+and sparse matrix construction. OpenMP parallelization is used when
+available.
+
+You can disable the C++ path for debugging with:
+
+```{r rcpp_toggle, eval = FALSE}
+options(lna.hrbf.use_rcpp_helpers = FALSE)
+```
+
+This falls back to pure R, which is significantly slower but can be
+useful for troubleshooting.
+
+```{r cleanup, include = FALSE}
+unlink(c(tmp, tmp2, tmp3, tmp4))
+```

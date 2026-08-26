@@ -38,6 +38,8 @@ lna_reader <- R6::R6Class("lna_reader",
     data_cache = NULL,
     #' @field cache_params Parameters used for `data_cache`
     cache_params = NULL,
+    #' @field qpp_tile_cache Reader-owned bounded cache of decoded QPP tiles.
+    qpp_tile_cache = NULL,
 
     #' @description
     #' Create a new `lna_reader`
@@ -58,6 +60,7 @@ lna_reader <- R6::R6Class("lna_reader",
         subset_params$time_idx <- as.integer(core_read_args$time_idx)
       }
       self$subset_params <- subset_params
+      self$qpp_tile_cache <- .qpp_new_tile_cache()
 
       h5 <- open_h5(file, mode = "r")
         on.exit(neuroarchive:::close_h5_safely(h5))
@@ -81,12 +84,21 @@ lna_reader <- R6::R6Class("lna_reader",
     #' @description
     #' Close the HDF5 handle. Safe to call multiple times.
     close = function() {
-      if (!is.null(self$h5)) {
-          neuroarchive:::close_h5_safely(self$h5)
-        self$h5 <- NULL
-      }
       self$data_cache <- NULL
       self$cache_params <- NULL
+      .qpp_tile_cache_clear(self$qpp_tile_cache)
+      self$qpp_tile_cache <- NULL
+      if (!is.null(self$h5)) {
+        if (isTRUE(self$h5$is_valid)) {
+          tryCatch(
+            self$h5$close(),
+            error = function(e) {
+              warning(paste("Error closing lazy LNA handle:", conditionMessage(e)))
+            }
+          )
+        }
+        self$h5 <- NULL
+      }
       invisible(NULL)
     },
 
@@ -100,10 +112,10 @@ lna_reader <- R6::R6Class("lna_reader",
 
     #' @description
     #' Store subsetting parameters for later `$data()` calls.
-    #' Only `roi_mask` and `time_idx` are accepted.
-    #' @param ... Named parameters such as `roi_mask`, `time_idx`
+    #' `parcel_idx` is also accepted for parcel-space consumers.
+    #' @param ... Named parameters such as `roi_mask`, `time_idx`, `parcel_idx`
     subset = function(...) {
-      allowed <- c("roi_mask", "time_idx")
+      allowed <- c("roi_mask", "time_idx", "parcel_idx")
       args <- list(...)
       if (length(args) > 0) {
         if (is.null(names(args)) || any(names(args) == "")) {
@@ -154,18 +166,31 @@ lna_reader <- R6::R6Class("lna_reader",
       h5 <- self$h5
       handle <- DataHandle$new(
         h5 = h5,
+        initial_meta = list(qpp_tile_cache = self$qpp_tile_cache),
         subset = params,
         run_ids = self$run_ids,
         current_run_id = self$current_run_id
       )
       tf_group <- h5[["transforms"]]
       transforms <- discover_transforms(tf_group)
+      transforms <- select_transforms_for_run(
+        transforms,
+        tf_group,
+        self$current_run_id
+      )
+      descriptor_map <- lapply(transforms$name, function(name) {
+        read_json_descriptor(tf_group, name)
+      })
+      names(descriptor_map) <- transforms$name
+      meta <- handle$meta
+      meta$transform_descriptors <- descriptor_map
+      handle <- handle$with(meta = meta)
       allow_plugins <- normalize_allow_plugins(self$allow_plugins)
       if (nrow(transforms) > 0) {
         missing_methods <- transforms$type[
           vapply(
             transforms$type,
-            function(t) is.null(getS3method("invert_step", t, optional = TRUE)),
+            function(t) is.null(.resolve_transform_method("invert_step", t)),
             logical(1)
           )
         ]

@@ -106,6 +106,29 @@ register_transform <- function(type, metadata = list(), validate = TRUE) {
   
   # Add user metadata
   info$metadata <- metadata
+
+  subset_caps <- .transform_supports_subset(type)
+  info$lifecycle <- .transform_lifecycle_status(type, metadata)
+  info$roundtrip <- isTRUE(info$has_forward) && isTRUE(info$has_invert)
+  info$supports_roi_mask <- isTRUE(subset_caps$roi_mask)
+  info$supports_time_idx <- isTRUE(subset_caps$time_idx)
+  info$supports_parcel_idx <- isTRUE(subset_caps$parcel_idx)
+  info$physical_roi_mask <- isTRUE(subset_caps$physical$roi_mask)
+  info$physical_time_idx <- isTRUE(subset_caps$physical$time_idx)
+  info$physical_parcel_idx <- isTRUE(subset_caps$physical$parcel_idx)
+  info$temporal_granularity <- subset_caps$temporal_granularity
+  info$parcel_granularity <- subset_caps$parcel_granularity
+  info$roi_strategy <- subset_caps$roi_strategy
+  info$capabilities$roundtrip <- info$roundtrip
+  info$capabilities$supports_roi_mask <- info$supports_roi_mask
+  info$capabilities$supports_time_idx <- info$supports_time_idx
+  info$capabilities$supports_parcel_idx <- info$supports_parcel_idx
+  info$capabilities$physical_roi_mask <- info$physical_roi_mask
+  info$capabilities$physical_time_idx <- info$physical_time_idx
+  info$capabilities$physical_parcel_idx <- info$physical_parcel_idx
+  info$capabilities$temporal_granularity <- info$temporal_granularity
+  info$capabilities$parcel_granularity <- info$parcel_granularity
+  info$capabilities$roi_strategy <- info$roi_strategy
   
   # Store in registry
   .transform_registry[[type]] <- info
@@ -194,23 +217,31 @@ get_transform_capabilities <- function(type) {
 #' @keywords internal
 discover_and_register_transforms <- function(pattern = "^transform_.*\\.R$", 
                                            validate = TRUE) {
-  # Get package R directory
+  types <- character()
+
+  # Prefer installed schema metadata because it is available both from source
+  # and from an installed package during R CMD check.
+  schema_dir <- system.file("schemas", package = "neuroarchive")
+  if (nzchar(schema_dir) && dir.exists(schema_dir)) {
+    schema_files <- list.files(schema_dir, pattern = "\\.schema\\.json$", full.names = FALSE)
+    schema_types <- sub("\\.schema\\.json$", "", schema_files)
+    types <- union(types, schema_types)
+  }
+
+  # Fall back to source-file discovery when running from a checkout.
   pkg_dir <- system.file("R", package = "neuroarchive")
   if (!nzchar(pkg_dir)) {
-    # During package build/check, use current directory
     pkg_dir <- "R"
   }
-  
-  if (!dir.exists(pkg_dir)) {
+  if (dir.exists(pkg_dir)) {
+    transform_files <- list.files(pkg_dir, pattern = pattern, full.names = FALSE)
+    file_types <- gsub("^transform_", "", gsub("\\.R$", "", transform_files))
+    types <- union(types, file_types)
+  }
+
+  if (length(types) == 0L) {
     return(0L)
   }
-  
-  # Find transform files
-  transform_files <- list.files(pkg_dir, pattern = pattern, full.names = FALSE)
-  
-  # Extract transform types from filenames
-  # Remove "transform_" prefix and ".R" suffix
-  types <- gsub("^transform_", "", gsub("\\.R$", "", transform_files))
   
   # Filter out some special cases
   types <- setdiff(types, c("base", "builder", "registry", "meta"))
@@ -265,9 +296,13 @@ transform_summary <- function() {
     return(data.frame(
       type = character(),
       category = character(),
+      lifecycle = character(),
       has_forward = logical(),
       has_invert = logical(),
       has_schema = logical(),
+      roundtrip = logical(),
+      supports_roi_mask = logical(),
+      supports_time_idx = logical(),
       min_dims = integer(),
       stringsAsFactors = FALSE
     ))
@@ -279,9 +314,13 @@ transform_summary <- function() {
     data.frame(
       type = type,
       category = info$metadata$category %||% "other",
+      lifecycle = info$lifecycle %||% "custom",
       has_forward = info$has_forward,
       has_invert = info$has_invert,
       has_schema = info$has_schema,
+      roundtrip = isTRUE(info$roundtrip),
+      supports_roi_mask = isTRUE(info$supports_roi_mask),
+      supports_time_idx = isTRUE(info$supports_time_idx),
       min_dims = info$min_dims,
       compression = isTRUE(info$capabilities$compression),
       spatial = isTRUE(info$capabilities$spatial),

@@ -30,7 +30,32 @@ test_that("invert_step.embed reconstructs dense data", {
 })
 
 test_that("read_lna applies roi_mask and time_idx for embed", {
-  skip("This test requires deeper knowledge of LNA file structure")
+  set.seed(10)
+  arr <- array(rnorm(2 * 2 * 1 * 6), dim = c(2, 2, 1, 6))
+  tmp <- local_tempfile(fileext = ".h5")
+
+  write_lna(
+    arr,
+    file = tmp,
+    transforms = c("basis", "embed", "quant"),
+    transform_params = list(
+      embed = list(
+        basis_path = "/basis/00_basis/matrix",
+        center_data_with = "/basis/00_basis/center"
+      )
+    )
+  )
+
+  full <- read_lna(tmp)$stash$input
+
+  roi <- array(c(TRUE, FALSE, TRUE, FALSE), dim = c(2, 2, 1))
+  idx <- c(2, 5)
+  vox_idx <- which(as.logical(roi))
+  expected <- full[idx, vox_idx, drop = FALSE]
+
+  h <- read_lna(tmp, roi_mask = roi, time_idx = idx)
+  out <- h$stash$input
+  expect_equal(out, expected)
 })
 
 

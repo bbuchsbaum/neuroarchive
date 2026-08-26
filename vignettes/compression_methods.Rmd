@@ -1,0 +1,570 @@
+---
+title: Compression Methods Guide
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Compression Methods Guide}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
+---
+
+```{r setup, include = FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  eval = FALSE
+)
+```
+
+# Overview
+
+The `neuroarchive` package provides 12 compression and transform methods
+that you can combine into flexible pipelines. This guide catalogs every
+method with its parameters, typical position in a pipeline, and example
+usage.
+
+All examples below use the standard API:
+
+```r
+write_lna(data, file,
+          transforms = c("step1", "step2"),
+          transform_params = list(
+            step1 = list(param = value),
+            step2 = list(param = value)
+          ))
+```
+
+```{r}
+library(neuroarchive)
+```
+
+# Quick Reference
+
+| Transform | Category | Lossy | Key Use Case |
+|-----------|----------|-------|--------------|
+| `quant` | Compression | Yes | Final quantization (8--16 bit) |
+| `delta` | Compression | No | Temporal differencing |
+| `basis` | Dimensionality | Yes | PCA spatial compression |
+| `sparsepca` | Dimensionality | Yes | Interpretable components |
+| `temporal` | Temporal | Yes | Temporal basis (DCT/wavelet/etc) |
+| `spat.hrbf` | Spatial | Yes | Multi-scale RBF |
+| `spat.hrbf_project` | Spatial | Yes | RBF projection (no storage) |
+| `spat.haar_octwave` | Spatial | Yes | Octree wavelets |
+| `embed` | Dimensionality | Yes | Pre-computed basis |
+| `embed.transfer_hrbf_basis` | Dimensionality | Yes | Transfer learning |
+| `basis.empirical_hrbf_compressed` | Dimensionality | Yes | HRBF-compressed basis |
+| `aggregate_runs` | Utility | No | Multi-run aggregation |
+
+View the full transform registry at runtime:
+```{r}
+transform_summary()
+```
+
+# Compression Transforms
+
+## Quantization (`quant`)
+
+Reduces floating-point precision to fixed-bit integers for storage efficiency.
+
+**Key Parameters:**
+- `bits` (1--16, default: 8): Bit depth (<=8 uses uint8, >8 uses uint16)
+- `method`: `"range"` (default) or `"sd"` (standard deviation scaling)
+- `center` (TRUE/FALSE): Center data before quantization
+- `scale_scope`: `"global"` (default) or `"voxel"` (per-voxel scaling)
+
+**Typical Position:** Last step after dimensionality reduction
+
+**Compression:** ~4x for 8-bit from float32
+
+```{r}
+# Basic 8-bit quantization
+write_lna(data, "output.h5",
+          transforms = "quant",
+          transform_params = list(quant = list(bits = 8)))
+
+# Higher precision with voxel-wise scaling
+write_lna(data, "output.h5",
+          transforms = "quant",
+          transform_params = list(quant = list(bits = 12, scale_scope = "voxel")))
+```
+
+## Delta Encoding (`delta`)
+
+Lossless first-order differencing, often combined with quantization.
+
+**Key Parameters:**
+- `order` (default: 1): Differencing order
+- `axis` (default: -1): Dimension to difference along
+- `coding_method`: `"none"` (default) or `"rle"` (run-length encoding)
+
+**Typical Position:** Before quantization for smooth temporal data
+
+**Compression:** Variable, high when combined with quantization
+
+```{r}
+# Delta + quantization pipeline
+write_lna(data, "output.h5",
+          transforms = c("delta", "quant"),
+          transform_params = list(quant = list(bits = 8)))
+```
+
+# Spatial Transforms
+
+## Hierarchical RBF (`spat.hrbf`)
+
+Multi-scale radial basis function decomposition with analytic centres.
+
+**Key Parameters:**
+- `sigma0` (default: 6): Base RBF width in mm
+- `levels` (default: 3): Number of hierarchical scales
+- `radius_factor` (default: 2.5): Poisson disk sampling multiplier
+- `seed`: Random seed for reproducible centre generation
+
+**Typical Position:** Early spatial compression
+
+**Compression:** 50--200x depending on parameters
+
+**Implementation:** C++ with OpenMP for performance
+
+```{r}
+# Multi-scale HRBF compression
+write_lna(data, "output.h5",
+          transforms = "spat.hrbf",
+          transform_params = list(
+            spat.hrbf = list(sigma0 = 8, levels = 4, seed = 123)
+          ))
+
+# Fine-grained compression with extra levels
+write_lna(data, "output.h5",
+          transforms = "spat.hrbf",
+          transform_params = list(
+            spat.hrbf = list(
+              sigma0 = 6, levels = 3,
+              num_extra_fine_levels = 2, seed = 42
+            )
+          ))
+```
+
+## HRBF Projection (`spat.hrbf_project`)
+
+Projects onto an HRBF basis without storing the basis matrix. The basis is
+regenerated from parameters at read time, which saves space but makes
+reading slower.
+
+**Parameters:** Same as `spat.hrbf`
+
+```{r}
+write_lna(data, "output.h5",
+          transforms = "spat.hrbf_project",
+          transform_params = list(
+            spat.hrbf_project = list(sigma0 = 6, levels = 3, seed = 42)
+          ))
+```
+
+## Haar Octree Wavelet (`spat.haar_octwave`)
+
+3D octree-based Haar wavelet with Morton curve ordering.
+
+**Key Parameters:**
+- `levels` (>=1, required): Number of octree levels
+- `detail_threshold_type`: `"none"`, `"absolute"`, or `"relative_to_root_std"`
+- `detail_threshold_value`: Threshold for sparsification
+
+**Typical Position:** Early spatial compression, alternative to HRBF
+
+**Compression:** 50--200x with aggressive thresholding
+
+**Implementation:** C++ Morton hashing and lifting
+
+```{r}
+# Basic octree wavelet
+write_lna(data, "output.h5",
+          transforms = "spat.haar_octwave",
+          transform_params = list(
+            spat.haar_octwave = list(levels = 4)
+          ))
+
+# With detail coefficient thresholding
+write_lna(data, "output.h5",
+          transforms = "spat.haar_octwave",
+          transform_params = list(
+            spat.haar_octwave = list(
+              levels = 4,
+              detail_threshold_type = "relative_to_root_std",
+              detail_threshold_value = 0.1
+            )
+          ))
+```
+
+# Dimensionality Reduction
+
+## PCA Basis (`basis`)
+
+Standard PCA decomposition into basis matrix + coefficients.
+
+**Key Parameters:**
+- `method` (default: "pca"): Decomposition method
+- `k` (default: 20): Number of components
+- `storage_order`: `"component_x_voxel"` (default) or `"voxel_x_component"`
+
+**Typical Position:** Early/middle pipeline before quantization
+
+**Compression:** 10--50x depending on k
+
+```{r}
+# PCA with 30 components
+write_lna(data, "output.h5",
+          transforms = "basis",
+          transform_params = list(basis = list(k = 30)))
+
+# PCA + quantization pipeline
+write_lna(data, "output.h5",
+          transforms = c("basis", "quant"),
+          transform_params = list(
+            basis = list(k = 50),
+            quant = list(bits = 10)
+          ))
+```
+
+## Sparse PCA (`sparsepca`)
+
+Sparse principal components with interpretable loadings.
+
+**Key Parameters:**
+- `k` or `n_components` (default: 10): Number of components
+- `alpha` (default: 0.001): Sparsity penalty (higher = sparser)
+- `whiten` (default: FALSE): Z-score normalize before fitting
+- `seed`: Random seed
+
+**Dependencies:** Optimal with `sparsepca` pkg, falls back to `irlba`
+
+**Typical Position:** Alternative to `basis` for interpretable compression
+
+```{r}
+write_lna(data, "output.h5",
+          transforms = "sparsepca",
+          transform_params = list(
+            sparsepca = list(k = 20, alpha = 0.01, whiten = TRUE)
+          ))
+```
+
+## Embed (`embed`)
+
+Projects onto a pre-computed basis from plan payloads.
+
+**Key Parameters:**
+- `basis_path` (required): Path to basis in plan payloads
+- `center_data_with`: Optional centering vector path
+- `scale_data_with`: Optional scaling vector path
+
+**Use Cases:** Transfer learning, pre-trained bases, multi-run shared basis
+
+```{r}
+# Typically used programmatically when a basis is already stored
+write_lna(data, "output.h5",
+          transforms = "embed",
+          transform_params = list(
+            embed = list(basis_path = "/basis/learned_basis")
+          ))
+```
+
+## Transfer HRBF Basis (`embed.transfer_hrbf_basis`)
+
+Applies an HRBF basis learned from a source LNA file to new data.
+
+**Key Parameters:**
+- `source_lna_file_path` (required): Path to source LNA with learned basis
+- `source_transform_descriptor_name` (required): Descriptor name in source
+
+**Use Cases:** Cross-subject/session transfer with aligned anatomy
+
+```{r}
+# First, create template with learned basis
+write_lna(template_data, "template.h5",
+          transforms = "basis.empirical_hrbf_compressed",
+          transform_params = list(
+            basis.empirical_hrbf_compressed = list(
+              k = 50, sigma0 = 6, levels = 3, seed = 42
+            )
+          ))
+
+# Apply to new subject
+write_lna(subject_data, "subject.h5",
+          transforms = "embed.transfer_hrbf_basis",
+          transform_params = list(
+            embed.transfer_hrbf_basis = list(
+              source_lna_file_path = "template.h5",
+              source_transform_descriptor_name = "00_basis.empirical_hrbf_compressed"
+            )
+          ))
+```
+
+## Empirical HRBF Compressed Basis (`basis.empirical_hrbf_compressed`)
+
+Learns a spatial basis from data and compresses it using an HRBF dictionary.
+
+**Key Parameters:** Combines HRBF params with PCA-like `k`
+
+**Typical Position:** Alternative to standard PCA
+
+**Compression:** Very high (double compression: HRBF + SVD)
+
+```{r}
+write_lna(data, "output.h5",
+          transforms = "basis.empirical_hrbf_compressed",
+          transform_params = list(
+            basis.empirical_hrbf_compressed = list(
+              k = 30, sigma0 = 6, levels = 3, seed = 123
+            )
+          ))
+```
+
+# Temporal Transforms
+
+## Temporal Basis (`temporal`)
+
+Projects time series onto temporal basis functions.
+
+**Key Parameters:**
+- `kind`: Basis type
+  - `"dct"` (default): Discrete Cosine Transform
+  - `"bspline"`: B-spline basis
+  - `"dpss"`: Discrete Prolate Spheroidal Sequences
+  - `"polynomial"`: Orthogonal polynomials
+  - `"wavelet"`: Wavelet basis
+  - `"modwt"`, `"modwt_sym8"`, etc.: Maximal overlap DWT
+- `n_basis` (default: n_time): Number of basis functions
+- `order` (default: 3): For B-spline or polynomial
+- `threshold_type`: Coefficient sparsification
+  - `"none"` (default): No thresholding
+  - `"soft"`, `"hard"`: Standard thresholding
+  - `"energy"`: Energy-based selection
+  - `"bayes_shrink"`, `"sure"`, `"fdr"`: Adaptive
+- `keep_energy` (default: 0.99): Fraction of energy to retain
+
+**Dependencies:** `multitaper` (for DPSS)
+
+**Typical Position:** After spatial, before quantization
+
+```{r}
+# DCT compression
+write_lna(data, "output.h5",
+          transforms = "temporal",
+          transform_params = list(
+            temporal = list(kind = "dct", n_basis = 50)
+          ))
+
+# DPSS (optimal for band-limited signals)
+write_lna(data, "output.h5",
+          transforms = "temporal",
+          transform_params = list(
+            temporal = list(
+              kind = "dpss", n_basis = 40,
+              time_bandwidth_product = 3.0
+            )
+          ))
+
+# Wavelet with soft thresholding
+write_lna(data, "output.h5",
+          transforms = "temporal",
+          transform_params = list(
+            temporal = list(
+              kind = "wavelet",
+              threshold_type = "soft",
+              threshold_value = 0.1
+            )
+          ))
+
+# B-spline basis
+write_lna(data, "output.h5",
+          transforms = "temporal",
+          transform_params = list(
+            temporal = list(kind = "bspline", n_basis = 60, order = 4)
+          ))
+```
+
+# Utility Transforms
+
+## Aggregate Runs (`aggregate_runs`)
+
+Combines multiple fMRI runs before compression.
+
+**Key Parameters:**
+- `agg_op`: Operation type
+  - `"sum"`: Sum across runs
+  - `"mean"`: Average across runs
+  - `"concatenate"`: Stack temporally
+
+**Typical Position:** First transform
+
+```{r}
+runs <- list(run1_data, run2_data, run3_data)
+
+write_lna(runs, "output.h5",
+          transforms = c("aggregate_runs", "basis"),
+          transform_params = list(
+            aggregate_runs = list(agg_op = "mean"),
+            basis = list(k = 30)
+          ))
+```
+
+# Recommended Pipelines
+
+## High Compression (~100--500x)
+
+Spatial + temporal + quantization for maximum compression.
+
+```{r}
+write_lna(data, "high_compression.h5",
+          transforms = c("spat.hrbf", "temporal", "quant"),
+          transform_params = list(
+            spat.hrbf = list(sigma0 = 8, levels = 3, seed = 123),
+            temporal = list(kind = "dct", n_basis = 50),
+            quant = list(bits = 8)
+          ))
+```
+
+## Medium Compression (~20--50x)
+
+PCA + quantization for a good quality/compression balance.
+
+```{r}
+write_lna(data, "medium_compression.h5",
+          transforms = c("basis", "quant"),
+          transform_params = list(
+            basis = list(k = 100),
+            quant = list(bits = 12)
+          ))
+```
+
+## Near-Lossless (~2--4x)
+
+Delta encoding + fine quantization.
+
+```{r}
+write_lna(data, "lossless_style.h5",
+          transforms = c("delta", "quant"),
+          transform_params = list(quant = list(bits = 16)))
+```
+
+## Interpretable Compression (~30--100x)
+
+Sparse components with wavelet temporal compression.
+
+```{r}
+write_lna(data, "interpretable.h5",
+          transforms = c("sparsepca", "temporal"),
+          transform_params = list(
+            sparsepca = list(k = 50, alpha = 0.01),
+            temporal = list(kind = "wavelet", threshold_type = "soft")
+          ))
+```
+
+## Multi-Resolution Analysis (~50--150x)
+
+Octree wavelets + temporal basis for level-wise access.
+
+```{r}
+write_lna(data, "multiresolution.h5",
+          transforms = c("spat.haar_octwave", "temporal"),
+          transform_params = list(
+            spat.haar_octwave = list(levels = 4),
+            temporal = list(kind = "bspline", n_basis = 60)
+          ))
+```
+
+## Transfer Learning Setup
+
+Learn a basis from a template, apply to new subjects.
+
+```{r}
+# Learn basis from group template
+write_lna(template_data, "template.h5",
+          transforms = "basis.empirical_hrbf_compressed",
+          transform_params = list(
+            basis.empirical_hrbf_compressed = list(
+              k = 50, sigma0 = 6, levels = 3, seed = 42
+            )
+          ))
+
+# Apply to individual subjects
+for (subject_file in subject_files) {
+  subject_data <- load_subject(subject_file)
+
+  write_lna(subject_data, paste0(subject_file, ".h5"),
+            transforms = c("embed.transfer_hrbf_basis", "quant"),
+            transform_params = list(
+              embed.transfer_hrbf_basis = list(
+                source_lna_file_path = "template.h5",
+                source_transform_descriptor_name = "00_basis.empirical_hrbf_compressed"
+              ),
+              quant = list(bits = 10)
+            ))
+}
+```
+
+# Performance Characteristics
+
+## CPU Time
+
+- **Fast:** `quant`, `delta`, `temporal` (DCT), `embed`, `aggregate_runs`, `spat.haar_octwave`
+- **Medium:** `basis`, `spat.hrbf`, `spat.hrbf_project`, `temporal` (DPSS/wavelet)
+- **Slow:** `sparsepca`, `basis.empirical_hrbf_compressed`
+
+## Memory Usage
+
+- **Low:** `quant`, `delta`, `embed`, `aggregate_runs`
+- **Medium:** `basis`, `temporal`, `spat.hrbf`, `spat.haar_octwave`
+- **High:** `sparsepca`, `basis.empirical_hrbf_compressed`
+
+## C++ Acceleration
+
+Transforms with compiled C++ code (via `src/`):
+- `spat.hrbf`, `spat.hrbf_project` (with OpenMP parallelization)
+- `spat.haar_octwave` (Morton hashing, lifting)
+- `basis.empirical_hrbf_compressed` (HRBF operations)
+
+## Dependencies
+
+**Core transforms** (no extra packages):
+- `quant`, `delta`, `basis`, `embed`, `aggregate_runs`
+- `spat.hrbf`, `spat.hrbf_project`, `spat.haar_octwave` (C++ only)
+- `temporal` (most basis types)
+
+**Optional dependencies:**
+- `sparsepca`: sparsepca package (fallback: irlba or base svd)
+- `temporal` (DPSS): multitaper package
+- `basis` (efficient): irlba package
+
+Check available transforms at runtime:
+```{r}
+# List all registered transforms
+list_transforms()
+
+# Get detailed info for a specific transform
+get_transform_info("spat.hrbf")
+
+# View the full registry summary
+transform_summary()
+```
+
+# See Also
+
+- Main API: `?write_lna`, `?read_lna`, `?validate_lna`
+- Transform registry: `?list_transforms`, `?get_transform_info`
+- Custom transforms: `vignette("custom_compression_simple")`
+- Package options: `?lna_options`
+- Cookbook examples: `vignette("cookbook")`

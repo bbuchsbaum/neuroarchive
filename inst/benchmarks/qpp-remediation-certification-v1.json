@@ -1,0 +1,180 @@
+{
+  "receipt_version": "1.1.0",
+  "generated_at_utc": "2026-08-26T00:21:15Z",
+  "epic_id": "bd-01M0XD72K8DKD9DHJBMC6453Q4",
+  "ticket_id": "bd-01M0XD9B5MK8T0SWFS0RF8K3MF",
+  "package": "neuroarchive",
+  "package_version": "0.1.1",
+  "source_base_sha": "863bfcf9780a660716673f0ad6523cdce2782301",
+  "tested_source_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
+  "source_branch": "codex/qpp-remediation-bd-01m0xd7",
+  "source_state": "isolated publication worktree; local and five-platform hosted QPP evidence complete",
+  "platform": {
+    "os": "macOS Sonoma 14.3",
+    "machine": "arm64",
+    "r_version": "4.5.1",
+    "locale": "en_US.UTF-8",
+    "force_suggests": false
+  },
+  "profile_decisions": {
+    "analysis_safe_lifecycle": "experimental",
+    "stable_promotion": "denied",
+    "stable_denial_reason": "untouched connectivity maximum 0.008496643 exceeds the frozen 0.008 ceiling",
+    "multiresolution_run": "prototype-no-go",
+    "wavelet_rate_percent_of_qpp": 95.317,
+    "wavelet_required_max_percent": 90,
+    "fmrilatent_boundary": "calibration research and fitted spatial assets under declared fit-scope boundaries; stable decoding remains in neuroarchive"
+  },
+  "artifacts": [
+    {
+      "path": ".github/workflows/R-CMD-check.yaml",
+      "sha256": "d8b00ffeed9fed43fb2f92df038d41df506685e0e367a04f4591c77352d7848e",
+      "kind": "independent five-platform hosted QPP court and package-check jobs"
+    },
+    {
+      "path": "inst/consumer/qpp-installed-consumer.R",
+      "sha256": "b797b396292fd66ad0361a6c490a80e60571f785cebecc9e256dc72744103032",
+      "kind": "installed public smoke consumer"
+    },
+    {
+      "path": "inst/consumer/qpp-adversarial-consumer.R",
+      "sha256": "5374deb2c4402ba7a4586cb03f60bebb40e8ab2ce67b376d444d48a6b3a794cd",
+      "kind": "installed public multi-run, Pure-R oracle, and typed mutation court"
+    },
+    {
+      "path": "vignettes/analysis_safe_qpp.Rmd",
+      "sha256": "e69337b8e26d57894a4736f922d45922b23e4f6a69ca2607f456238b849db422",
+      "kind": "analysis-safe reader workflow"
+    }
+  ],
+  "local_evidence": [
+    {
+      "claim": "focused_qpp_profile_geometry_multi_run",
+      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 Rscript -e 'testthat::set_max_fails(Inf); devtools::test(filter = \"analysis-contract|profile-qpp|qpp|multi-run-transforms|run-geometry|public-api|spatial-identity|temporal-lift53-reference|transform-parcel-mean|transform_capabilities\", stop_on_failure = FALSE)'",
+      "result": "pass",
+      "failures": 0,
+      "warnings": 0,
+      "skips": 0,
+      "passes": 1196
+    },
+    {
+      "claim": "fresh_tarball_build_install",
+      "command": "R CMD build --no-manual --no-build-vignettes <isolated-worktree> && R CMD INSTALL --library=<empty-library> neuroarchive_0.1.1.tar.gz",
+      "result": "pass"
+    },
+    {
+      "claim": "installed_public_courts",
+      "command": "source(system.file('consumer', c('qpp-installed-consumer.R','qpp-adversarial-consumer.R'), package='neuroarchive'))",
+      "result": "pass",
+      "coverage": [
+        "two-run write and independent reconstruction",
+        "exact spatial and fitted-asset provenance",
+        "pointwise split checking",
+        "selected tile and step integrity before decode or cache",
+        "bounded time, parcel, and ROI reads",
+        "independent Pure-R integer oracle",
+        "typed adversarial mutation matrix",
+        "multiresolution no-go"
+      ]
+    },
+    {
+      "claim": "installed_analysis_safe_vignette",
+      "command": "rmarkdown::render('vignettes/analysis_safe_qpp.Rmd') against the clean tarball installation",
+      "result": "pass"
+    },
+    {
+      "claim": "full_source_devtools_suite",
+      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 _R_CHECK_FORCE_SUGGESTS_=false Rscript -e 'devtools::test(stop_on_failure = FALSE)'",
+      "result": "aborted",
+      "exit_code": 134,
+      "location": "pre-existing experimental_api native path",
+      "classification": "legacy non-QPP source-load failure"
+    },
+    {
+      "claim": "r_cmd_check_no_vignette_tarball",
+      "command": "LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 _R_CHECK_FORCE_SUGGESTS_=false R CMD check --no-manual --no-stop-on-test-error neuroarchive_0.1.1.tar.gz",
+      "result": "completed_with_legacy_failures",
+      "errors": 3,
+      "warnings": 10,
+      "notes": 3,
+      "check_log_sha256": "fa78d5474c2c40afae3b4ff95ef8f42fb5514a84d36cc070dc57ae76b727b8d0",
+      "test_log_sha256": "41680621aeea7a41df843f7f7d2fe7aa42c44c02981d14cd69fda5068e5f3e2c",
+      "analysis_safe_qpp_vignette": "pass",
+      "legacy_failures": [
+        "missing pre-existing example functions",
+        "pre-existing native test abort",
+        "pre-existing cookbook vignette abort"
+      ],
+      "branch_owned_documentation_and_namespace_regressions": 0
+    }
+  ],
+  "hosted_evidence": {
+    "status": "complete-green",
+    "workflow_run_id": "32914327028",
+    "workflow_run_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028",
+    "tested_source_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
+    "pull_request_trigger_sha": "95f081cd582ccd7b4444d6ef6df9265ea5004874",
+    "workflow_matrix": [
+      "macos-latest/r-release",
+      "windows-latest/r-release",
+      "ubuntu-latest/r-devel",
+      "ubuntu-latest/r-release",
+      "ubuntu-latest/r-oldrel-1"
+    ],
+    "artifact_name_pattern": "qpp-court-<os>-r-<r-version>",
+    "qpp_job": "QPP-public-court",
+    "package_check_job": "R-CMD-check",
+    "claim_separation": "hosted QPP court status and receipts are independent of the legacy package-check result",
+    "receipt_contract": {
+      "receipt_version": "1.1.0",
+      "git_sha": "01a7cf90fe8dc66a6a260e8026fbfebef90b55e5",
+      "consumer_hash_mode": "sha256-lf-normalized-utf8",
+      "qpp_installed_consumer_sha256": "b797b396292fd66ad0361a6c490a80e60571f785cebecc9e256dc72744103032",
+      "qpp_adversarial_consumer_sha256": "5374deb2c4402ba7a4586cb03f60bebb40e8ab2ce67b376d444d48a6b3a794cd",
+      "required_fields": "all five receipts passed installed public and adversarial courts, two-run independence, exact provenance, selected integrity, bounded partial I/O, and the Pure-R integer oracle; stable promotion remained denied and multiresolution-run remained prototype-no-go"
+    },
+    "green_runs": [
+      {
+        "platform": "macos-latest/r-release",
+        "job_id": "98014709714",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709714",
+        "artifact_id": "9587638436",
+        "artifact_name": "qpp-court-macos-latest-r-release",
+        "receipt_sha256": "13a898ed8705da0ddd4bda695094253d85d34a17e65f08128a84f6fb36c34255"
+      },
+      {
+        "platform": "windows-latest/r-release",
+        "job_id": "98014709803",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709803",
+        "artifact_id": "9587655784",
+        "artifact_name": "qpp-court-windows-latest-r-release",
+        "receipt_sha256": "292529aa548e089166f086ff312bd2a4b40228d929352ccf5b1464647f40ebaf"
+      },
+      {
+        "platform": "ubuntu-latest/r-devel",
+        "job_id": "98014709771",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709771",
+        "artifact_id": "9587687031",
+        "artifact_name": "qpp-court-ubuntu-latest-r-devel",
+        "receipt_sha256": "b42547f5e7fbb7807c58d22389f5c0992671ca88ecffc2d898786b3105c282ea"
+      },
+      {
+        "platform": "ubuntu-latest/r-release",
+        "job_id": "98014709687",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709687",
+        "artifact_id": "9587646145",
+        "artifact_name": "qpp-court-ubuntu-latest-r-release",
+        "receipt_sha256": "149f8515a7b9cf818bae6557de30588138ebe588164348f012eabf0f5819fc77"
+      },
+      {
+        "platform": "ubuntu-latest/r-oldrel-1",
+        "job_id": "98014709552",
+        "job_url": "https://github.com/bbuchsbaum/neuroarchive/actions/runs/32914327028/job/98014709552",
+        "artifact_id": "9587672302",
+        "artifact_name": "qpp-court-ubuntu-latest-r-oldrel-1",
+        "receipt_sha256": "cfb477749081a42ba32b51994e1bc79dfcc936977fd7613c6f234c9bfa515547"
+      }
+    ]
+  },
+  "final_status": "experimental-analysis-safe-hosted-certified-stable-promotion-denied"
+}

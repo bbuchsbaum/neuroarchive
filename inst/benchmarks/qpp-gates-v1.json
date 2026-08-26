@@ -1,0 +1,984 @@
+{
+  "receipt_version": "1.0.0",
+  "profile_status": "experimental",
+  "stable_profile_claim": false,
+  "reason": "Synthetic calibration/evaluation court passed or failed as reported; representative external fMRI and clean package/release gates remain required",
+  "selection_rule": "Among calibration-pass candidates, maximize measured compression versus parcel float32; evaluation metrics are not consulted during selection",
+  "selected_candidate_index": 11,
+  "selected_candidate": {
+    "alpha": 0.001,
+    "time_chunk": 128,
+    "parcel_chunk": 128,
+    "outer_codec": "raw",
+    "predictor_cost": "anchors32-plus-residual-width-v1",
+    "predictor_tie_order": ["P0", "P1", "P2"]
+  },
+  "outer_codec_decision": {
+    "compared": ["raw", "exploratory base gzip"],
+    "selected": "raw",
+    "gzip_payload_size_fraction": 0.886956337071016,
+    "reason": "QPP v1 has an exact raw outer-codec allow-list and bounded random tile reads; gzip is size/speed evidence only and is not silently promoted into the wire format"
+  },
+  "frozen_delta": [0.0088356477497449, 0.00981615139681206, 0.00960869149209921, 0.0091575280028959, 0.00968082504863697, 0.0102593648839117, 0.00905133002836748, 0.00998800987254306, 0.0107818623034182, 0.0094056064976705, 0.00952433689507399, 0.010006197964028, 0.0096136156385687, 0.0104758469571923, 0.00997228608091905, 0.00978400470825473, 0.00999981636878114, 0.00981303891040752, 0.0105099192336166, 0.0094966899002368, 0.0099915535293165, 0.00996699793390497, 0.0102502384890994, 0.00983157489058914, 0.00990785544749323, 0.0103070361000729, 0.0104549246041108, 0.0104856493814082, 0.009849026532582, 0.00952317019131836, 0.0106073602272729, 0.0104173078609141, 0.0100534021316601, 0.0111260198279084, 0.010025933188915, 0.0106701604629316, 0.0108411812890208, 0.0114822282588422, 0.0108584301397016, 0.0102609424548758, 0.0108137264543414, 0.0104238973402774, 0.0102057895985532, 0.0110498237337612, 0.0110488328524481, 0.011148815351339, 0.0101312296704169, 0.0105925013022183, 0.0103346895045751, 0.0114262272562113, 0.0111902374902468, 0.0105665555359473, 0.0108780453541785, 0.0116605968574359, 0.010512021105731, 0.0109517694451865, 0.0110540841118654, 0.0113372215264253, 0.011599867246053, 0.0112203291772978, 0.0110522741365301, 0.0110618092017649, 0.0113020472147221, 0.0111643274232542, 0.0116025838218625, 0.0106716906469761, 0.010725032937996, 0.0111911742309876, 0.0108321524979886, 0.0112992974867086, 0.0108320079592093, 0.0112163585125301, 0.0113830559929371, 0.0113472524488529, 0.0111515768245604, 0.0106976172594086, 0.0108819851320356, 0.011200237003025, 0.0122214807479467, 0.0111289722887255, 0.0108919641587168, 0.0110356771661379, 0.0116270599002602, 0.0118676650772066, 0.0113767998598889, 0.0113751656257509, 0.0120891011440824, 0.0112326190401852, 0.0110111158830633, 0.0118766498714861, 0.0111936502829076, 0.0125972735149756, 0.0119794249320338, 0.0121948339526416, 0.0117082515722854, 0.0126411977499395, 0.0123053597487821, 0.0115230527094066, 0.0110320764998365, 0.0121760546220911, 0.0116835008440828, 0.0121018426330147, 0.0116626508298853, 0.0116730789894105, 0.0116012988207658, 0.0129605489892561, 0.0116344017470859, 0.0121127082323138, 0.0117414946787246, 0.0118056468311339, 0.0110987144158759, 0.0121008817715838, 0.0124631260154269, 0.012116146366013, 0.0115932193648932, 0.0120644443654191, 0.0125540721046944, 0.0123815276012629, 0.0123113646961722, 0.0115595608607838, 0.0119874049240992, 0.012899658304461, 0.0125439658227375, 0.0116564155966861, 0.0115044200037136, 0.0127182159581578, 0.0116623904835964, 0.012806909185876],
+  "gate_definition": {
+    "version": "1.0.0",
+    "estimand": "Agreement between original and independently pointwise-quantized parcel-by-TR series; predictor coding must be exactly q-reversible",
+    "aggregation": "Worst run for error metrics and minimum run for prediction agreement; candidate selection uses calibration runs only",
+    "tolerances": {
+      "observed_quantization_variance_fraction": 0.00105,
+      "RMSE_multiplier_over_uniform_oracle": 1.2,
+      "spectrum_relative_RMSE": 0.01,
+      "autocorrelation_max_absolute_error": 0.005,
+      "glm_beta_relative_RMSE": 0.01,
+      "glm_contrast_max_absolute_error": 0.003,
+      "glm_t_max_absolute_error": 0.12,
+      "connectivity_edge_RMSE": 0.002,
+      "connectivity_edge_max_absolute_error": 0.008,
+      "single_trial_beta_RMSE": 0.004,
+      "mvpa_prediction_agreement": 1,
+      "mvpa_decision_value_RMSE": 0.01
+    },
+    "critical_checks": ["signed-int32 q domain", "exact q decode", "delta-derived max-error bound", "no evaluation data in selection", "installed-package validation"],
+    "uncertainty": "Runtime reports median and min/max over repetitions; scientific gates retain the worst individual run rather than a standard-error summary"
+  },
+  "calibration_gate": {
+    "pass": true,
+    "checks": {
+      "variance_fraction": true,
+      "max_error": true,
+      "RMSE": true,
+      "spectrum": true,
+      "autocorrelation": true,
+      "glm_beta": true,
+      "glm_contrast": true,
+      "glm_t": true,
+      "connectivity_RMSE": true,
+      "connectivity_max": true,
+      "single_trial": true,
+      "mvpa_prediction": true,
+      "mvpa_decision": true
+    }
+  },
+  "evaluation_gate": {
+    "pass": false,
+    "checks": {
+      "variance_fraction": true,
+      "max_error": true,
+      "RMSE": true,
+      "spectrum": true,
+      "autocorrelation": true,
+      "glm_beta": true,
+      "glm_contrast": true,
+      "glm_t": true,
+      "connectivity_RMSE": true,
+      "connectivity_max": false,
+      "single_trial": true,
+      "mvpa_prediction": true,
+      "mvpa_decision": true
+    }
+  },
+  "calibration_candidates": [
+    {
+      "candidate": {
+        "alpha": 0.00025,
+        "time_chunk": 64,
+        "parcel_chunk": 64,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 58468,
+      "effective_total_bits_per_parcel_TR": 9.51627604166667,
+      "parcel_float32_compression_ratio": 3.36265991653554,
+      "encode_million_values_per_second": 2.34057142857139,
+      "decode_million_values_per_second": 12.288,
+      "fidelity": {
+        "maximum_absolute_error": 0.00323396690176703,
+        "RMSE": 0.00160695579246002,
+        "spectrum_relative_RMSE": 0.00230887079185354,
+        "autocorrelation_max_absolute_error": 0.000181075586850876,
+        "glm_beta_relative_RMSE": 0.00156652440349807,
+        "glm_contrast_max_absolute_error": 0.00034758833531473,
+        "glm_t_max_absolute_error": 0.0411858219776366,
+        "connectivity_edge_RMSE": 0.000859186380584944,
+        "connectivity_edge_max_absolute_error": 0.00363509306115095,
+        "single_trial_beta_RMSE": 0.000899077924141799,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.000849424726848822
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.001,
+        "time_chunk": 64,
+        "parcel_chunk": 64,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 52340,
+      "effective_total_bits_per_parcel_TR": 8.51888020833333,
+      "parcel_float32_compression_ratio": 3.75636224684754,
+      "encode_million_values_per_second": 2.34057142857144,
+      "decode_million_values_per_second": 12.2879999999986,
+      "fidelity": {
+        "maximum_absolute_error": 0.00646404868890625,
+        "RMSE": 0.00320594854013295,
+        "spectrum_relative_RMSE": 0.0045875968185677,
+        "autocorrelation_max_absolute_error": 0.000250748403653078,
+        "glm_beta_relative_RMSE": 0.00323943536563251,
+        "glm_contrast_max_absolute_error": 0.000612864748748929,
+        "glm_t_max_absolute_error": 0.0863302600815956,
+        "connectivity_edge_RMSE": 0.00163096809682287,
+        "connectivity_edge_max_absolute_error": 0.0076106787748545,
+        "single_trial_beta_RMSE": 0.00173392051993807,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00221697546306307
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.004,
+        "time_chunk": 64,
+        "parcel_chunk": 64,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": false,
+      "checks": {
+        "variance_fraction": false,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": false,
+        "connectivity_RMSE": false,
+        "connectivity_max": false,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 46223,
+      "effective_total_bits_per_parcel_TR": 7.52327473958333,
+      "parcel_float32_compression_ratio": 4.25346688877831,
+      "encode_million_values_per_second": 2.45760000000005,
+      "decode_million_values_per_second": 12.2879999999986,
+      "fidelity": {
+        "maximum_absolute_error": 0.0128999948992965,
+        "RMSE": 0.00641222194893488,
+        "spectrum_relative_RMSE": 0.00969344908703701,
+        "autocorrelation_max_absolute_error": 0.00136103687913192,
+        "glm_beta_relative_RMSE": 0.00651576827174926,
+        "glm_contrast_max_absolute_error": 0.00136298156604991,
+        "glm_t_max_absolute_error": 0.246134863926102,
+        "connectivity_edge_RMSE": 0.00330184564890046,
+        "connectivity_edge_max_absolute_error": 0.0145672523628056,
+        "single_trial_beta_RMSE": 0.00343470635104277,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00492613106122785
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.00025,
+        "time_chunk": 128,
+        "parcel_chunk": 64,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 56143,
+      "effective_total_bits_per_parcel_TR": 9.13785807291667,
+      "parcel_float32_compression_ratio": 3.50191475339757,
+      "encode_million_values_per_second": 2.58694736842104,
+      "decode_million_values_per_second": 12.2880000000014,
+      "fidelity": {
+        "maximum_absolute_error": 0.00323396690176703,
+        "RMSE": 0.00160695579246002,
+        "spectrum_relative_RMSE": 0.00230887079185354,
+        "autocorrelation_max_absolute_error": 0.000181075586850876,
+        "glm_beta_relative_RMSE": 0.00156652440349807,
+        "glm_contrast_max_absolute_error": 0.00034758833531473,
+        "glm_t_max_absolute_error": 0.0411858219776366,
+        "connectivity_edge_RMSE": 0.000859186380584944,
+        "connectivity_edge_max_absolute_error": 0.00363509306115095,
+        "single_trial_beta_RMSE": 0.000899077924141799,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.000849424726848822
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.001,
+        "time_chunk": 128,
+        "parcel_chunk": 64,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 50026,
+      "effective_total_bits_per_parcel_TR": 8.14225260416667,
+      "parcel_float32_compression_ratio": 3.93011633950346,
+      "encode_million_values_per_second": 2.58694736842104,
+      "decode_million_values_per_second": 12.2880000000014,
+      "fidelity": {
+        "maximum_absolute_error": 0.00646404868890625,
+        "RMSE": 0.00320594854013295,
+        "spectrum_relative_RMSE": 0.0045875968185677,
+        "autocorrelation_max_absolute_error": 0.000250748403653078,
+        "glm_beta_relative_RMSE": 0.00323943536563251,
+        "glm_contrast_max_absolute_error": 0.000612864748748929,
+        "glm_t_max_absolute_error": 0.0863302600815956,
+        "connectivity_edge_RMSE": 0.00163096809682287,
+        "connectivity_edge_max_absolute_error": 0.0076106787748545,
+        "single_trial_beta_RMSE": 0.00173392051993807,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00221697546306307
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.004,
+        "time_chunk": 128,
+        "parcel_chunk": 64,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": false,
+      "checks": {
+        "variance_fraction": false,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": false,
+        "connectivity_RMSE": false,
+        "connectivity_max": false,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 43937,
+      "effective_total_bits_per_parcel_TR": 7.15120442708333,
+      "parcel_float32_compression_ratio": 4.47477069440335,
+      "encode_million_values_per_second": 2.73066666666683,
+      "decode_million_values_per_second": 12.2880000000014,
+      "fidelity": {
+        "maximum_absolute_error": 0.0128999948992965,
+        "RMSE": 0.00641222194893488,
+        "spectrum_relative_RMSE": 0.00969344908703701,
+        "autocorrelation_max_absolute_error": 0.00136103687913192,
+        "glm_beta_relative_RMSE": 0.00651576827174926,
+        "glm_contrast_max_absolute_error": 0.00136298156604991,
+        "glm_t_max_absolute_error": 0.246134863926102,
+        "connectivity_edge_RMSE": 0.00330184564890046,
+        "connectivity_edge_max_absolute_error": 0.0145672523628056,
+        "single_trial_beta_RMSE": 0.00343470635104277,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00492613106122785
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.00025,
+        "time_chunk": 64,
+        "parcel_chunk": 128,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 58020,
+      "effective_total_bits_per_parcel_TR": 9.443359375,
+      "parcel_float32_compression_ratio": 3.38862461220269,
+      "encode_million_values_per_second": 2.23418181818161,
+      "decode_million_values_per_second": 9.83040000000195,
+      "fidelity": {
+        "maximum_absolute_error": 0.00323396690176703,
+        "RMSE": 0.00160695579246002,
+        "spectrum_relative_RMSE": 0.00230887079185354,
+        "autocorrelation_max_absolute_error": 0.000181075586850876,
+        "glm_beta_relative_RMSE": 0.00156652440349807,
+        "glm_contrast_max_absolute_error": 0.00034758833531473,
+        "glm_t_max_absolute_error": 0.0411858219776366,
+        "connectivity_edge_RMSE": 0.000859186380584944,
+        "connectivity_edge_max_absolute_error": 0.00363509306115095,
+        "single_trial_beta_RMSE": 0.000899077924141799,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.000849424726848822
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.001,
+        "time_chunk": 64,
+        "parcel_chunk": 128,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 51892,
+      "effective_total_bits_per_parcel_TR": 8.44596354166667,
+      "parcel_float32_compression_ratio": 3.78879210668311,
+      "encode_million_values_per_second": 2.34057142857134,
+      "decode_million_values_per_second": 12.2880000000068,
+      "fidelity": {
+        "maximum_absolute_error": 0.00646404868890625,
+        "RMSE": 0.00320594854013295,
+        "spectrum_relative_RMSE": 0.0045875968185677,
+        "autocorrelation_max_absolute_error": 0.000250748403653078,
+        "glm_beta_relative_RMSE": 0.00323943536563251,
+        "glm_contrast_max_absolute_error": 0.000612864748748929,
+        "glm_t_max_absolute_error": 0.0863302600815956,
+        "connectivity_edge_RMSE": 0.00163096809682287,
+        "connectivity_edge_max_absolute_error": 0.0076106787748545,
+        "single_trial_beta_RMSE": 0.00173392051993807,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00221697546306307
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.004,
+        "time_chunk": 64,
+        "parcel_chunk": 128,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": false,
+      "checks": {
+        "variance_fraction": false,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": false,
+        "connectivity_RMSE": false,
+        "connectivity_max": false,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 45775,
+      "effective_total_bits_per_parcel_TR": 7.45035807291667,
+      "parcel_float32_compression_ratio": 4.29509557618788,
+      "encode_million_values_per_second": 2.45760000000005,
+      "decode_million_values_per_second": 12.2879999999959,
+      "fidelity": {
+        "maximum_absolute_error": 0.0128999948992965,
+        "RMSE": 0.00641222194893488,
+        "spectrum_relative_RMSE": 0.00969344908703701,
+        "autocorrelation_max_absolute_error": 0.00136103687913192,
+        "glm_beta_relative_RMSE": 0.00651576827174926,
+        "glm_contrast_max_absolute_error": 0.00136298156604991,
+        "glm_t_max_absolute_error": 0.246134863926102,
+        "connectivity_edge_RMSE": 0.00330184564890046,
+        "connectivity_edge_max_absolute_error": 0.0145672523628056,
+        "single_trial_beta_RMSE": 0.00343470635104277,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00492613106122785
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.00025,
+        "time_chunk": 128,
+        "parcel_chunk": 128,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 55845,
+      "effective_total_bits_per_parcel_TR": 9.08935546875,
+      "parcel_float32_compression_ratio": 3.52060166532366,
+      "encode_million_values_per_second": 2.58694736842079,
+      "decode_million_values_per_second": 12.2879999999959,
+      "fidelity": {
+        "maximum_absolute_error": 0.00323396690176703,
+        "RMSE": 0.00160695579246002,
+        "spectrum_relative_RMSE": 0.00230887079185354,
+        "autocorrelation_max_absolute_error": 0.000181075586850876,
+        "glm_beta_relative_RMSE": 0.00156652440349807,
+        "glm_contrast_max_absolute_error": 0.00034758833531473,
+        "glm_t_max_absolute_error": 0.0411858219776366,
+        "connectivity_edge_RMSE": 0.000859186380584944,
+        "connectivity_edge_max_absolute_error": 0.00363509306115095,
+        "single_trial_beta_RMSE": 0.000899077924141799,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.000849424726848822
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.001,
+        "time_chunk": 128,
+        "parcel_chunk": 128,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": true,
+      "checks": {
+        "variance_fraction": true,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": true,
+        "connectivity_RMSE": true,
+        "connectivity_max": true,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 49728,
+      "effective_total_bits_per_parcel_TR": 8.09375,
+      "parcel_float32_compression_ratio": 3.95366795366795,
+      "encode_million_values_per_second": 2.58694736842128,
+      "decode_million_values_per_second": 12.2879999999959,
+      "fidelity": {
+        "maximum_absolute_error": 0.00646404868890625,
+        "RMSE": 0.00320594854013295,
+        "spectrum_relative_RMSE": 0.0045875968185677,
+        "autocorrelation_max_absolute_error": 0.000250748403653078,
+        "glm_beta_relative_RMSE": 0.00323943536563251,
+        "glm_contrast_max_absolute_error": 0.000612864748748929,
+        "glm_t_max_absolute_error": 0.0863302600815956,
+        "connectivity_edge_RMSE": 0.00163096809682287,
+        "connectivity_edge_max_absolute_error": 0.0076106787748545,
+        "single_trial_beta_RMSE": 0.00173392051993807,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00221697546306307
+      }
+    },
+    {
+      "candidate": {
+        "alpha": 0.004,
+        "time_chunk": 128,
+        "parcel_chunk": 128,
+        "outer_codec": "raw",
+        "predictor_cost": "anchors32-plus-residual-width-v1",
+        "predictor_tie_order": ["P0", "P1", "P2"]
+      },
+      "pass": false,
+      "checks": {
+        "variance_fraction": false,
+        "max_error": true,
+        "RMSE": true,
+        "spectrum": true,
+        "autocorrelation": true,
+        "glm_beta": true,
+        "glm_contrast": true,
+        "glm_t": false,
+        "connectivity_RMSE": false,
+        "connectivity_max": false,
+        "single_trial": true,
+        "mvpa_prediction": true,
+        "mvpa_decision": true
+      },
+      "total_transform_bytes": 43639,
+      "effective_total_bits_per_parcel_TR": 7.10270182291667,
+      "parcel_float32_compression_ratio": 4.5053278031119,
+      "encode_million_values_per_second": 2.73066666666656,
+      "decode_million_values_per_second": 12.2880000000068,
+      "fidelity": {
+        "maximum_absolute_error": 0.0128999948992965,
+        "RMSE": 0.00641222194893488,
+        "spectrum_relative_RMSE": 0.00969344908703701,
+        "autocorrelation_max_absolute_error": 0.00136103687913192,
+        "glm_beta_relative_RMSE": 0.00651576827174926,
+        "glm_contrast_max_absolute_error": 0.00136298156604991,
+        "glm_t_max_absolute_error": 0.246134863926102,
+        "connectivity_edge_RMSE": 0.00330184564890046,
+        "connectivity_edge_max_absolute_error": 0.0145672523628056,
+        "single_trial_beta_RMSE": 0.00343470635104277,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00492613106122785
+      }
+    }
+  ],
+  "selected_calibration": {
+    "candidate": {
+      "alpha": 0.001,
+      "time_chunk": 128,
+      "parcel_chunk": 128,
+      "outer_codec": "raw",
+      "predictor_cost": "anchors32-plus-residual-width-v1",
+      "predictor_tie_order": ["P0", "P1", "P2"]
+    },
+    "calibration_delta": [0.0088356477497449, 0.00981615139681206, 0.00960869149209921, 0.0091575280028959, 0.00968082504863697, 0.0102593648839117, 0.00905133002836748, 0.00998800987254306, 0.0107818623034182, 0.0094056064976705, 0.00952433689507399, 0.010006197964028, 0.0096136156385687, 0.0104758469571923, 0.00997228608091905, 0.00978400470825473, 0.00999981636878114, 0.00981303891040752, 0.0105099192336166, 0.0094966899002368, 0.0099915535293165, 0.00996699793390497, 0.0102502384890994, 0.00983157489058914, 0.00990785544749323, 0.0103070361000729, 0.0104549246041108, 0.0104856493814082, 0.009849026532582, 0.00952317019131836, 0.0106073602272729, 0.0104173078609141, 0.0100534021316601, 0.0111260198279084, 0.010025933188915, 0.0106701604629316, 0.0108411812890208, 0.0114822282588422, 0.0108584301397016, 0.0102609424548758, 0.0108137264543414, 0.0104238973402774, 0.0102057895985532, 0.0110498237337612, 0.0110488328524481, 0.011148815351339, 0.0101312296704169, 0.0105925013022183, 0.0103346895045751, 0.0114262272562113, 0.0111902374902468, 0.0105665555359473, 0.0108780453541785, 0.0116605968574359, 0.010512021105731, 0.0109517694451865, 0.0110540841118654, 0.0113372215264253, 0.011599867246053, 0.0112203291772978, 0.0110522741365301, 0.0110618092017649, 0.0113020472147221, 0.0111643274232542, 0.0116025838218625, 0.0106716906469761, 0.010725032937996, 0.0111911742309876, 0.0108321524979886, 0.0112992974867086, 0.0108320079592093, 0.0112163585125301, 0.0113830559929371, 0.0113472524488529, 0.0111515768245604, 0.0106976172594086, 0.0108819851320356, 0.011200237003025, 0.0122214807479467, 0.0111289722887255, 0.0108919641587168, 0.0110356771661379, 0.0116270599002602, 0.0118676650772066, 0.0113767998598889, 0.0113751656257509, 0.0120891011440824, 0.0112326190401852, 0.0110111158830633, 0.0118766498714861, 0.0111936502829076, 0.0125972735149756, 0.0119794249320338, 0.0121948339526416, 0.0117082515722854, 0.0126411977499395, 0.0123053597487821, 0.0115230527094066, 0.0110320764998365, 0.0121760546220911, 0.0116835008440828, 0.0121018426330147, 0.0116626508298853, 0.0116730789894105, 0.0116012988207658, 0.0129605489892561, 0.0116344017470859, 0.0121127082323138, 0.0117414946787246, 0.0118056468311339, 0.0110987144158759, 0.0121008817715838, 0.0124631260154269, 0.012116146366013, 0.0115932193648932, 0.0120644443654191, 0.0125540721046944, 0.0123815276012629, 0.0123113646961722, 0.0115595608607838, 0.0119874049240992, 0.012899658304461, 0.0125439658227375, 0.0116564155966861, 0.0115044200037136, 0.0127182159581578, 0.0116623904835964, 0.012806909185876],
+    "observed_quantization_variance_fraction": 0.001,
+    "rate": {
+      "byte_boundary": "measured QPP payload plus exact v1 index records, float64 steps, and serialized candidate settings; excludes HDF5 container overhead",
+      "logical_values": 49152,
+      "payload_bytes": 47088,
+      "index_bytes": 268,
+      "step_bytes": 2048,
+      "metadata_bytes": 324,
+      "total_transform_bytes": 49728,
+      "effective_payload_bits_per_parcel_TR": 7.6640625,
+      "effective_total_bits_per_parcel_TR": 8.09375,
+      "parcel_float32_bytes": 196608,
+      "measured_parcel_float32_compression_ratio": 3.95366795366795,
+      "gzip_exploratory_payload_bytes": 41765,
+      "gzip_payload_size_fraction": 0.886956337071016,
+      "tile_count": 4
+    },
+    "runtime": {
+      "encode": {
+        "median_seconds": 0.0189999999999984,
+        "min_seconds": 0.0180000000000007,
+        "max_seconds": 0.0190000000000019,
+        "repetitions": 5,
+        "million_values_per_second": 2.58694736842128
+      },
+      "sequential_decode": {
+        "median_seconds": 0.00400000000000134,
+        "min_seconds": 0.00300000000000011,
+        "max_seconds": 0.00400000000000134,
+        "repetitions": 5,
+        "million_values_per_second": 12.2879999999959
+      },
+      "random_tile_decode": {
+        "median_seconds": 0.00199999999999889,
+        "min_seconds": 0.00100000000000122,
+        "max_seconds": 0.00200000000000244,
+        "repetitions": 5,
+        "tiles": 2,
+        "touched_payload_bytes": 23524
+      },
+      "exploratory_gzip_outer": {
+        "encode": {
+          "median_seconds": 0,
+          "min_seconds": 0,
+          "max_seconds": 0.00100000000000122,
+          "repetitions": 5
+        },
+        "decode": {
+          "median_seconds": 0,
+          "min_seconds": 0,
+          "max_seconds": 0.00100000000000122,
+          "repetitions": 5
+        },
+        "note": "not a v1 decoder-supported outer codec"
+      },
+      "allocation_profile": {
+        "method": "Rprofmem-visible R allocations",
+        "allocation_count": 13,
+        "cumulative_allocation_bytes": 790896,
+        "maximum_single_allocation_bytes": 196656
+      },
+      "peak_memory": {
+        "method": "deterministic working-set upper bound",
+        "bytes": 277476
+      }
+    },
+    "fidelity": {
+      "maximum_absolute_error": 0.00646404868890625,
+      "RMSE": 0.00320594854013295,
+      "spectrum_relative_RMSE": 0.0045875968185677,
+      "autocorrelation_max_absolute_error": 0.000250748403653078,
+      "glm_beta_relative_RMSE": 0.00323943536563251,
+      "glm_contrast_max_absolute_error": 0.000612864748748929,
+      "glm_t_max_absolute_error": 0.0863302600815956,
+      "connectivity_edge_RMSE": 0.00163096809682287,
+      "connectivity_edge_max_absolute_error": 0.0076106787748545,
+      "single_trial_beta_RMSE": 0.00173392051993807,
+      "mvpa_prediction_agreement": 1,
+      "mvpa_decision_value_RMSE": 0.00221697546306307
+    },
+    "per_run_fidelity": {
+      "synthetic-calibration-run-01": {
+        "maximum_absolute_error": 0.00645253423120862,
+        "RMSE": 0.00320594854013295,
+        "spectrum_relative_RMSE": 0.0045875968185677,
+        "autocorrelation_max_absolute_error": 0.000135233889170305,
+        "glm_beta_relative_RMSE": 0.00296677619865756,
+        "glm_contrast_max_absolute_error": 0.000612864748748929,
+        "glm_t_max_absolute_error": 0.0833228962749644,
+        "connectivity_edge_RMSE": 0.00152182097704225,
+        "connectivity_edge_max_absolute_error": 0.00690852002147258,
+        "single_trial_beta_RMSE": 0.00173263018325075,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00221697546306307
+      },
+      "synthetic-calibration-run-02": {
+        "maximum_absolute_error": 0.00646404868890625,
+        "RMSE": 0.00319931736560597,
+        "spectrum_relative_RMSE": 0.00449716646244972,
+        "autocorrelation_max_absolute_error": 0.000250748403653078,
+        "glm_beta_relative_RMSE": 0.00323943536563251,
+        "glm_contrast_max_absolute_error": 0.000585375534565807,
+        "glm_t_max_absolute_error": 0.0863302600815956,
+        "connectivity_edge_RMSE": 0.00163096809682287,
+        "connectivity_edge_max_absolute_error": 0.0076106787748545,
+        "single_trial_beta_RMSE": 0.00173392051993807,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00174969142138638
+      }
+    }
+  },
+  "untouched_evaluation": {
+    "candidate": {
+      "alpha": 0.001,
+      "time_chunk": 128,
+      "parcel_chunk": 128,
+      "outer_codec": "raw",
+      "predictor_cost": "anchors32-plus-residual-width-v1",
+      "predictor_tie_order": ["P0", "P1", "P2"]
+    },
+    "calibration_delta": [0.0088356477497449, 0.00981615139681206, 0.00960869149209921, 0.0091575280028959, 0.00968082504863697, 0.0102593648839117, 0.00905133002836748, 0.00998800987254306, 0.0107818623034182, 0.0094056064976705, 0.00952433689507399, 0.010006197964028, 0.0096136156385687, 0.0104758469571923, 0.00997228608091905, 0.00978400470825473, 0.00999981636878114, 0.00981303891040752, 0.0105099192336166, 0.0094966899002368, 0.0099915535293165, 0.00996699793390497, 0.0102502384890994, 0.00983157489058914, 0.00990785544749323, 0.0103070361000729, 0.0104549246041108, 0.0104856493814082, 0.009849026532582, 0.00952317019131836, 0.0106073602272729, 0.0104173078609141, 0.0100534021316601, 0.0111260198279084, 0.010025933188915, 0.0106701604629316, 0.0108411812890208, 0.0114822282588422, 0.0108584301397016, 0.0102609424548758, 0.0108137264543414, 0.0104238973402774, 0.0102057895985532, 0.0110498237337612, 0.0110488328524481, 0.011148815351339, 0.0101312296704169, 0.0105925013022183, 0.0103346895045751, 0.0114262272562113, 0.0111902374902468, 0.0105665555359473, 0.0108780453541785, 0.0116605968574359, 0.010512021105731, 0.0109517694451865, 0.0110540841118654, 0.0113372215264253, 0.011599867246053, 0.0112203291772978, 0.0110522741365301, 0.0110618092017649, 0.0113020472147221, 0.0111643274232542, 0.0116025838218625, 0.0106716906469761, 0.010725032937996, 0.0111911742309876, 0.0108321524979886, 0.0112992974867086, 0.0108320079592093, 0.0112163585125301, 0.0113830559929371, 0.0113472524488529, 0.0111515768245604, 0.0106976172594086, 0.0108819851320356, 0.011200237003025, 0.0122214807479467, 0.0111289722887255, 0.0108919641587168, 0.0110356771661379, 0.0116270599002602, 0.0118676650772066, 0.0113767998598889, 0.0113751656257509, 0.0120891011440824, 0.0112326190401852, 0.0110111158830633, 0.0118766498714861, 0.0111936502829076, 0.0125972735149756, 0.0119794249320338, 0.0121948339526416, 0.0117082515722854, 0.0126411977499395, 0.0123053597487821, 0.0115230527094066, 0.0110320764998365, 0.0121760546220911, 0.0116835008440828, 0.0121018426330147, 0.0116626508298853, 0.0116730789894105, 0.0116012988207658, 0.0129605489892561, 0.0116344017470859, 0.0121127082323138, 0.0117414946787246, 0.0118056468311339, 0.0110987144158759, 0.0121008817715838, 0.0124631260154269, 0.012116146366013, 0.0115932193648932, 0.0120644443654191, 0.0125540721046944, 0.0123815276012629, 0.0123113646961722, 0.0115595608607838, 0.0119874049240992, 0.012899658304461, 0.0125439658227375, 0.0116564155966861, 0.0115044200037136, 0.0127182159581578, 0.0116623904835964, 0.012806909185876],
+    "observed_quantization_variance_fraction": 0.00101848177331089,
+    "rate": {
+      "byte_boundary": "measured QPP payload plus exact v1 index records, float64 steps, and serialized candidate settings; excludes HDF5 container overhead",
+      "logical_values": 49152,
+      "payload_bytes": 47023,
+      "index_bytes": 268,
+      "step_bytes": 2048,
+      "metadata_bytes": 324,
+      "total_transform_bytes": 49663,
+      "effective_payload_bits_per_parcel_TR": 7.65348307291667,
+      "effective_total_bits_per_parcel_TR": 8.08317057291667,
+      "parcel_float32_bytes": 196608,
+      "measured_parcel_float32_compression_ratio": 3.95884259911806,
+      "gzip_exploratory_payload_bytes": 41700,
+      "gzip_payload_size_fraction": 0.88680007655828,
+      "tile_count": 4
+    },
+    "runtime": {
+      "encode": {
+        "median_seconds": 0.0190000000000055,
+        "min_seconds": 0.0179999999999936,
+        "max_seconds": 0.0200000000000031,
+        "repetitions": 5,
+        "million_values_per_second": 2.58694736842031
+      },
+      "sequential_decode": {
+        "median_seconds": 0.00399999999999778,
+        "min_seconds": 0.00399999999999778,
+        "max_seconds": 0.00400000000000489,
+        "repetitions": 5,
+        "million_values_per_second": 12.2880000000068
+      },
+      "random_tile_decode": {
+        "median_seconds": 0.00200000000000244,
+        "min_seconds": 0.00199999999999534,
+        "max_seconds": 0.00200000000000244,
+        "repetitions": 5,
+        "tiles": 2,
+        "touched_payload_bytes": 23500
+      },
+      "exploratory_gzip_outer": {
+        "encode": {
+          "median_seconds": 0,
+          "min_seconds": 0,
+          "max_seconds": 0.000999999999997669,
+          "repetitions": 5
+        },
+        "decode": {
+          "median_seconds": 0,
+          "min_seconds": 0,
+          "max_seconds": 0.000999999999997669,
+          "repetitions": 5
+        },
+        "note": "not a v1 decoder-supported outer codec"
+      },
+      "allocation_profile": {
+        "method": "Rprofmem-visible R allocations",
+        "allocation_count": 13,
+        "cumulative_allocation_bytes": 790896,
+        "maximum_single_allocation_bytes": 196656
+      },
+      "peak_memory": {
+        "method": "deterministic working-set upper bound",
+        "bytes": 277492
+      }
+    },
+    "fidelity": {
+      "maximum_absolute_error": 0.00647354520372155,
+      "RMSE": 0.00321290703039438,
+      "spectrum_relative_RMSE": 0.00438592570499609,
+      "autocorrelation_max_absolute_error": 0.000276406118149608,
+      "glm_beta_relative_RMSE": 0.00293990234853447,
+      "glm_contrast_max_absolute_error": 0.000625996849477214,
+      "glm_t_max_absolute_error": 0.101870267372533,
+      "connectivity_edge_RMSE": 0.00157270359558846,
+      "connectivity_edge_max_absolute_error": 0.0084966425006891,
+      "single_trial_beta_RMSE": 0.00176256941742519,
+      "mvpa_prediction_agreement": 1,
+      "mvpa_decision_value_RMSE": 0.00216132678381516
+    },
+    "per_run_fidelity": {
+      "synthetic-evaluation-run-01": {
+        "maximum_absolute_error": 0.00644904665723436,
+        "RMSE": 0.00319165499525145,
+        "spectrum_relative_RMSE": 0.00438592570499609,
+        "autocorrelation_max_absolute_error": 0.000255697044251962,
+        "glm_beta_relative_RMSE": 0.00293990234853447,
+        "glm_contrast_max_absolute_error": 0.000625996849477214,
+        "glm_t_max_absolute_error": 0.101870267372533,
+        "connectivity_edge_RMSE": 0.00157270359558846,
+        "connectivity_edge_max_absolute_error": 0.0084966425006891,
+        "single_trial_beta_RMSE": 0.00168912318637506,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00216132678381516
+      },
+      "synthetic-evaluation-run-02": {
+        "maximum_absolute_error": 0.00647354520372155,
+        "RMSE": 0.00321290703039438,
+        "spectrum_relative_RMSE": 0.00420346504389727,
+        "autocorrelation_max_absolute_error": 0.000276406118149608,
+        "glm_beta_relative_RMSE": 0.00285054078031327,
+        "glm_contrast_max_absolute_error": 0.000521697772575436,
+        "glm_t_max_absolute_error": 0.0982968236181456,
+        "connectivity_edge_RMSE": 0.00156404317015348,
+        "connectivity_edge_max_absolute_error": 0.0067252299917987,
+        "single_trial_beta_RMSE": 0.00176256941742519,
+        "mvpa_prediction_agreement": 1,
+        "mvpa_decision_value_RMSE": 0.00151410273915678
+      }
+    }
+  },
+  "baselines": [
+    {
+      "name": "uncompressed parcel float32",
+      "bytes": 196608,
+      "boundary": "actual little-endian float32 serialization",
+      "loss": "float32 cast",
+      "logical_values": 49152,
+      "effective_bits_per_parcel_TR": 32,
+      "compression_ratio_vs_parcel_float32": 1,
+      "byte_kind": "measured_serialized_or_exact_wire_components"
+    },
+    {
+      "name": "parcel float32 plus gzip",
+      "bytes": 181915,
+      "boundary": "actual base gzip serialization of float32 bytes",
+      "loss": "float32 cast",
+      "logical_values": 49152,
+      "effective_bits_per_parcel_TR": 29.6085611979167,
+      "compression_ratio_vs_parcel_float32": 1.08076849077866,
+      "byte_kind": "measured_serialized_or_exact_wire_components"
+    },
+    {
+      "name": "current quant uint8",
+      "bytes": 49168,
+      "boundary": "actual uint8 codes plus float64 global scale and offset",
+      "loss": "whole-corpus fitted range quantizer; not analysis-safe",
+      "logical_values": 49152,
+      "effective_bits_per_parcel_TR": 8.00260416666667,
+      "compression_ratio_vs_parcel_float32": 3.99869834038399,
+      "byte_kind": "measured_serialized_or_exact_wire_components"
+    },
+    {
+      "name": "N-bit 12",
+      "bytes": 73744,
+      "boundary": "actual 12-bit packed codes plus float64 global scale and offset",
+      "loss": "whole-corpus fitted range quantizer; not analysis-safe",
+      "logical_values": 49152,
+      "effective_bits_per_parcel_TR": 12.0026041666667,
+      "compression_ratio_vs_parcel_float32": 2.66608808852246,
+      "byte_kind": "measured_serialized_or_exact_wire_components"
+    },
+    {
+      "name": "delta plus RLE",
+      "bytes": 383912,
+      "boundary": "actual signed-int32 anchor and RLE length/value accounting",
+      "loss": "inherits selected QPP pointwise quantization",
+      "logical_values": 49152,
+      "effective_bits_per_parcel_TR": 62.4856770833333,
+      "compression_ratio_vs_parcel_float32": 0.512117360228386,
+      "byte_kind": "measured_serialized_or_exact_wire_components"
+    },
+    {
+      "name": "QPP selected",
+      "bytes": 49663,
+      "boundary": "measured QPP payload plus exact v1 index records, float64 steps, and serialized candidate settings; excludes HDF5 container overhead",
+      "loss": "external-calibration pointwise quantization",
+      "logical_values": 49152,
+      "effective_bits_per_parcel_TR": 8.08317057291667,
+      "compression_ratio_vs_parcel_float32": 3.95884259911806,
+      "byte_kind": "measured_serialized_or_exact_wire_components"
+    }
+  ],
+  "archive_measurement": {
+    "boundary": "complete HDF5 LNA file with identity parcel map",
+    "file_bytes": 69164,
+    "qpp_validation_receipt_checksum": "sha256:f17c748131137226357ac406e44c4c22644ce3dc19c09924c3326ab51dc22a08",
+    "installed_decoder": "qpp@1.0.0",
+    "tiles_checked": 2,
+    "tile_count": 2
+  },
+  "edge_case_q_roundtrip": {
+    "constant": true,
+    "ramp": true,
+    "impulse": true,
+    "alternating": true
+  },
+  "corpus_manifest": {
+    "manifest_version": "1.0.0",
+    "corpus_kind": "redistributable deterministic synthetic parcellated fMRI",
+    "calibration": {
+      "ids": ["synthetic-calibration-run-01", "synthetic-calibration-run-02"],
+      "checksum": "sha256:8f283ff607668ee2d5683bfaf93300f626ccb2efa7d2b78f5dc48264d7be6373",
+      "selection_role": "candidate fitting and selection"
+    },
+    "evaluation": {
+      "ids": ["synthetic-evaluation-run-01", "synthetic-evaluation-run-02"],
+      "checksum": "sha256:ebe07d4ee501e75727ec10ca251b1359f1fd827a072a995e4973e061e45fba0a",
+      "selection_role": "untouched until one candidate was frozen"
+    },
+    "disjoint": true,
+    "dimensions": {
+      "runs_per_split": 2,
+      "time": 192,
+      "parcels": 128
+    },
+    "units": "percent-signal-change",
+    "restricted_real_data_in_repository": false,
+    "external_data_promotion_required": true
+  },
+  "accounting": {
+    "measured": ["serialized baseline bytes", "QPP tile payload bytes", "QPP index/step/settings bytes", "complete selected LNA file bytes", "elapsed runtime", "touched random-access payload bytes"],
+    "derived_identity": "voxel-float32 ratio = (V/K) times parcel-float32 ratio; no voxel ratio is reported without an explicit measured V/K"
+  },
+  "execution": {
+    "repetitions": 5,
+    "uncertainty": "Runtime reports median and min/max over repetitions; scientific gates retain the worst individual run rather than a standard-error summary",
+    "R": "R version 4.5.1 (2025-06-13)",
+    "neuroarchive": "0.1.1",
+    "platform": "aarch64-apple-darwin20",
+    "system": {
+      "sysname": "Darwin",
+      "release": "23.3.0",
+      "version": "Darwin Kernel Version 23.3.0: Wed Dec 20 21:31:10 PST 2023; root:xnu-10002.81.5~7/RELEASE_ARM64_T6031",
+      "nodename": "BUC-GW02.local",
+      "machine": "arm64",
+      "login": "bbuchsbaum",
+      "user": "bbuchsbaum",
+      "effective_user": "bbuchsbaum"
+    }
+  }
+}

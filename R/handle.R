@@ -24,6 +24,9 @@ DataHandle <- R6::R6Class("DataHandle",
     current_run_id = NULL,
     #' @field mask_info List with mask array and active voxel count
     mask_info = NULL,
+    #' @field subset_applied List tracking which subset dimensions have already
+    #'   been applied to stash data during inverse pipeline execution.
+    subset_applied = NULL,
 
     #' @description
     #' Initialize a new DataHandle object.
@@ -99,6 +102,7 @@ DataHandle <- R6::R6Class("DataHandle",
       self$run_ids <- run_ids
       self$current_run_id <- current_run_id
       self$mask_info <- mask_info
+      self$subset_applied <- list(roi_mask = FALSE, time_idx = FALSE)
     },
 
     #' @description

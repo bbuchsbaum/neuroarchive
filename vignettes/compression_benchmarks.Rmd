@@ -1,0 +1,287 @@
+---
+title: "Compression: Size vs Fidelity"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Compression: Size vs Fidelity}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
+---
+
+```{r setup, include = FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  eval = TRUE
+)
+```
+
+# Introduction
+
+Every LNA pipeline trades file size against reconstruction fidelity.
+This vignette benchmarks seven pipelines on the same synthetic data so you
+can see exactly how that trade-off plays out---from near-lossless 16-bit
+quantization down to aggressive basis + quantization combos.
+
+For each pipeline we report:
+
+- **File size** (KB) and **compression ratio** (Nx)
+- **NMSE** (normalized mean squared error)
+- **Max absolute error**
+- **Pearson correlation** with the original
+- **PSNR** (peak signal-to-noise ratio, dB)
+
+```{r}
+library(neuroarchive)
+```
+
+# Synthetic Data
+
+We create a 10x10x10 volume with 50 timepoints.
+The signal has smooth temporal structure (three sinusoidal components) plus
+Gaussian noise, mimicking the autocorrelation of real fMRI data.
+
+```{r generate_data}
+set.seed(42)
+
+dims <- c(10, 10, 10, 50)
+n_voxels <- prod(dims[1:3])
+n_time <- dims[4]
+input_bytes <- prod(dims) * 4 # float32 baseline
+
+create_fmri_data <- function(n_voxels, n_time, noise_sd = 0.5) {
+  t <- seq(0, 2 * pi, length.out = n_time)
+  basis1 <- sin(t)
+  basis2 <- cos(t * 2)
+  basis3 <- sin(t * 0.5)
+
+  w1 <- rnorm(n_voxels, mean = 1, sd = 0.5)
+  w2 <- rnorm(n_voxels, mean = 0, sd = 0.3)
+  w3 <- rnorm(n_voxels, mean = 0, sd = 0.2)
+
+  signal <- outer(w1, basis1) + outer(w2, basis2) + outer(w3, basis3)
+  signal + matrix(rnorm(n_voxels * n_time, sd = noise_sd),
+                  nrow = n_voxels, ncol = n_time)
+}
+
+data_matrix <- create_fmri_data(n_voxels, n_time)
+data_array <- array(data_matrix, dim = dims)
+
+cat(sprintf("Data dimensions: %s\n", paste(dims, collapse = " x ")))
+cat(sprintf("Data range: [%.2f, %.2f]\n", min(data_array), max(data_array)))
+cat(sprintf("Input size: %.1f KB (float32)\n", input_bytes / 1024))
+```
+
+# Helper: Benchmark One Pipeline
+
+```{r benchmark_helper}
+benchmark_pipeline <- function(data, transforms, transform_params = list(),
+                               label = "") {
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp), add = TRUE)
+
+  write_lna(data, tmp, transforms = transforms,
+            transform_params = transform_params)
+
+  file_bytes <- as.numeric(file.info(tmp)$size)
+  ratio <- input_bytes / file_bytes
+
+  recon <- read_lna(tmp)$stash$input
+
+  # Some pipelines reconstruct to a time-by-voxel matrix (e.g. basis/temporal),
+  # while others reconstruct to a 4D array. Compare in a common representation
+  # so vectorization order is consistent.
+  orig_dense <- as_dense_mat(data)
+  rec_dense  <- as_dense_mat(recon)
+
+  orig_vec <- as.vector(orig_dense)
+  rec_vec  <- as.vector(rec_dense)
+
+  mse  <- mean((orig_vec - rec_vec)^2)
+  nmse <- mse / var(orig_vec)
+  max_err <- max(abs(orig_vec - rec_vec))
+  corr <- cor(orig_vec, rec_vec)
+
+  data_range <- diff(range(orig_vec))
+  psnr <- if (mse > 0) 10 * log10(data_range^2 / mse) else Inf
+
+  data.frame(
+    Pipeline = label,
+    Size_KB = round(file_bytes / 1024, 1),
+    Ratio = round(ratio, 1),
+    NMSE = signif(nmse, 3),
+    Max_Error = round(max_err, 4),
+    Correlation = round(corr, 6),
+    PSNR_dB = round(psnr, 1),
+    stringsAsFactors = FALSE
+  )
+}
+```
+
+# Benchmark Suite
+
+## 1. Quant 16-bit (near-lossless baseline)
+
+```{r bench_q16}
+b_q16 <- benchmark_pipeline(
+  data_array, "quant",
+  list(quant = list(bits = 16)),
+  "Quant 16-bit"
+)
+```
+
+## 2. Quant 12-bit
+
+```{r bench_q12}
+b_q12 <- benchmark_pipeline(
+  data_array, "quant",
+  list(quant = list(bits = 12)),
+  "Quant 12-bit"
+)
+```
+
+## 3. Quant 8-bit
+
+```{r bench_q8}
+b_q8 <- benchmark_pipeline(
+  data_array, "quant",
+  list(quant = list(bits = 8)),
+  "Quant 8-bit"
+)
+```
+
+## 4. Quant 6-bit (aggressive)
+
+```{r bench_q6}
+b_q6 <- benchmark_pipeline(
+  data_array, "quant",
+  list(quant = list(bits = 6)),
+  "Quant 6-bit"
+)
+```
+
+## 5. Basis (k=20) + Quant 8-bit
+
+```{r bench_bk20}
+b_bk20 <- benchmark_pipeline(
+  data_array, c("basis", "quant"),
+  list(basis = list(k = 20), quant = list(bits = 8)),
+  "Basis k=20 + Q8"
+)
+```
+
+## 6. Basis (k=10) + Quant 8-bit
+
+```{r bench_bk10}
+b_bk10 <- benchmark_pipeline(
+  data_array, c("basis", "quant"),
+  list(basis = list(k = 10), quant = list(bits = 8)),
+  "Basis k=10 + Q8"
+)
+```
+
+## 7. Temporal DCT (n=30) + Quant 8-bit
+
+```{r bench_temp}
+b_temp <- benchmark_pipeline(
+  data_array, c("temporal", "quant"),
+  list(temporal = list(kind = "dct", n_basis = 30), quant = list(bits = 8)),
+  "Temporal DCT 30 + Q8"
+)
+```
+
+# Lossy vs Size Comparison
+
+```{r comparison_table}
+results <- rbind(b_q16, b_q12, b_q8, b_q6, b_bk20, b_bk10, b_temp)
+
+knitr::kable(
+  results,
+  col.names = c("Pipeline", "Size (KB)", "Ratio", "NMSE",
+                "Max Error", "Correlation", "PSNR (dB)"),
+  align = c("l", "r", "r", "r", "r", "r", "r"),
+  caption = "Compression benchmarks on 10x10x10x50 synthetic fMRI data"
+)
+```
+
+# Compression Ratio vs Fidelity
+
+```{r scatter_plot, fig.width = 7, fig.height = 5}
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
+  ggplot(results, aes(x = Ratio, y = Correlation, label = Pipeline)) +
+    geom_point(size = 3) +
+    geom_text(vjust = -0.8, hjust = 0.5, size = 3) +
+    scale_x_log10() +
+    labs(
+      x = "Compression Ratio (log scale)",
+      y = "Correlation with Original",
+      title = "Size vs Fidelity Trade-Off"
+    ) +
+    theme_minimal()
+} else {
+  cat("Install ggplot2 for a scatter plot of these results.\n")
+  print(results[, c("Pipeline", "Ratio", "Correlation")])
+}
+```
+
+# Choosing Bit Depth
+
+Bit depth is the single most important parameter for controlling the
+size/fidelity trade-off when quantization is your final (or only) step.
+Here is a rough guide:
+
+| Bits | Typical NMSE | Best for |
+|------|-------------|----------|
+| 16   | < 0.0001    | Near-lossless archival; precision-sensitive analyses |
+| 12   | < 0.001     | Working datasets; statistical analyses that need high fidelity |
+| 8    | < 0.01      | Standard archival; most group-level analyses |
+| 6    | < 0.1       | Exploratory analysis; visualization; quick previews |
+
+**Rules of thumb:**
+
+- **NMSE < 0.001** --- safe for voxel-wise t-tests and correlation analyses.
+- **NMSE < 0.01** --- safe for most group-level GLM and connectivity analyses.
+- **NMSE < 0.1** --- spatial patterns are preserved; individual voxel values may shift.
+- **NMSE > 0.1** --- significant information loss; inspect results carefully.
+
+Adding a basis or temporal step before quantization lets you keep 8-bit
+quantization (cheap storage) while pushing NMSE well below what 8-bit
+alone would achieve, because the basis captures most variance in fewer
+dimensions.
+
+# When to Use Each Pipeline
+
+**Quantization only** --- fast, simple, no extra parameters.
+Use 16-bit for near-lossless, 8-bit for everyday archival.
+
+**Basis + Quant** --- PCA removes noise dimensions before quantization,
+giving much better compression at comparable fidelity. Choose `k` based
+on the number of meaningful components in your data (10--50 is typical
+for task fMRI).
+
+**Temporal + Quant** --- DCT or wavelet basis in the time dimension
+is especially effective for long time-series (resting-state, movie
+paradigms) where temporal smoothness is high.
+
+**Spatial + Temporal + Quant** --- for maximum compression (100--500x),
+combine HRBF or Haar wavelet spatial transforms with temporal and
+quantization steps. See `vignette("compression_methods")` for the full
+catalog.
+
+```{r cleanup, include = FALSE}
+# Temp files already cleaned up by on.exit() in benchmark_pipeline
+```

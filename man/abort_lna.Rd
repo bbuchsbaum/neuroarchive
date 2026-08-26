@@ -4,7 +4,13 @@
 \alias{abort_lna}
 \title{LNA Error Handling Helpers}
 \usage{
-abort_lna(message, ..., .subclass, location = NULL, parent = NULL)
+abort_lna(
+  message,
+  ...,
+  .subclass = "lna_error",
+  location = NULL,
+  parent = NULL
+)
 }
 \arguments{
 \item{message}{A character string describing the error.}

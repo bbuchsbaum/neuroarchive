@@ -1,0 +1,150 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+name: R-CMD-check
+
+permissions: read-all
+
+jobs:
+  QPP-public-court:
+    runs-on: ${{ matrix.config.os }}
+    name: QPP court - ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: macos-latest,   r: 'release'}
+          - {os: windows-latest, r: 'release'}
+          - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
+          - {os: ubuntu-latest,  r: 'release'}
+          - {os: ubuntu-latest,  r: 'oldrel-1'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      QPP_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+
+      - name: Install package and run QPP public courts
+        run: |
+          install.packages(".", repos = NULL, type = "source")
+          consumers <- system.file(
+            "consumer",
+            c("qpp-installed-consumer.R", "qpp-adversarial-consumer.R"),
+            package = "neuroarchive"
+          )
+          stopifnot(length(consumers) == 2L, all(nzchar(consumers)))
+          for (consumer in consumers) source(consumer, echo = TRUE)
+          checked_out_sha <- system2(
+            "git", c("rev-parse", "HEAD"), stdout = TRUE
+          )
+          stopifnot(identical(checked_out_sha, Sys.getenv("QPP_SOURCE_SHA")))
+          canonical_text_sha256 <- function(path) {
+            raw <- readBin(path, "raw", n = file.info(path)$size)
+            text <- gsub("\r", "", rawToChar(raw), fixed = TRUE)
+            digest::digest(
+              charToRaw(enc2utf8(text)),
+              algo = "sha256",
+              serialize = FALSE
+            )
+          }
+          receipt <- list(
+            receipt_version = "1.1.0",
+            package = "neuroarchive",
+            package_version = as.character(packageVersion("neuroarchive")),
+            git_sha = checked_out_sha,
+            trigger_sha = Sys.getenv("GITHUB_SHA"),
+            workflow_run_id = Sys.getenv("GITHUB_RUN_ID"),
+            workflow_run_attempt = Sys.getenv("GITHUB_RUN_ATTEMPT"),
+            os = unname(Sys.info()[["sysname"]]),
+            machine = unname(Sys.info()[["machine"]]),
+            r_version = R.version.string,
+            consumer_sha256 = as.list(setNames(vapply(
+              consumers,
+              canonical_text_sha256,
+              character(1),
+              USE.NAMES = FALSE
+            ), basename(consumers))),
+            consumer_hash_mode = "sha256-lf-normalized-utf8",
+            installed_public_consumer = "pass",
+            installed_adversarial_court = "pass",
+            two_run_independence = "pass",
+            exact_provenance_validation = "pass",
+            selected_integrity_verification = "pass",
+            bounded_partial_io = "pass",
+            pure_r_integer_oracle = "pass",
+            stable_promotion = "denied",
+            multiresolution_run = "prototype-no-go"
+          )
+          jsonlite::write_json(
+            receipt, "qpp-court-receipt.json", auto_unbox = TRUE, pretty = TRUE
+          )
+        shell: Rscript {0}
+
+      - name: Upload QPP court receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: qpp-court-${{ matrix.config.os }}-r-${{ matrix.config.r }}
+          path: qpp-court-receipt.json
+          if-no-files-found: error
+
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+    name: Package check - ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: macos-latest,   r: 'release'}
+          - {os: windows-latest, r: 'release'}
+          - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
+          - {os: ubuntu-latest,  r: 'release'}
+          - {os: ubuntu-latest,  r: 'oldrel-1'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: true
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'

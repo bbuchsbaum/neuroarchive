@@ -17,14 +17,20 @@ test_that("open_output_h5 creates in-memory file and cleans up", {
 })
 
 
-test_that("open_output_h5 persists disk file after close", {
+test_that("open_output_h5 persists disk file after close and finalise", {
   tmp <- local_tempfile(fileext = ".h5")
   info <- neuroarchive:::open_output_h5(tmp)
   expect_false(info$in_memory)
-  expect_identical(info$file, tmp)
-  expect_true(file.exists(tmp))
+  # With atomic writes, info$file is a temp file and info$target_path is the final destination
+  expect_identical(info$target_path, tmp)
+  expect_true(file.exists(info$file))
   expect_true(info$h5$is_valid)
-  neuroarchive:::close_output_h5(info)
+  # Close without cleanup so we can test finalise
+  neuroarchive:::close_output_h5(info, cleanup_temp = FALSE)
+  # After close, temp file should still exist
+  expect_true(file.exists(info$file))
+  # Finalise should rename temp to target
+  info <- neuroarchive:::finalise_output_h5(info)
   expect_true(file.exists(tmp))
   h5 <- neuroarchive:::open_h5(tmp, mode = "r")
   expect_true(h5$is_valid)

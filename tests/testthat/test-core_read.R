@@ -170,22 +170,18 @@ test_that("core_read validate=TRUE calls validate_lna", {
   create_lna_with_dummy_run(tmp)
   called <- FALSE
   ns <- asNamespace("neuroarchive")
-  orig_validate <- get("validate_lna", envir = ns)
-  mock_validate <- function(file, strict = TRUE, checksum = TRUE) { called <<- TRUE }
-  if (bindingIsLocked("validate_lna", ns)) unlockBinding("validate_lna", ns)
-  assign("validate_lna", mock_validate, envir = ns)
-  lockBinding("validate_lna", ns)
-  pkg_env <- as.environment("package:neuroarchive")
-  if (exists("validate_lna", envir = pkg_env, inherits = FALSE)) {
-    assign("validate_lna", mock_validate, envir = pkg_env)
+  original_validate <- get("validate_lna", envir = ns)
+  mock_fn <- function(file, strict = TRUE, checksum = TRUE) {
+    called <<- TRUE
+    TRUE
   }
+  if (bindingIsLocked("validate_lna", ns)) unlockBinding("validate_lna", ns)
+  assign("validate_lna", mock_fn, envir = ns)
+  lockBinding("validate_lna", ns)
   withr::defer({
     if (bindingIsLocked("validate_lna", ns)) unlockBinding("validate_lna", ns)
-    assign("validate_lna", orig_validate, envir = ns)
+    assign("validate_lna", original_validate, envir = ns)
     lockBinding("validate_lna", ns)
-    if (exists("validate_lna", envir = pkg_env, inherits = FALSE)) {
-      assign("validate_lna", orig_validate, envir = pkg_env)
-    }
   })
   core_read(tmp, run_id = NULL, allow_plugins = "installed", validate = TRUE, output_dtype = "float32", roi_mask = NULL, time_idx = NULL, lazy = FALSE)
   expect_true(called)

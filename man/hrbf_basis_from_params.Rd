@@ -2,7 +2,7 @@
 % Please edit documentation in R/hrbf_helpers.R
 \name{hrbf_basis_from_params}
 \alias{hrbf_basis_from_params}
-\title{Regenerate an analytic HRBF basis matrix from descriptor parameters}
+\title{Backend-aware HRBF basis regeneration}
 \usage{
 hrbf_basis_from_params(
   params,
@@ -13,22 +13,7 @@ hrbf_basis_from_params(
   mask_linear_indices = NULL
 )
 }
-\arguments{
-\item{params}{List of HRBF parameters (as from a descriptor).}
-
-\item{mask_neurovol}{`LogicalNeuroVol` mask defining the voxel grid.}
-
-\item{h5_root}{Optional H5 group if centres are stored in the file.}
-}
-\value{
-Sparse matrix with one row per HRBF atom and columns matching
-  mask voxels.
-
-The parameter list may include `num_extra_fine_levels` to generate
-additional dyadic levels beyond `levels`. Each extra level halves
-`sigma` and samples a denser set of centres.
-}
 \description{
-Regenerate an analytic HRBF basis matrix from descriptor parameters
+Backend-aware HRBF basis regeneration
 }
 \keyword{internal}

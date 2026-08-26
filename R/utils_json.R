@@ -95,7 +95,9 @@ write_json_descriptor <- function(h5_group, name, desc_list) {
   assert_scalar_character(name, "name")
   stopifnot(is.list(desc_list))
 
-  json_string <- jsonlite::toJSON(desc_list, auto_unbox = TRUE, pretty = TRUE)
+  json_string <- jsonlite::toJSON(
+    desc_list, auto_unbox = TRUE, pretty = TRUE, null = "null"
+  )
 
   if (h5_group$exists(name)) {
     h5_group$link_delete(name)     # overwrite semantics
@@ -150,4 +152,3 @@ schema_cache_clear <- function() {
   rm(list = ls(envir = .schema_cache, all.names = TRUE), envir = .schema_cache)
   invisible(NULL)
 }
-

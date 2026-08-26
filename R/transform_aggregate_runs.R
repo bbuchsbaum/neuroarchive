@@ -7,6 +7,8 @@
 #' @param desc The transform descriptor list.
 #' @param handle The DataHandle object.
 #' @return The updated DataHandle object with aggregated data in the stash.
+#' @method forward_step aggregate_runs
+#' @export
 #' @keywords internal
 forward_step.aggregate_runs <- function(type, desc, handle) {
   # Get parameters with defaults
@@ -129,13 +131,15 @@ forward_step.aggregate_runs <- function(type, desc, handle) {
 #' Inverse step for aggregate_runs transform
 #'
 #' This function attempts to invert the aggregation operation. For operations
-#' like "sum" or "mean", it passes through the aggregated data. 
+#' like "sum" or "mean", it passes through the aggregated data.
 #' The dimensions of the input data X_agg are expected to match desc$params$orig_dims.
 #'
 #' @param type The transform type string.
 #' @param desc The transform descriptor list.
 #' @param handle The DataHandle object.
 #' @return The updated DataHandle object with the inverted data in the stash.
+#' @method invert_step aggregate_runs
+#' @export
 #' @keywords internal
 invert_step.aggregate_runs <- function(type, desc, handle) {
   # Invert: the forward step's output key is now our conceptual input key from stash

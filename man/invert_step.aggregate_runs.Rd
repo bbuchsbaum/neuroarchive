@@ -18,7 +18,7 @@ The updated DataHandle object with the inverted data in the stash.
 }
 \description{
 This function attempts to invert the aggregation operation. For operations
-like "sum" or "mean", it passes through the aggregated data. 
+like "sum" or "mean", it passes through the aggregated data.
 The dimensions of the input data X_agg are expected to match desc$params$orig_dims.
 }
 \keyword{internal}

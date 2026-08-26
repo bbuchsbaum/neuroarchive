@@ -138,6 +138,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qpp_encode_tile_rcpp
+RawVector qpp_encode_tile_rcpp(NumericMatrix q, double max_values, double max_bytes);
+RcppExport SEXP _neuroarchive_qpp_encode_tile_rcpp(SEXP qSEXP, SEXP max_valuesSEXP, SEXP max_bytesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type q(qSEXP);
+    Rcpp::traits::input_parameter< double >::type max_values(max_valuesSEXP);
+    Rcpp::traits::input_parameter< double >::type max_bytes(max_bytesSEXP);
+    rcpp_result_gen = Rcpp::wrap(qpp_encode_tile_rcpp(q, max_values, max_bytes));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qpp_decode_tile_rcpp
+NumericMatrix qpp_decode_tile_rcpp(RawVector bytes, int max_time, int max_parcels, double max_values, double max_bytes);
+RcppExport SEXP _neuroarchive_qpp_decode_tile_rcpp(SEXP bytesSEXP, SEXP max_timeSEXP, SEXP max_parcelsSEXP, SEXP max_valuesSEXP, SEXP max_bytesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< RawVector >::type bytes(bytesSEXP);
+    Rcpp::traits::input_parameter< int >::type max_time(max_timeSEXP);
+    Rcpp::traits::input_parameter< int >::type max_parcels(max_parcelsSEXP);
+    Rcpp::traits::input_parameter< double >::type max_values(max_valuesSEXP);
+    Rcpp::traits::input_parameter< double >::type max_bytes(max_bytesSEXP);
+    rcpp_result_gen = Rcpp::wrap(qpp_decode_tile_rcpp(bytes, max_time, max_parcels, max_values, max_bytes));
+    return rcpp_result_gen;
+END_RCPP
+}
 // quantize_voxel_block_rcpp
 Rcpp::List quantize_voxel_block_rcpp(NumericVector block, int bits, std::string method, bool center);
 RcppExport SEXP _neuroarchive_quantize_voxel_block_rcpp(SEXP blockSEXP, SEXP bitsSEXP, SEXP methodSEXP, SEXP centerSEXP) {
@@ -219,6 +247,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_neuroarchive_hrbf_atoms_rcpp", (DL_FUNC) &_neuroarchive_hrbf_atoms_rcpp, 5},
     {"_neuroarchive_omp_encode_rcpp", (DL_FUNC) &_neuroarchive_omp_encode_rcpp, 4},
     {"_neuroarchive_morton_indices_to_hash_rcpp", (DL_FUNC) &_neuroarchive_morton_indices_to_hash_rcpp, 1},
+    {"_neuroarchive_qpp_encode_tile_rcpp", (DL_FUNC) &_neuroarchive_qpp_encode_tile_rcpp, 3},
+    {"_neuroarchive_qpp_decode_tile_rcpp", (DL_FUNC) &_neuroarchive_qpp_decode_tile_rcpp, 5},
     {"_neuroarchive_quantize_voxel_block_rcpp", (DL_FUNC) &_neuroarchive_quantize_voxel_block_rcpp, 4},
     {"_neuroarchive_quantize_voxel_slab_rcpp", (DL_FUNC) &_neuroarchive_quantize_voxel_slab_rcpp, 6},
     {"_neuroarchive_quantize_voxel_slab_fill_rcpp", (DL_FUNC) &_neuroarchive_quantize_voxel_slab_fill_rcpp, 9},

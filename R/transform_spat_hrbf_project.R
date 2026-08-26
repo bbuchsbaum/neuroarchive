@@ -3,6 +3,8 @@
 #' Projects input data onto an analytic HRBF basis without storing the
 #' basis or centres to HDF5. Only the resulting coefficient matrix is
 #' placed in the stash for downstream transforms.
+#' @method forward_step spat.hrbf_project
+#' @export
 #' @keywords internal
 forward_step.spat.hrbf_project <- function(type, desc, handle) {
   p <- desc$params %||% list()
@@ -61,6 +63,8 @@ handle$update_stash(keys = character(),
 #' Reconstructs dense data from HRBF coefficients using an analytically
 #' generated HRBF basis. Centres are regenerated from the descriptor
 #' parameters or loaded from HDF5 if provided.
+#' @method invert_step spat.hrbf_project
+#' @export
 #' @keywords internal
 invert_step.spat.hrbf_project <- function(type, desc, handle) {
   p <- desc$params %||% list()

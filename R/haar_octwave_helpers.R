@@ -42,6 +42,18 @@ perform_haar_lift_synthesis <- function(coeff_list, mask_3d_array, levels,
   n_vox <- length(morton_idx)
   reco_morton <- matrix(0, nrow = n_time, ncol = n_vox)
 
+  backend_reco <- na_haar_inverse_matrix(
+    root_coeff = coeff_list$root,
+    detail_coeffs_by_level = coeff_list$detail,
+    mask_flat_morton = mask_flat_morton,
+    mask_dims = dim(mask_3d_array),
+    levels = levels,
+    scalings = scalings
+  )
+  if (!is.null(backend_reco)) {
+    return(backend_reco[, inv_perm, drop = FALSE])
+  }
+
   has_call <- function(sym) {
     dll <- getLoadedDLLs()[["neuroarchive"]]
     if (is.null(dll)) return(FALSE)
@@ -180,8 +192,8 @@ morton_indices_to_hash <- function(ordered_indices_vector) {
 #'
 #' Returns a list with one element per decomposition level. Each element
 #' contains numeric vectors `sqrt_nvalid` and `sqrt_nvalid_div_8`
-#' representing the $\sqrt{n_{valid}}$ and $\sqrt{n_{valid}/8}$ factors
-#' for all conceptual $2 \times 2 \times 2$ blocks in Morton order.
+#' representing the \eqn{\sqrt{n_{valid}}} and \eqn{\sqrt{n_{valid}/8}} factors
+#' for all conceptual \eqn{2 \times 2 \times 2} blocks in Morton order.
 #' @keywords internal
 precompute_haar_scalings <- function(mask_3d_array, levels) {
   if (!is.array(mask_3d_array) || length(dim(mask_3d_array)) != 3L) {
@@ -435,6 +447,20 @@ perform_haar_lift_analysis <- function(data_matrix_T_x_Nmask, mask_3d_array,
   scalings <- precompute_haar_scalings(mask_3d_array, levels)
 
   n_time <- nrow(data_morton)
+
+  backend_res <- na_haar_forward_matrix(
+    data_morton = data_morton,
+    mask_flat_morton = mask_flat_morton,
+    mask_dims = dim(mask_3d_array),
+    levels = levels,
+    scalings = scalings
+  )
+  if (!is.null(backend_res)) {
+    return(list(
+      root = backend_res$root_coeff,
+      detail = backend_res$detail_coeffs_by_level
+    ))
+  }
 
   has_call <- function(sym) {
     dll <- getLoadedDLLs()[["neuroarchive"]]

@@ -1,0 +1,72 @@
+{
+  "format": "QPP independent reference tile v1",
+  "bit_order": "least-significant-bit first",
+  "byte_order": "little-endian",
+  "fixtures": [
+    {
+      "name": "constant",
+      "q_by_column": [[7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]],
+      "predictors": ["P1"],
+      "widths": [0],
+      "hex": "515050310c000100010001000b000000000007000000"
+    },
+    {
+      "name": "ramp",
+      "q_by_column": [[-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+      "predictors": ["P2"],
+      "widths": [0],
+      "hex": "515050311400010002000200120000000000f6fffffff7ffffff"
+    },
+    {
+      "name": "alternating_extremes",
+      "q_by_column": [[-2147483648, 2147483647, -2147483648, 2147483647, -2147483648, 2147483647]],
+      "predictors": ["P0"],
+      "widths": [32],
+      "hex": "515050310600010000200000060018000000fffffffffefffffffffffffffefffffffffffffffeffffff"
+    },
+    {
+      "name": "negative_odd",
+      "q_by_column": [[-1, -2, -4, -8, -16]],
+      "predictors": ["P0"],
+      "widths": [5],
+      "hex": "515050310500010000050000050004000000619cf701"
+    },
+    {
+      "name": "singleton",
+      "q_by_column": [[-9]],
+      "predictors": ["P0"],
+      "widths": [5],
+      "hex": "51505031010001000005000001000100000011"
+    },
+    {
+      "name": "multiple_parcels",
+      "q_by_column": [
+        [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+        [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        [-4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4]
+      ],
+      "predictors": ["P1", "P2", "P0"],
+      "widths": [0, 0, 4],
+      "hex": "5150503114000300010001001300000000000300000002000200120000000000f6fffffff7ffffff0004000014000a00000087878787878787878787"
+    },
+    {
+      "name": "parcel_group_a",
+      "group_set": "two_group_example",
+      "q_by_column": [
+        [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+        [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      ],
+      "predictors": ["P1", "P2"],
+      "widths": [0, 0],
+      "hex": "5150503114000200010001001300000000000300000002000200120000000000f6fffffff7ffffff"
+    },
+    {
+      "name": "parcel_group_b",
+      "group_set": "two_group_example",
+      "q_by_column": [[-4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4, -4, 4]],
+      "predictors": ["P0"],
+      "widths": [4],
+      "hex": "51505031140001000004000014000a00000087878787878787878787"
+    }
+  ]
+}

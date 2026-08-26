@@ -1,0 +1,23 @@
+{
+  "manifest_version": "1.0.0",
+  "corpus_kind": "redistributable deterministic synthetic parcellated fMRI",
+  "calibration": {
+    "ids": ["synthetic-calibration-run-01", "synthetic-calibration-run-02"],
+    "checksum": "sha256:8f283ff607668ee2d5683bfaf93300f626ccb2efa7d2b78f5dc48264d7be6373",
+    "selection_role": "candidate fitting and selection"
+  },
+  "evaluation": {
+    "ids": ["synthetic-evaluation-run-01", "synthetic-evaluation-run-02"],
+    "checksum": "sha256:ebe07d4ee501e75727ec10ca251b1359f1fd827a072a995e4973e061e45fba0a",
+    "selection_role": "untouched until one candidate was frozen"
+  },
+  "disjoint": true,
+  "dimensions": {
+    "runs_per_split": 2,
+    "time": 192,
+    "parcels": 128
+  },
+  "units": "percent-signal-change",
+  "restricted_real_data_in_repository": false,
+  "external_data_promotion_required": true
+}

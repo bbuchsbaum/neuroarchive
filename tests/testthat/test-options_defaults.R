@@ -21,7 +21,8 @@ test_that("lna_options set and get work", {
   lna_options(write.chunk_target_mib = 2)
   expect_equal(lna_options("write.chunk_target_mib")[[1]], 2)
 
-  lna_options(foo = "bar", baz = 1)
+  # Use .strict=FALSE to allow unknown options without warnings
+  lna_options(foo = "bar", baz = 1, .strict = FALSE)
   res <- lna_options("foo", "baz")
   expect_identical(res$foo, "bar")
   expect_identical(res$baz, 1)
@@ -58,6 +59,14 @@ test_that("default_params loads defaults from schema and caches", {
 
   d2 <- neuroarchive:::default_params("test")
   expect_identical(d1, d2)
+})
+
+test_that("engine.math option defaults to fmrilatent and can be switched", {
+  expect_equal(lna_options("engine.math")[[1]], "fmrilatent")
+  lna_options(engine.math = "internal")
+  expect_equal(lna_options("engine.math")[[1]], "internal")
+  lna_options(engine.math = "fmrilatent")
+  expect_equal(lna_options("engine.math")[[1]], "fmrilatent")
 })
 
 test_that("defaults are extracted from array items", {

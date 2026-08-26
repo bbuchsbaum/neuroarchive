@@ -5,7 +5,7 @@
 \alias{.transform_registry}
 \title{Transform Registry System}
 \format{
-An object of class \code{environment} of length 13.
+An object of class \code{environment} of length 27.
 }
 \usage{
 .transform_registry

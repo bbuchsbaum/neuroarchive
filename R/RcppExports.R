@@ -37,6 +37,14 @@ morton_indices_to_hash_rcpp <- function(voxelIdx) {
     .Call(`_neuroarchive_morton_indices_to_hash_rcpp`, voxelIdx)
 }
 
+qpp_encode_tile_rcpp <- function(q, max_values, max_bytes) {
+    .Call(`_neuroarchive_qpp_encode_tile_rcpp`, q, max_values, max_bytes)
+}
+
+qpp_decode_tile_rcpp <- function(bytes, max_time, max_parcels, max_values, max_bytes) {
+    .Call(`_neuroarchive_qpp_decode_tile_rcpp`, bytes, max_time, max_parcels, max_values, max_bytes)
+}
+
 quantize_voxel_block_rcpp <- function(block, bits, method, center) {
     .Call(`_neuroarchive_quantize_voxel_block_rcpp`, block, bits, method, center)
 }

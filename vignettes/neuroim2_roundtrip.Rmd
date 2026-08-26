@@ -1,29 +1,177 @@
 ---
-title: "Round-Trip with neuroim2"
+title: Round-Trip with neuroim2
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Round-Trip with neuroim2}
-  %\VignetteEngine{rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+params:
+  family: red
+css: albers.css
+resource_files:
+- albers.css
+- albers.js
+includes:
+  in_header: |-
+    <script src="albers.js"></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('palette-red');});</script>
+
 ---
 
-This vignette shows a minimal example of writing a `neuroim2` object to
-an LNA file and reading it back.
+```{r setup, include = FALSE}
+if (requireNamespace("ggplot2", quietly = TRUE) && requireNamespace("albersdown", quietly = TRUE)) ggplot2::theme_set(albersdown::theme_albers(params$family))
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  eval = TRUE
+)
+```
 
-```r
+# Why neuroim2?
+
+The `neuroim2` package provides spatial-aware neuroimaging data
+structures like `DenseNeuroVec` that carry voxel dimensions, spacing,
+and affine information alongside the data. When you pass a
+`DenseNeuroVec` to `write_lna()`, the spatial metadata is automatically
+captured in the LNA file header so you do not lose coordinate
+information during compression.
+
+This vignette demonstrates a full round-trip: create a synthetic
+`DenseNeuroVec`, compress it to an LNA file, read it back, and verify
+that the data and metadata survive intact.
+
+```{r}
 library(neuroarchive)
-# library(neuroim2) # for real use
+library(neuroim2)
+```
 
-# Read a NIfTI using neuroim2 (example path)
-# vec <- neuroim2::read_vec("func.nii.gz")
-# Ensure we have a DenseNeuroVec
-# vec <- as(vec, "DenseNeuroVec")
+# Create Synthetic Data
+
+We use `neuroim2::simulate_fmri()` to generate a small 6x6x4 volume
+with 20 timepoints. This produces realistic-looking fMRI data with
+temporal autocorrelation.
+
+```{r create_data}
+sp <- neuroim2::NeuroSpace(c(6L, 6L, 4L), spacing = c(2, 2, 2))
+mask_arr <- array(TRUE, dim = c(6L, 6L, 4L))
+mask_vol <- neuroim2::NeuroVol(as.integer(mask_arr), sp)
+sim <- neuroim2::simulate_fmri(mask_vol, n_time = 20L, seed = 42L)
+vec <- methods::as(sim, "DenseNeuroVec")
+
+cat(sprintf("Dimensions: %s\n", paste(dim(vec), collapse = " x ")))
+cat(sprintf("Spacing: %s mm\n", paste(spacing(sp), collapse = " x ")))
+cat(sprintf("Data range: [%.2f, %.2f]\n",
+            min(as.array(vec)), max(as.array(vec))))
+```
 
 # Write to LNA
-# write_lna(vec, "roundtrip.h5", transforms = "quant")
 
-# Read back
-# read_lna("roundtrip.h5")
+`write_lna()` accepts a `DenseNeuroVec` directly. The spatial header
+(dimensions, spacing, origin) is stored automatically in the HDF5 file.
 
-# Future: read_lna("roundtrip.h5", as_neuroim = TRUE)
+```{r write_lna}
+tmp <- tempfile(fileext = ".lna.h5")
+
+result <- write_lna(vec, tmp, transforms = "quant",
+                    transform_params = list(quant = list(bits = 8)))
+print(result)
+```
+
+# Read Back
+
+`read_lna()` returns a `DataHandle` with the reconstructed data in
+`$stash$input`.
+
+```{r read_back}
+handle <- read_lna(tmp)
+recon <- handle$stash$input
+
+cat(sprintf("Reconstructed shape: %s\n",
+            paste(dim(recon), collapse = " x ")))
+```
+
+# Verify Reconstruction Quality
+
+```{r verify_quality}
+orig <- as.vector(as.array(vec))
+rec  <- as.vector(recon)
+
+cor_val <- cor(orig, rec)
+max_err <- max(abs(orig - rec))
+nmse <- mean((orig - rec)^2) / var(orig)
+
+cat(sprintf("Correlation: %.4f\n", cor_val))
+cat(sprintf("Max error:   %.4f\n", max_err))
+cat(sprintf("NMSE:        %.6f\n", nmse))
+```
+
+With 8-bit quantization, the correlation should be very close to 1.
+
+# Header Preservation
+
+The LNA file stores the spatial metadata from the `DenseNeuroVec`
+in the `/header` HDF5 group. You can inspect it directly:
+
+```{r header_check}
+h5 <- hdf5r::H5File$new(tmp, mode = "r")
+
+if (h5$exists("header")) {
+  header_group <- h5[["header"]]
+  cat("Header contents:\n")
+  cat(sprintf("  Items: %s\n",
+              paste(names(header_group), collapse = ", ")))
+
+  # Show spatial dimensions if stored
+  if (header_group$exists("dim")) {
+    cat(sprintf("  Dimensions: %s\n",
+                paste(header_group[["dim"]]$read(), collapse = " x ")))
+  }
+}
+
+h5$close()
+```
+
+# Different Pipelines
+
+You can use any transform pipeline with `DenseNeuroVec` data, just as
+you would with a plain array.
+
+## PCA + Quantization
+
+```{r pipeline_basis}
+tmp2 <- tempfile(fileext = ".h5")
+
+write_lna(vec, tmp2,
+          transforms = c("basis", "quant"),
+          transform_params = list(
+            basis = list(k = 10),
+            quant = list(bits = 8)
+          ))
+
+handle2 <- read_lna(tmp2)
+recon2 <- handle2$stash$input
+
+cat(sprintf("Basis+Quant correlation: %.4f\n",
+            cor(as.vector(as.array(vec)), as.vector(recon2))))
+cat(sprintf("File size: %.1f KB\n", file.info(tmp2)$size / 1024))
+```
+
+## Lossless Delta Encoding
+
+```{r pipeline_delta}
+tmp3 <- tempfile(fileext = ".h5")
+
+write_lna(vec, tmp3, transforms = "delta")
+
+handle3 <- read_lna(tmp3)
+recon3 <- handle3$stash$input
+
+max_err3 <- max(abs(as.vector(as.array(vec)) - as.vector(recon3)))
+cat(sprintf("Delta (lossless) max error: %e\n", max_err3))
+```
+
+```{r cleanup, include = FALSE}
+unlink(c(tmp, tmp2, tmp3))
 ```

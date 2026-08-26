@@ -124,7 +124,11 @@ forward_step.temporal <- function(type, desc, handle) {
 
   desc$version <- "1.0"
   desc$inputs <- c(input_key)
-  desc$outputs <- c("temporal_coefficients")
+  # Preserve the pipeline-assigned output key for stash chaining;
+
+  # store the HDF5 dataset role separately in params.
+  output_key <- desc$outputs[[1]] %||% "temporal_coefficients"
+  desc$outputs <- c(output_key)
   datasets <- list(
     list(path = basis_path, role = "temporal_basis"),
     list(path = coef_path, role = "temporal_coefficients")
@@ -163,7 +167,7 @@ forward_step.temporal <- function(type, desc, handle) {
   handle$plan <- plan
 
   handle$update_stash(keys = c(input_key),
-                      new_values = list(temporal_coefficients = coeff))
+                      new_values = setNames(list(coeff), output_key))
 }
 
 #' Temporal Transform - Inverse Step
@@ -288,20 +292,22 @@ invert_step.temporal <- function(type, desc, handle) {
   subset <- handle$subset
   if (!is.null(subset$roi_mask)) {
     roi <- as.logical(subset$roi_mask)
-    if (length(roi) == ncol(dense)) { 
+    if (length(roi) == ncol(dense)) {
       dense <- dense[, roi, drop = FALSE]
     }
+    handle$subset_applied$roi_mask <- TRUE
   }
   if (!is.null(subset$time_idx)) {
     idx <- as.integer(subset$time_idx)
     # Ensure that idx is not empty and all indices are within bounds
-    if (length(idx) > 0 && nrow(dense) >= max(idx) && min(idx) > 0) { 
+    if (length(idx) > 0 && nrow(dense) >= max(idx) && min(idx) > 0) {
         dense <- dense[idx, , drop = FALSE]
     } else if (length(idx) > 0) {
         # If a downstream inverse step expands the time axis (e.g., delta),
         # applying time_idx here may be premature. Only warn in debug mode.
         if (dbg) warning("time_idx for temporal subsetting is invalid or out of bounds.")
     }
+    handle$subset_applied$time_idx <- TRUE
   }
   if (dbg) message(sprintf("[invert_step.temporal] Dense dims after subsetting: %s", paste(dim(dense), collapse="x")))
   
